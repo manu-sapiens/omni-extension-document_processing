@@ -1,11 +1,11 @@
 import { files_to_chunks_cdn, loop_llm_on_chunks, query_chunks, save_json_to_cdn } from './util/omni_langchain'
 
-const ChunkFilesComponent =
-{
+const ChunkFilesComponent = {
   schema:
   {
     "tags": ['default'],
     "componentKey": "chunkFiles",
+    "category": "Document Processing",
     "operation": {
       "schema": {
         "title": "Chunk Files",
@@ -103,7 +103,7 @@ const ChunkFilesComponent =
     }
   },
   functions: {
-    _exec: async (payload, ctx) => {
+    _exec: async (payload: any, ctx: any) => {
 
       let return_value = { result: { "ok": false }, files: [] };
       if (payload.files) {
