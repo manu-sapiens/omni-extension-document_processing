@@ -1034,14 +1034,14 @@ var ChunkFilesComponent = {
     "category": "Document Processing",
     "operation": {
       "schema": {
-        "title": "Chunk Files",
+        "title": "Chunk Documents",
         "type": "object",
         "required": [],
         "properties": {
-          "files": {
-            "title": "Files",
+          "documents": {
+            "title": "Documents",
             "type": "array",
-            "x-type": "cdnObjectArray",
+            "x-type": "documentArray",
             "description": `Chunk the files and save the chunks to the CDN.`,
           },
           "chunk_size": {
@@ -1071,6 +1071,12 @@ var ChunkFilesComponent = {
                 "title": "CDN Files",
                 "type": "array",
                 "x-type": "cdnObjectArray",
+                "description": "The chunked text files"
+              },              
+              "documents": {
+                "title": "Chunk Documents",
+                "type": "array",
+                "x-type": "documentArray",
                 "description": "The chunked text files"
               },
             },
@@ -1102,11 +1108,11 @@ var ChunkFilesComponent = {
     _exec: async (payload, ctx) =>
     {
 
-      let return_value = { result: { "ok": false }, files: [] };
-      if (payload.files)
+      let return_value = { result: { "ok": false }, documents: [] };
+      if (payload.documents)
       {
 
-        const files = payload.files;
+        const files = payload.documents;
         let chunk_size = payload.chunk_size || 1000;
         let vectorstore_name = payload.vectorstore_name || "default";
 
@@ -1115,7 +1121,7 @@ var ChunkFilesComponent = {
         const embedder = new OmniOpenAIEmbeddings(ctx);
         const args = { chunk_size: chunk_size, vectorstore_name: vectorstore_name, embedder: embedder };
         const chunks_cdn = await files_to_chunks_cdn(ctx, files, args);
-        return_value = { result: { "ok": true }, files: [chunks_cdn] };
+        return_value = { result: { "ok": true }, documents: [chunks_cdn] , files: [chunks_cdn]};
       }
 
       return return_value;
@@ -1135,10 +1141,10 @@ var LoopLLMComponent = {
         "type": "object",
         "required": [],
         "properties": {
-          "files": {
-            "title": "Chunk Files",
+          "documents": {
+            "title": "Chunk Documents",
             "type": "array",
-            "x-type": "cdnObjectArray",
+            "x-type": "documentArray",
             "description": `Chunk files`,
           },
           "instruction": {
@@ -1193,6 +1199,12 @@ var LoopLLMComponent = {
                 "type": "array",
                 "x-type": "cdnObjectArray",
                 "description": "The files containing the results"
+              },              
+              "documents": {
+                "title": "Result Documents",
+                "type": "array",
+                "x-type": "documentArray",
+                "description": "The files containing the results"
               },
             },
           },
@@ -1222,10 +1234,10 @@ var LoopLLMComponent = {
   functions: {
     _exec: async (payload, ctx) =>
     {
-      let return_value = { result: { "ok": false }, files: [] };
-      if (payload.files)
+      let return_value = { result: { "ok": false }, documents: [] };
+      if (payload.documents)
       {
-        const files = payload.files;
+        const files = payload.documents;
         const instruction = payload.instruction;
         let llm_functions = payload.llm_functions || NO_FUNCTIONS;
         const temperature = payload.temperature || 0;
@@ -1248,7 +1260,7 @@ var LoopLLMComponent = {
           
           console_log(`cdn_response = ${JSON.stringify(cdn_response)}`);
         }
-        return_value = { result: { "ok": true }, files: cdn_response_array };
+        return_value = { result: { "ok": true }, files: cdn_response_array, documents: cdn_response_array };
       }
 
       return return_value;
@@ -1269,10 +1281,10 @@ var QueryChunksComponent = {
         "type": "object",
         "required": [],
         "properties": {
-          "files": {
-            "title": "Chunk Files",
+          "documents": {
+            "title": "Chunk Documents",
             "type": "array",
-            "x-type": "cdnObjectArray",
+            "x-type": "documentArray",
             "description": `Chunk files`,
           },
           "query": {
@@ -1311,6 +1323,12 @@ var QueryChunksComponent = {
                 "type": "array",
                 "x-type": "cdnObjectArray",
                 "description": "The files containing the results"
+              },              
+              "documents": {
+                "title": "Result Documents",
+                "type": "array",
+                "x-type": "documentArray",
+                "description": "The files containing the results"
               },
             },
           },
@@ -1341,11 +1359,11 @@ var QueryChunksComponent = {
     _exec: async (payload, ctx) =>
     {
 
-      let return_value = { result: { "ok": false }, files: [] };
-      if (payload.files)
+      let return_value = { result: { "ok": false }, documents: [] };
+      if (payload.documents)
       {
 
-        const files = payload.files;
+        const files = payload.documents;
         const nb_of_results = payload.nb_of_results || 2;
         const query = payload.query;
         const allow_gpt3 = payload.allow_gpt3 || true;
@@ -1365,7 +1383,7 @@ var QueryChunksComponent = {
 
           console_log(`cdn_response = ${JSON.stringify(cdn_response)}`);
         }
-        return_value = { result: { "ok": true }, files: cdn_response_array };
+        return_value = { result: { "ok": true }, files: cdn_response_array, documents: cdn_response_array };
       }
 
       return return_value;
