@@ -735,7 +735,7 @@ async function save_json_to_cdn_as_buffer(ctx, json)
 {
   const responses_string = JSON.stringify(json, null, 2).trim();
   const buffer = Buffer.from(responses_string);
-  const cdn_response = await ctx.app.cdn.putTemp(buffer);
+  const cdn_response = await ctx.app.cdn.putTemp(buffer, userId: {ctx.userId});
   console.log(`cdn_response = ${JSON.stringify(cdn_response)}`);
   return cdn_response;
 }
@@ -745,7 +745,7 @@ async function save_json_to_cdn(ctx, json)
 {
   const responses_string = JSON.stringify(json, null, 2).trim();
   const buffer = Buffer.from(responses_string);
-  const cdn_response = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8' });
+  const cdn_response = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
   console_log(`cdn_response = ${JSON.stringify(cdn_response)}`);
 
   return cdn_response;
