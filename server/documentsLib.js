@@ -5,6 +5,7 @@ import { Embeddings } from "langchain/embeddings/base";
 import { encoding_for_model } from "@dqbd/tiktoken";
 import MurmurHash3 from 'imurmurhash';
 import PDFParser from 'pdf2json';
+import { type } from "os";
 
 const GPT_SIZE_MARGIN = 500;
 const GPT3_MODEL_SMALL = "gpt-3.5-turbo";
@@ -96,7 +97,7 @@ async function component_load_pdf(ctx, cdn_response, args)
 
     const db = get_db(ctx);
 
-    let texts_cdn = null
+    let texts_cdn = null;
 
     if (overwrite) 
     {
@@ -736,7 +737,7 @@ async function user_db_delete(ctx, key, db, rev = undefined)
             console_log(`user_db_delete: fixing rev failed`);
         }
     }
-  
+
 }
 
 async function user_db_put(ctx, value, key, db, rev = undefined)
@@ -901,7 +902,7 @@ async function save_json_to_cdn_as_buffer(ctx, json)
 {
     const responses_string = JSON.stringify(json, null, 2).trim();
     const buffer = Buffer.from(responses_string);
-    const cdn_response = await ctx.app.cdn.putTemp(buffer, {userId: ctx.userId});
+    const cdn_response = await ctx.app.cdn.putTemp(buffer, { userId: ctx.userId });
     console.log(`cdn_response = ${JSON.stringify(cdn_response)}`);
     return cdn_response;
 }
@@ -946,7 +947,7 @@ async function get_chunks_from_cdn(ctx, chunks_cdn)
 {
     const chunks_json = await get_json_from_cdn(ctx, chunks_cdn);
     const chunks = chunks_json.chunks;
-    if (is_list_valid(chunks) == false) throw new Error(`Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+    if (is_list_valid(chunks) == false) throw new Error(`[get_chunks_from_cdn] Error getting chunks from database with cdn= ${JSON.stringify(chunks_cdn)}`);
 
     return chunks;
 }
@@ -954,23 +955,24 @@ async function get_chunks_from_cdn(ctx, chunks_cdn)
 async function component_query_chunks(ctx, chunks_cdn, query, args)
 {
     const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_list_valid(chunks) == false) throw new Error(`Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+    if (is_list_valid(chunks) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
 
     const nb_of_results = args.nb_of_results;
-    const embedder = args.embedder;
+    const embedder = new OmniOpenAIEmbeddings(ctx);
+
     if (embedder == null || embedder == undefined) throw new Error(`query_chunks: embedder is invalid`);
 
     const vectorstore = await compute_vectorstore(chunks, embedder);
     const query_answers = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder);
     const cdn_response = await save_json_to_cdn(ctx, query_answers);
-    
+
     return cdn_response;
 }
 
 async function component_loop_llm_on_chunks(ctx, chunks_cdn, instruction, functions, args)
 {
     const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_list_valid(chunks) == false) throw new Error(`Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+    if (is_list_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
 
     const temperature = args.temperature || DEFAULT_TEMPERATURE;
     const top_p = args.top_p || DEFAULT_TOP_P;
@@ -997,7 +999,7 @@ async function compute_vectorstore(chunks, embedder)
     // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
 
     console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
-    if (is_list_valid(chunks) == false) throw new Error(`Error getting chunks from database with id ${JSON.stringify(texts_cdn)}`);
+    if (is_list_valid(chunks) == false) throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(texts_cdn)}`);
 
     const [all_texts, all_ids] = get_texts_and_ids(chunks);
     console.log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
@@ -1191,4 +1193,219 @@ async function get_chunks_cdn_from_db(ctx, chunks_id)
 
 }
 
-export { component_load_pdf, component_files_to_chunks_cdn, component_query_chunks, component_loop_llm_on_chunks, save_json_to_cdn, clean_vectorstore_name, adjust_chunk_size, OmniOpenAIEmbeddings, NO_FUNCTIONS };
+function parse_chapter_info(chapters, chapter_numnber, chapter_info, args)
+{
+    const chapter_name_field = args.chapter_name_field;
+    let chapterNumber = chapter_numnber;
+    let chapter_key = `chapter_${chapterNumber}`;
+
+    let chapter_object = {};
+    if (chapters[chapter_key]) chapter_object = chapters[chapter_key];
+
+    Object.entries(chapter_info).forEach(([field, new_value]) =>
+    {
+        console.log(`field = ${field}, new_value = ${new_value}`);
+        if (new_value !== null && new_value !== undefined && new_value !== "" && new_value !== [])
+        {
+            if (field in chapter_object)
+            {
+                const old_value = chapter_object[field];
+                console.log(`old_value = ${old_value}`);
+                if (typeof new_value === "string")
+                {
+                    if (typeof old_value === "string")
+                    {
+                        if (field == chapter_name_field)
+                        {
+                            if (old_value != new_value)
+                            {
+                                if (old_value == "" || old_value == null || old_value == undefined)
+                                {
+                                    chapter_object[field] = new_value;
+                                } else
+                                {
+                                    console.log(`WARNING: cannot decide between the following chapter names: ${old_value} and ${new_value}`);
+                                }
+                            }
+                        } else
+                        {
+                            chapter_object[field] += '\n ' + new_value;
+                        }
+                    } else if (Array.isArray(old_value))
+                    {
+                        if (!old_value.includes(new_value))
+                        {
+                            chapter_object[field].push(new_value);
+                        }
+                    }
+                } else if (Array.isArray(new_value))
+                {
+                    if (new_value.length > 0)
+                    {
+                        let updated_array = [];
+                        if (typeof old_value === "string")
+                        {
+                            updated_array = [old_value];
+                        } else if (Array.isArray(old_value))
+                        {
+                            updated_array = old_value;
+                        }
+
+                        for (let i = 0; i < new_value.length; i++)
+                        {
+                            if (!updated_array.includes(new_value[i]))
+                            {
+                                updated_array.push(new_value[i]);
+                            }
+                        }
+                        chapter_object[field] = updated_array;
+                    }
+                }
+            } else
+            {
+                if ((typeof new_value === "string" && new_value == "") || (Array.isArray(new_value) && new_value.length == 0))
+                {
+                    console.log("culling empty values");
+                } else
+                {
+                    chapter_object[field] = new_value;
+                }
+            }
+        }
+    });
+
+    console.log(`chapter_object = ${JSON.stringify(chapter_object)}`);
+    chapters[chapter_key] = chapter_object;
+    console.log(`Chapter ${chapterNumber}:\n${JSON.stringify(chapters[chapter_key])}`);
+
+    return chapters;
+}
+
+
+// Function to process a chunk and update the chapters object
+function collate_chapter_chunk(chapters, chunk, current_chapter_number, args) 
+{
+    const chapter_name_field = args.chapter_name_field;
+    const current_chapter_field = args.current_chapter;
+    const new_chapter_field = args.new_chapter;
+
+    let chapterNumber = current_chapter_number;
+
+    if (current_chapter_field in chunk)
+    {
+
+        const currentChapter = chunk[current_chapter_field];
+        chapters = parse_chapter_info(chapters, chapterNumber, currentChapter, args);
+    }
+
+    // Check if the chunk represents a new chapter
+    if (new_chapter_field in chunk)
+    {
+        console.log("---------- found new chapter ----------");
+        chapterNumber += 1;
+
+        console.log(`Chapter ${chapterNumber}:`);
+
+        const newChapter = chunk[new_chapter_field];
+        /*
+        const chapterName =  "<unknown>"
+        // Extract chapter number and name
+        if (chapter_name_field in newChapter)
+        {
+            chapterName = newChapter[chapter_name_field];
+        }
+
+        const possible_new_chapte_number = parseInt(chapterName.match(/\d+/)[0]) || current_chapter_number+1;
+        if (possible_new_chapte_number !== null && possible_new_chapte_number !== undefined)
+        {
+            chapterNumber = possible_new_chapte_number;
+        }
+        */
+        chapters = parse_chapter_info(chapters, chapterNumber, newChapter, args);
+    }
+
+    console.log(`[collate chapter chunk] [INFO] chapterNumber was: ${current_chapter_number}, now: ${chapterNumber}`);
+    return { chapters: chapters, chapter_number: chapterNumber };
+}
+
+
+async function component_collate_chapters(ctx, chunks_cdn, args)
+{
+    const chapter_name_field = args.chapter_name_field || "chapter_name";
+    const current_chapter_field = args.current_chapter || "current_chapter";
+    const new_chapter_field = args.new_chapter || "new_chapter";
+    const overwrite = args.overwrite || false;
+
+
+    console.log(`[component_collate_chapters] [INFO] chapter_name_field = ${chapter_name_field}, current_chapter_field = ${current_chapter_field}, new_chapter_field = ${new_chapter_field}, overwrite = ${overwrite}`);
+
+    const chunks = await get_json_from_cdn(ctx, chunks_cdn);
+
+
+    let chapters = {};
+    let chapter_number = 1;
+    let summary = "SUMMARY\n=======\n\n";
+    let plot = "PLOT POINTS\n===========\n\n";
+
+    for (let i = 0; i < chunks.length; i++)
+    {
+        const chunk_wrapper = chunks[i];
+        const chunk = chunk_wrapper.function_arguments;
+        console_log(`chunk = ${JSON.stringify(chunk)}`);
+
+        const results = collate_chapter_chunk(chapters, chunk, chapter_number, args);
+        console.log(`results = ${JSON.stringify(results)}`);
+
+        chapters = results.chapters;
+        chapter_number = results.chapter_number;
+    }
+
+    const nb_of_chapters = Object.keys(chapters).length;
+    console.log(`Nb of chapters: " + ${Object.keys(chapters).length}`);
+    for (let i = 0; i < nb_of_chapters; i++)
+    {
+        const chapter_key = `chapter_${i + 1}`;
+        const chapter = chapters[chapter_key];
+        if (chapter)
+        {
+            const chapter_name = "Chapter " + (i + 1);
+            if (chapter_name_field in chapter) chapter_name += ": " + chapter[chapter_name_field];
+
+            summary += chapter_name + "\n";
+            if ("summary" in chapter) summary += chapter["summary"] + "\n\n\n"; else summary += "<no summary given>\n\n\n";
+
+            plot += chapter_name + "\n";
+            if ("plot_points" in chapter) 
+            {
+                const plot_point = chapter["plot_points"];
+
+                if (typeof plot_point === "string")
+                {
+                    plot += plot_point + "\n";
+                }
+                else if (Array.isArray(plot_point))
+                {
+                    for (let j = 0; j < plot_point.length; j++)
+                    {
+                        plot += plot_point[j] + "\n";
+                    }
+                    plot += "\n\n";
+                }
+                else
+                {
+                    plot += "<no plot points given>\n\n\n";
+                }
+            }
+        }
+    }
+
+    const cdn_chapters = await save_json_to_cdn(ctx, chapters);
+    const cdn_summary = await save_text_to_cdn(ctx, summary);
+    const cdn_plot = await save_text_to_cdn(ctx, plot);
+
+    return { chapters: cdn_chapters, summary: cdn_summary, plot: cdn_plot };
+
+
+}
+
+export { component_collate_chapters, component_load_pdf, component_files_to_chunks_cdn, component_query_chunks, component_loop_llm_on_chunks, save_json_to_cdn, clean_vectorstore_name, adjust_chunk_size, OmniOpenAIEmbeddings, NO_FUNCTIONS };

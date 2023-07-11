@@ -4,8 +4,9 @@ import {ChunkFilesComponent} from "./ChunkFilesComponent.js";
 import {LoadPDFComponent} from "./LoadPDFComponent.js";
 import {LoopLLMComponent} from "./LoopLLMComponent.js";
 import {QueryChunksComponent} from "./QueryChunksComponent.js";
+import { CollateChaptersComponent } from "./CollateChaptersComponent.js"; 
 
-var components = [LoadPDFComponent, ChunkFilesComponent, LoopLLMComponent, QueryChunksComponent];
+var components = [LoadPDFComponent, ChunkFilesComponent, LoopLLMComponent, QueryChunksComponent, CollateChaptersComponent];
 var components_default = (FactoryFn) =>
 {
   return components.map((c) => FactoryFn(c.schema, c.functions));

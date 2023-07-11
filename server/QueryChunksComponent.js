@@ -108,8 +108,7 @@ var QueryChunksComponent = {
           const overwrite = payload.overwrite || false;
           if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
 
-          const embedder = new OmniOpenAIEmbeddings(ctx);
-          const args = { embedder:embedder, nb_of_results: nb_of_results, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite };
+          const args = { nb_of_results: nb_of_results, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite };
           
           const cdn_response_array = [];
           for (let i = 0; i < files.length; i++)
