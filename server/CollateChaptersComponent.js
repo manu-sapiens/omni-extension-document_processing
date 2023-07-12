@@ -1,4 +1,4 @@
-import { component_collate_chapters} from "./documentsLib.js";
+import { collate_chapters_component} from "./documentsLib.js";
 //http://127.0.0.1:3000/fid/93,2df1f451da
 
 var CollateChaptersComponent = {
@@ -84,7 +84,7 @@ var CollateChaptersComponent = {
           for (let i = 0; i < files.length; i++)
           {
             const chunks_cdn = files[i];
-            const results = await component_collate_chapters(ctx, chunks_cdn, args);
+            const results = await collate_chapters_component(ctx, chunks_cdn, args);
             const chapterized_chunks_cdn = results.chapters;
             const summary_cdn = results.summary;
             const plot_cdn = results.plot;
@@ -104,4 +104,4 @@ var CollateChaptersComponent = {
   };
 
 export {CollateChaptersComponent};
-  
+    

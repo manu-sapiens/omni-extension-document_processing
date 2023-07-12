@@ -1,4 +1,4 @@
-import { component_loop_llm_on_chunks, NO_FUNCTIONS} from "./documentsLib.js";
+import { loop_llm_component } from "./documentsLib.js";
 
 var LoopLLMComponent = {
     schema:
@@ -55,6 +55,12 @@ var LoopLLMComponent = {
               "title": "Allow GPT4 usage",
               "type": "boolean",
               "default": false,
+            },
+            "embeddings": {
+              "title": "Embeddings",
+              "type": "string", 
+              "enum": ["openai", "tensorflow"],
+              "default": "tensorflow",
             },
             "overwrite": {
               "title": "Overwrite",
@@ -116,23 +122,24 @@ var LoopLLMComponent = {
         {
           const files = payload.documents;
           const instruction = payload.instruction;
-          let llm_functions = payload.llm_functions || NO_FUNCTIONS;
+          let llm_functions = payload.llm_functions || [];
           const temperature = payload.temperature || 0;
           const top_p = payload.top_p || 1;
           const allow_gpt3 = payload.allow_gpt3 || true;
           const allow_gpt4 = payload.allow_gpt4 || false;
           const overwrite = payload.overwrite || false;
+          const embeddings = payload.embeddings || "tensorflow";
           if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
   
           if (llm_functions.length === 0) llm_functions = NO_FUNCTIONS;
           
-          const args = { temperature: temperature, top_p: top_p, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite };
+          const args = { temperature: temperature, top_p: top_p, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite, embeddings: embeddings };
   
           const cdn_response_array = [];
           for (let i = 0; i < files.length; i++)
           {
             const chunks_cdn = files[i];
-            const cdn_response = await component_loop_llm_on_chunks(ctx, chunks_cdn, instruction, llm_functions, args);
+            const cdn_response = await loop_llm_component(ctx, chunks_cdn, instruction, llm_functions, args);
             cdn_response_array.push(cdn_response);
             
             console.log(`cdn_response = ${JSON.stringify(cdn_response)}`);

@@ -1,4 +1,4 @@
-import { component_query_chunks } from "./documentsLib.js";
+import { query_chunks_component } from "./documentsLib.js";
 
 var QueryChunksComponent = {
     schema:
@@ -40,10 +40,15 @@ var QueryChunksComponent = {
               "type": "boolean",
               "default": false,
             },
+            "embeddings": {
+              "title": "Embeddings",
+              "type": "string", 
+              "enum": ["openai", "tensorflow"],
+              "default": "tensorflow",
+            },            
             "overwrite": {
               "title": "Overwrite",
               "type": "boolean",
-              "default": false,
               "description": `Overwrite the existing files in the CDN.`,
             },            
           },
@@ -106,15 +111,16 @@ var QueryChunksComponent = {
           const allow_gpt3 = payload.allow_gpt3 || true;
           const allow_gpt4 = payload.allow_gpt4 || false;
           const overwrite = payload.overwrite || false;
+          const embeddings = payload.embeddings || "tensorflow";
           if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
 
-          const args = { nb_of_results: nb_of_results, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite };
+          const args = { nb_of_results: nb_of_results, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite, embeddings: embeddings };
           
           const cdn_response_array = [];
           for (let i = 0; i < files.length; i++)
           {
             const chunks_cdn = files[i];
-            const cdn_response = await component_query_chunks(ctx, chunks_cdn, query, args);
+            const cdn_response = await query_chunks_component(ctx, chunks_cdn, query, args);
             cdn_response_array.push(cdn_response);
   
             console.log(`cdn_response = ${JSON.stringify(cdn_response)}`);

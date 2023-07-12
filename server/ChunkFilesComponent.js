@@ -1,4 +1,4 @@
-import { component_files_to_chunks_cdn} from "./documentsLib.js";
+import { chunk_files_component} from "./documentsLib.js";
 
 var ChunkFilesComponent = {
     schema:
@@ -22,9 +22,8 @@ var ChunkFilesComponent = {
               "title": "Chunk Size",
               "type": "number",
               "default": 1000,
-              "minimum": 500,
-              "maximum": 32000,
-              "step": 50,
+              "minimum": 0,
+              "maximum": 100000,
               "description": `The size of each chunk in tokens.`,
             },
             "vectorstore_name": {
@@ -32,10 +31,15 @@ var ChunkFilesComponent = {
               "type": "string",
               "default": "optional vectorstore name",
             },
+            "embeddings": {
+              "title": "Embeddings",
+              "type": "string", 
+              "enum": ["openai", "tensorflow"],
+              "default": "tensorflow",
+            },            
             "overwrite": {
               "title": "Overwrite",
               "type": "boolean",
-              "default": false,
               "description": `Overwrite the existing files in the CDN.`,
             },            
           }
@@ -91,14 +95,7 @@ var ChunkFilesComponent = {
         let return_value = { result: { "ok": false }, documents: [] };
         if (payload.documents)
         {
-  
-          const files = payload.documents;
-          let chunk_size = payload.chunk_size || 1000;
-          let vectorstore_name = payload.vectorstore_name || "default";
-          const overwrite = payload.overwrite || false;
- 
-          const args = { chunk_size: chunk_size, vectorstore_name: vectorstore_name, overwrite: overwrite };
-          const chunks_cdn = await component_files_to_chunks_cdn(ctx, files, args);
+          const chunks_cdn = await chunk_files_component(ctx, payload);
           return_value = { result: { "ok": true }, documents: [chunks_cdn] , files: [chunks_cdn]};
         }
   

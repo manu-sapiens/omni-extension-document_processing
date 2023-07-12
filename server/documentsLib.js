@@ -5,7 +5,8 @@ import { Embeddings } from "langchain/embeddings/base";
 import { encoding_for_model } from "@dqbd/tiktoken";
 import MurmurHash3 from 'imurmurhash';
 import PDFParser from 'pdf2json';
-import { type } from "os";
+import "@tensorflow/tfjs-backend-cpu";
+import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
 
 const GPT_SIZE_MARGIN = 500;
 const GPT3_MODEL_SMALL = "gpt-3.5-turbo";
@@ -30,6 +31,32 @@ const DEFAULT_TOP_P = 1.0;
 let GLOBAL_ALLOW_GPT3 = true;
 let GLOBAL_ALLOW_GPT4 = false;
 const VERBOSE = true;
+
+function is_valid(value)
+{
+    if (value === null || value === undefined)
+    {
+        return false;
+    }
+
+    if (Array.isArray(value) && value.length === 0)
+    {
+        return false;
+    }
+
+    if (typeof value === 'object' && Object.keys(value).length === 0)
+    {
+        return false;
+    }
+
+    if (typeof value === 'string' && value.trim() === '')
+    {
+        return false;
+    }
+
+    return true;
+}
+
 
 async function parsePDFData(buffer)
 {
@@ -72,63 +99,11 @@ async function parsePDF(buffer)
     }
 }
 
-async function component_load_pdf(ctx, cdn_response, args)
-{
-    const pdfParser = new PDFParser();
-    const overwrite = args.overwrite || false;
-
-    pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError));
-    pdfParser.on("pdfParser_dataReady", pdfData => 
-    {
-        console.log(pdfData);
-    });
-
-    if ("ticket" in cdn_response == false) throw new Error(`get_json_from_cdn: cdn_response = ${JSON.stringify(cdn_response)} is invalid`);
-    const response_from_cdn = await ctx.app.cdn.get(cdn_response.ticket, null, 'asBase64');
-    if (response_from_cdn == null) throw new Error(`get_json_from_cdn: document = ${JSON.stringify(response_from_cdn)} is invalid`);
-
-    const str = response_from_cdn.data.toString();
-    const dataBuffer = Buffer.from(str, 'base64');
-
-    const pdfData = await parsePDF(dataBuffer);
-    const extractedTextFields = extractTextFields(pdfData);
-    const all_texts = extractedTextFields.join(' ');
-    const texts_id = "converted_pdf_texts_" + calculate_hash(all_texts);
-
-    const db = get_db(ctx);
-
-    let texts_cdn = null;
-
-    if (overwrite) 
-    {
-        await user_db_delete(ctx, texts_id, db);
-    }
-    else
-    {
-        texts_cdn = await user_db_get(ctx, texts_id, db);
-    }
-
-    if (is_object_valid(texts_cdn) == false) 
-    {
-        console_log(`Could not find Texts CDN records for id = ${texts_id} in the DB. Saving to CDN...`);
-        texts_cdn = await save_text_to_cdn(ctx, all_texts);
-        if (is_object_valid(texts_cdn) == false) throw new Error(`ERROR: could not save all_texts to cdn`);
-
-        const success = await user_db_put(ctx, texts_cdn, texts_id, db);
-        if (success == false) throw new Error(`ERROR: could not save texts_cdn to db`);
-    }
-    else
-    {
-        console_log(`Found Texts CDN records for id = ${texts_id} in the DB. Skipping saving to CDN...`);
-    }
-    return texts_cdn;
-}
-
 function extractTextFields(jsonData) 
 {
-    if (is_object_valid(jsonData) == false) throw new Error(`extractTextFields: jsonData = ${JSON.stringify(jsonData)} is invalid`);
+    if (is_valid(jsonData) == false) throw new Error(`extractTextFields: jsonData = ${JSON.stringify(jsonData)} is invalid`);
     const pages = jsonData.Pages;
-    if (is_object_valid(pages) == false) throw new Error(`extractTextFields: pages = ${JSON.stringify(pages)} is invalid`);
+    if (is_valid(pages) == false) throw new Error(`extractTextFields: pages = ${JSON.stringify(pages)} is invalid`);
 
     const concatenatedTexts = pages.map((page) => 
     {
@@ -143,7 +118,7 @@ function console_log(...args)
 {
     if (VERBOSE == true)
     {
-        console.log("------ langchain -------");
+        console.log("------ extension: document_processing -------");
         console.log(...args);
         console.log("\n");
     }
@@ -197,14 +172,14 @@ class OmniOpenAIEmbeddings extends Embeddings
     {
 
         const embeddings = [];
-        if (is_list_valid(texts))
+        if (is_valid(texts))
         {
             for (let i = 0; i < texts.length; i += 1)
             {
                 let text = texts[i];
                 const embedding_id = calculate_hash(text);
-                const db_embedding = await user_db_get(this.ctx, embedding_id, this.db); // TBD need to have a method that check if it exists in the DB without creating a lot of error log trash
-                if (is_list_valid(db_embedding))
+                const db_embedding = await user_db_get(this.ctx, embedding_id); // TBD need to have a method that check if it exists in the DB without creating a lot of error log trash
+                if (is_valid(db_embedding))
                 {
                     embeddings.push(db_embedding);
                 }
@@ -213,11 +188,11 @@ class OmniOpenAIEmbeddings extends Embeddings
                     console_log(`[${i}] generating embedding for ${text.slice(0, 128)}`);
                     try
                     {
-                        const response = await this.compute_embedding(this.ctx, text);
+                        const response = await this.compute_embedding_via_runblock(this.ctx, text);
                         const openai_embedding = response.embedding;
                         embeddings.push(openai_embedding);
 
-                        const success = await user_db_put(this.ctx, openai_embedding, embedding_id, this.db);
+                        const success = await user_db_put(this.ctx, openai_embedding, embedding_id);
                         if (success == false)
                         {
                             throw new Error(`Error saving embedding for text index ${i}`);
@@ -238,11 +213,11 @@ class OmniOpenAIEmbeddings extends Embeddings
 
     async embedQuery(text)
     {
-        const { embedding } = await this.compute_embedding(this.ctx, text);
+        const embedding = await this.compute_embedding_via_runblock(this.ctx, text);
         return embedding;
     }
 
-    async compute_embedding(ctx, input)
+    async compute_embedding_via_runblock(ctx, input)
     {
         let args = {};
         args.user = ctx.user.id;
@@ -268,10 +243,10 @@ class OmniOpenAIEmbeddings extends Embeddings
         }
 
         let data = response?.data || null;
-        if (is_list_valid(data) == false) { throw new Error(`embedding runBlock response is invalid: ${JSON.stringify(response)}`); };
+        if (is_valid(data) == false) { throw new Error(`embedding runBlock response is invalid: ${JSON.stringify(response)}`); };
 
         const embedding = response?.data[0]?.embedding || null;
-        return { embedding: embedding };
+        return embedding;
     }
 }
 
@@ -367,7 +342,7 @@ async function fix_with_llm(ctx, json_string_to_fix)
     let text = response?.answer_text || "";
     console_log(`[FIXING] fix_with_llm: text: ${text}`);
 
-    if (is_string_valid(text) === false) return null;
+    if (is_valid(text) === false) return null;
 
     return text;
 
@@ -377,7 +352,7 @@ async function fix_with_llm(ctx, json_string_to_fix)
 async function fix_json_string(ctx, passed_string) 
 {
 
-    if (is_string_valid(passed_string) === false)
+    if (is_valid(passed_string) === false)
     {
         throw new Error(`[FIXING] fix_json_string: passed string is not valid: ${passed_string}`);
 
@@ -431,7 +406,7 @@ async function fix_json_string(ctx, passed_string)
 
 function clean_string(original)
 {
-    if (is_string_valid(original) == false)
+    if (is_valid(original) == false)
     {
         return "";
     }
@@ -486,7 +461,7 @@ const runBlock = async (ctx, block, args) =>
     }
 };
 
-async function query_advanced_chatgpt(ctx, prompt, instruction, functions = NO_FUNCTIONS, temperature = 0, top_p = 1)
+async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], temperature = 0, top_p = 1)
 {
 
     let args = {};
@@ -496,7 +471,7 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = NO_F
     args.temperature = temperature;
     args.top_p = top_p;
 
-    if (functions != NO_FUNCTIONS) args.functions = functions;
+    if (functions != []) args.functions = functions;
 
     const response = await runChatGPTBlock(ctx, args);
     if (response.error) throw new Error(response.error);
@@ -505,8 +480,8 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = NO_F
     let text = response?.answer_text || "";
     let function_arguments = response?.function_arguments || "";
 
-    if (is_string_valid(function_arguments) == true) function_arguments = await fix_json_string(ctx, function_arguments);
-    if (is_string_valid(text) == true) text = clean_string(text);
+    if (is_valid(function_arguments) == true) function_arguments = await fix_json_string(ctx, function_arguments);
+    if (is_valid(text) == true) text = clean_string(text);
 
 
     const return_value = {
@@ -607,13 +582,135 @@ function break_into_sentences(text, chunk_size)
     return [sentence_infos, total_cost, total_words];
 }
 
+
+function split_into_sentences(text)
+{
+    // Use a regular expression to consider sequences not containing '. ', '? ', or '! ' followed by a '.', '?', or '!'
+    return text.match(/[^.!?]*[.!?]/g) || [];
+}
+
+
+
+// Main function to populate chunks
+async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000, overlap_sentences = 1)
+{
+    if (embedder == null) throw new Error("No global embeddings available");
+
+    console.log(`----------------> initial text = ${text}`);
+    const [chunks_list, total_cost, total_words] = create_chunks(text, base_name, chunk_size, overlap_sentences);
+
+    for (let i = 0; i < chunks_list.length; i++) 
+    {
+        const embedding_value = await await compute_and_cache_chunk_embedding(ctx, embedder, chunks_list[i]);
+        chunks_list[i].embedding = embedding_value;
+        console.log(`Computed embeddings for Chunk  ${i}`);
+    }
+
+    return [chunks_list, total_cost, total_words];
+}
+
+// Main function to create chunks
+function create_chunks(text, base_name, chunk_size_in_tokens, overlap_size = 1, word_to_token_ratio = 0.8)
+{
+    if (typeof text !== 'string') throw new TypeError("Text must be a string");
+    if (typeof chunk_size_in_tokens !== 'number' || chunk_size_in_tokens <= 0) throw new TypeError("Chunk size must be a positive number");
+    if (typeof overlap_size !== 'number' || overlap_size < 0) throw new TypeError("Overlap sentences must be a non-negative number");
+
+    console.log(`Computing chunks for ${base_name} with chunk size ${chunk_size_in_tokens}, text length ${text.length}, chunk size ${chunk_size_in_tokens}`);
+
+    const sentences = split_into_sentences(text);
+    console.log("sentence_infos = ", sentences);
+    if (sentences.length === 0) throw new Error("No sentence infos available");
+
+    const chunks_list = [];
+    let chunk_index = 0;
+
+    let chunk = {
+        index: 0,
+        text: "",
+        first_sentence_index: 0,
+        token_cost: 0,
+        overlap_text: "",
+        overlap_cost: 0,
+        id: "",
+        embedding: "<not computed>",
+    };
+    let chunk_token_count = 0;  // initialize chunk_token_count
+    let total_cost = 0;  // to keep track of the total token cost
+    let total_words = 0;  // to keep track of the total number of words
+
+    for (let sentence_index = 0; sentence_index < sentences.length; sentence_index++) 
+    {
+        let sentence = sentences[sentence_index];
+        let sentence_token_count = sentence.split(' ').length * word_to_token_ratio;
+
+        if ((chunk.token_cost + sentence_token_count) <= chunk_size_in_tokens)
+        {
+            // build the current chunk with this sentence
+            chunk.text += sentence;
+            chunk.token_cost += sentence_token_count;
+
+            console.log(`Adding sentence#${sentence_index} to chunk#${chunk_index} -----> ${sentence}`);
+        } else
+        {
+
+            // finalize the current chunk
+            chunk.id = base_name + "_" + calculate_hash(chunk.text);
+            chunks_list.push(chunk);
+
+            // calculate the total token cost
+            total_cost += chunk.token_cost;
+            
+            console.log(`Finalizing chunk#${chunk_index} with ${chunk.token_cost} tokens, total cost = ${total_cost}`);
+            console.log(`chunk#${chunk_index} = ${chunk.text}`);
+            console.log(`----------------------------------------`);
+            // prepare the next chunk with overlapping sentences
+            chunk_index++;
+
+            chunk = {
+                index: chunk_index,
+                text: sentence,
+                first_sentence_index: sentence_index,
+                token_cost: sentence_token_count,
+                overlap_text: "",
+                overlap_cost: "",
+                id: "",
+                embedding: "<not computed>",
+            };
+
+            // build the overlap
+            const go_back = Math.max(0, sentence_index - overlap_size);
+            for (let i = go_back; i < sentence_index; i++)
+            {
+                let overlap_sentence = sentences[i];
+                let overlap_sentence_token_count = overlap_sentence.split(' ').length * word_to_token_ratio;
+                chunk.overlap_text += overlap_sentence;
+                chunk.overlap_cost += overlap_sentence_token_count;
+            }
+        }
+    }
+
+    // finalize the very last chunk
+    chunk.id = base_name + "_" + calculate_hash(chunk.text);
+    chunks_list.push(chunk);
+
+    // calculate the total token cost
+    total_cost += chunk.token_cost;
+    total_words = total_cost / word_to_token_ratio;
+
+    console.log(`Chunked the document into ${chunks_list.length} chunks with an estimated token cost of ${chunk_token_count}`);
+    return [chunks_list, total_cost, total_words];
+}
+
+
+/*
 async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000)
 {
     if (embedder == null) throw new Error("No global embeddings available");
 
     console_log(`Computing chunks for ${base_name} with chunk size ${chunk_size}, text length ${text.length}, chunk size ${chunk_size}`);
     const [sentence_infos, total_cost, total_words] = break_into_sentences(text, chunk_size);
-    if (is_object_valid(sentence_infos) == false) throw new Error("No sentence infos available");
+    if (is_valid(sentence_infos) == false) throw new Error("No sentence infos available");
 
     const chunks_list = [];
     let chunk_index = 0;
@@ -677,12 +774,12 @@ async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000)
     let return_value = [chunks_list, total_cost, total_words];
     return return_value;
 }
-
-async function compute_and_save_chunk_embedding(ctx, embedder, chunk_text, chunk_id)
+*/
+async function compute_and_cache_chunk_embedding(ctx, embedder, chunk)
 {
-    const response = await embedder.compute_embedding(ctx, chunk_text);
-    const chunk_embedding = response?.embedding;
-    const embedding = chunk_embedding;
+    const chunk_text = chunk.text;
+    const chunk_id = chunk.id;
+    const embedding = await embedder.embedQuery(chunk_text);
     await save_embedding_to_db(ctx, embedding, chunk_id);
     return embedding;
 }
@@ -690,7 +787,7 @@ async function compute_and_save_chunk_embedding(ctx, embedder, chunk_text, chunk
 async function save_embedding_to_db(ctx, embedding, embedding_id)
 {
     const db = get_db(ctx);
-    const success = await user_db_put(ctx, embedding, embedding_id, db);
+    const success = await user_db_put(ctx, embedding, embedding_id);
     if (!success) throw new Error("Failed to save embedding to db");
 }
 
@@ -706,10 +803,11 @@ function get_effective_key(ctx, key)
 }
 
 
-async function user_db_delete(ctx, key, db, rev = undefined)
+async function user_db_delete(ctx, key, rev = undefined)
 {
+    const db = get_db(ctx);
     const effectiveKey = get_effective_key(ctx, key);
-    console_log(`user_db_delete: ${key} = ${effectiveKey}`);
+    console_log(`DELETING key: ${effectiveKey}`);
 
     let effective_rev = rev;
     if (effective_rev == undefined)
@@ -727,24 +825,25 @@ async function user_db_delete(ctx, key, db, rev = undefined)
             }
             catch (e)
             {
-                console.warning(`user_db_delete: ${key} = ${effectiveKey} failed with error: ${e}`);
+                console.warning(`deleting ${key} = ${effectiveKey} failed with error: ${e}`);
             }
             return true;
 
         }
         catch (e)
         {
-            console_log(`user_db_delete: fixing rev failed`);
+            console_log(`deleting: fixing rev failed`);
         }
     }
 
 }
 
-async function user_db_put(ctx, value, key, db, rev = undefined)
+async function user_db_put(ctx, value, key, rev = undefined)
 {
+    const db = get_db(ctx);
     const effectiveKey = get_effective_key(ctx, key);
 
-    console_log(`user_db_put: ${key} = ${effectiveKey} with rev ${rev}`);
+    console_log(`put: ${key} = ${effectiveKey} with rev ${rev}`);
 
     let effective_rev = rev;
     if (effective_rev == undefined)
@@ -767,26 +866,26 @@ async function user_db_put(ctx, value, key, db, rev = undefined)
         let json = await db.putDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey, { value: value }, effective_rev);
         if (json == null) 
         {
-            console_log(`user_db_put: ${key} = ${effectiveKey} failed`);
+            console_log(`put: ${key} = ${effectiveKey} failed`);
             return false;
         }
         else
         {
-            console_log(`user_db_put: ${key} = ${effectiveKey} succeeded`);
+            console_log(`put: ${key} = ${effectiveKey} succeeded`);
         }
     }
     catch (e)
     {
-        throw new Error(`user_db_put: ${key} = ${effectiveKey} failed with error: ${e}`);
+        throw new Error(`put: ${key} = ${effectiveKey} failed with error: ${e}`);
     }
 
     return true;
 }
 
-async function user_db_get(ctx, key, db)
+async function user_db_get(ctx, key)
 {
-
     const effectiveKey = get_effective_key(ctx, key);
+    const db = get_db(ctx);
 
     let json = null;
     try
@@ -833,7 +932,7 @@ function calculate_hash(text)
 
 function get_texts_and_ids(chunks_list)
 {
-    if (is_list_valid(chunks_list) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
+    if (is_valid(chunks_list) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
     let chunk_texts = [];
     let chunk_ids = [];
     for (let i = 0; i < chunks_list.length; i++)
@@ -849,19 +948,6 @@ function get_texts_and_ids(chunks_list)
     return [chunk_texts, chunk_ids];
 }
 
-function is_list_valid(l)
-{
-    const is_invalid = (l == null || l == undefined || Array.isArray(l) == false || l.length == undefined || l.length == 0);
-    const is_valid = !is_invalid;
-    return is_valid;
-}
-function is_string_valid(s)
-{
-    const is_invalid = (s == null || s == undefined || (typeof s === 'string' || s instanceof String) == false || s.length == undefined || s.length == 0);
-    const is_valid = !is_invalid;
-
-    return is_valid;
-}
 
 function adjust_chunk_size(chunk_size)
 {
@@ -947,48 +1033,9 @@ async function get_chunks_from_cdn(ctx, chunks_cdn)
 {
     const chunks_json = await get_json_from_cdn(ctx, chunks_cdn);
     const chunks = chunks_json.chunks;
-    if (is_list_valid(chunks) == false) throw new Error(`[get_chunks_from_cdn] Error getting chunks from database with cdn= ${JSON.stringify(chunks_cdn)}`);
+    if (is_valid(chunks) == false) throw new Error(`[get_chunks_from_cdn] Error getting chunks from database with cdn= ${JSON.stringify(chunks_cdn)}`);
 
     return chunks;
-}
-
-async function component_query_chunks(ctx, chunks_cdn, query, args)
-{
-    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_list_valid(chunks) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
-
-    const nb_of_results = args.nb_of_results;
-    const embedder = new OmniOpenAIEmbeddings(ctx);
-
-    if (embedder == null || embedder == undefined) throw new Error(`query_chunks: embedder is invalid`);
-
-    const vectorstore = await compute_vectorstore(chunks, embedder);
-    const query_answers = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder);
-    const cdn_response = await save_json_to_cdn(ctx, query_answers);
-
-    return cdn_response;
-}
-
-async function component_loop_llm_on_chunks(ctx, chunks_cdn, instruction, functions, args)
-{
-    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_list_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
-
-    const temperature = args.temperature || DEFAULT_TEMPERATURE;
-    const top_p = args.top_p || DEFAULT_TOP_P;
-
-    let chunks_results = [];
-    for (let i = 0; i < chunks.length; i++)
-    {
-        const chunk = chunks[i];
-        const chunk_result = await run_llm_on_chunk(ctx, chunk, instruction, functions, temperature, top_p);
-        chunks_results.push(chunk_result);
-    }
-
-
-    const cdn_response = await save_json_to_cdn(ctx, chunks_results);
-
-    return cdn_response;
 }
 
 async function compute_vectorstore(chunks, embedder)
@@ -999,7 +1046,7 @@ async function compute_vectorstore(chunks, embedder)
     // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
 
     console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
-    if (is_list_valid(chunks) == false) throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(texts_cdn)}`);
+    if (is_valid(chunks) == false) throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(texts_cdn)}`);
 
     const [all_texts, all_ids] = get_texts_and_ids(chunks);
     console.log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
@@ -1012,7 +1059,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_result
     console_log(`----= smartquery from vectorstore =----`);
     console_log(`query = ${query}, nb_of_results = ${nb_of_results}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
 
-    if (is_string_valid(query) == false) throw new Error(`ERROR: query is invalid`);
+    if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
     let vectorstore_responses = await query_vectorstore(vectorstore, query, nb_of_results, embedder);
 
     let query_answers = [];
@@ -1026,11 +1073,11 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_result
         const instruction = `Please review the passed document fragment and see if you can answer the following question based solely on it: ${query}.\nHowever, do not say 'Based solely on the document fragment,' or anything like that. Instead, just answer the question. Thanks!`;
         const query_answer_json = await query_advanced_chatgpt(ctx, pageContent, instruction);
         const query_answer = query_answer_json?.text || null;
-        if (is_string_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
+        if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
         query_answers.push(query_answer);
     }
 
-    if (is_list_valid(query_answers) == false)
+    if (is_valid(query_answers) == false)
     {
         let error_message = `[ERROR] Error getting answers from query_vectorstore_with_llm with query = ${query}`;
         throw new Error(error_message);
@@ -1042,7 +1089,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_result
 
 function clean_vectorstore_name(vectorstore_name)
 {
-    if (is_string_valid(vectorstore_name) == false) throw new Error(`ERROR: vectorstore_name is invalid`);
+    if (is_valid(vectorstore_name) == false) throw new Error(`ERROR: vectorstore_name is invalid`);
     const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
     return clean_name;
 }
@@ -1050,7 +1097,7 @@ function clean_vectorstore_name(vectorstore_name)
 function compute_chunks_id(texts, vectorstore_name)
 {
     // get the key so that we can pass it around
-    if (is_list_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
+    if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
 
     // we want the same texts but chunked differently to produce a different hash
     let sum_of_hashs = "";
@@ -1059,28 +1106,26 @@ function compute_chunks_id(texts, vectorstore_name)
         sum_of_hashs += calculate_hash(texts[i]);
     }
     const chunks_id = vectorstore_name + "_" + calculate_hash(sum_of_hashs);
-    console_log(`----= compute_chunks_id:  = ${chunks_id} =----`);
+    console_log(`chunks_id = ${chunks_id}`);
 
     return chunks_id;
 }
 
 
-async function gather_all_texts_from_documents(ctx, files)
+async function gather_all_texts_from_documents(ctx, documents)
 {
-    console_log(`----= gather_all_texts_from_documents: files# = ${files.length} =----`);
-
-    if (is_list_valid(files) == false) throw new Error(`ERROR: targets is invalid`);
+    if (is_valid(documents) == false) throw new Error(`ERROR: documents is invalid. documents = ${JSON.stringify(documents)}`);
 
     let texts = [];
-    for (let i = 0; i < files.length; i++) 
+    for (let i = 0; i < documents.length; i++) 
     {
 
-        const target = files[i];
+        const document_cdn = documents[i];
         //TBD: convert docs files to text when necessary
-        const document = await ctx.app.cdn.get(target.ticket);
-        const mimeType = target.mimeType || 'text/plain; charset=utf-8';
+        const document = await ctx.app.cdn.get(document_cdn.ticket);
+        const mimeType = document_cdn.mimeType || 'text/plain; charset=utf-8';
         const text = document.data.toString() || "";
-        if (is_string_valid(text) == false) 
+        if (is_valid(text) == false) 
         {
             console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
             continue;
@@ -1090,107 +1135,24 @@ async function gather_all_texts_from_documents(ctx, files)
         texts.push(clearn_text);
     }
 
+    if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
+
     return texts;
-}
-
-function is_object_valid(obj)
-{
-    const is_invalid = (obj == null || obj == undefined || obj == {});
-    return !is_invalid;
-}
-
-
-
-async function component_files_to_chunks_cdn(ctx, files, args)
-{
-    const texts = await gather_all_texts_from_documents(ctx, files);
-    if (is_list_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
-
-    let chunk_size = args.chunk_size || DEFAULT_CHUNK_SIZE;
-    let vectorstore_name = args.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
-    const overwrite = args.overwrite || false;
-    let embedder = new OmniOpenAIEmbeddings(ctx);
-    if (embedder == null || embedder == undefined) throw new Error(`ERROR: embedder is invalid`);
-
-    vectorstore_name = clean_vectorstore_name(vectorstore_name);
-    chunk_size = adjust_chunk_size(chunk_size);
-
-    const chunks_id = compute_chunks_id(texts, vectorstore_name);
-
-    let chunks_cdn = null;
-    if (overwrite)
-    {
-        await user_db_delete(ctx, chunks_id, get_db(ctx));
-    }
-    else
-    {
-        chunks_cdn = await get_chunks_cdn_from_db(ctx, chunks_id);
-    }
-    if (is_object_valid(chunks_cdn) == false) 
-    {
-        console_log(`Found no Chunk CDN records for id = ${chunks_id} in the DB. Chunking now...`);
-
-        let chunks = [];
-        let total_cost = 0;
-        let total_words = 0;
-
-        for (let i = 0; i < texts.length; i++) 
-        {
-            let text = texts[i];
-            const [chunks_list, cost, words] = await compute_chunks(ctx, embedder, text, vectorstore_name, chunk_size);
-            total_cost += cost;
-            total_words += words;
-
-            if (is_list_valid(chunks_list) == false)
-            {
-                console_log(`ERROR could not chunk the document with doc_checksum = ${doc_id}`);
-                continue;
-            }
-            chunks = chunks.concat(chunks_list);
-        }
-
-        if (is_list_valid(chunks) == false) 
-        {
-            throw new Error(`ERROR could not chunk the documents`);
-        }
-
-        chunks_cdn = await save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words);
-        if (is_object_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
-        console_log(`files__to_chunks_cdn: = ${JSON.stringify(chunks_cdn)}`);
-
-        const success = await save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id);
-        if (success == false) throw new Error(`ERROR: could not save chunks_cdn to db`);
-    }
-    else
-    {
-        console_log(`Found Chunk CDN records for id = ${chunks_id} in the DB. Skipping chunking...`);
-    }
-    console_log(`chunks_cdn = ${JSON.stringify(chunks_cdn)}`);
-    return chunks_cdn;
 }
 
 async function save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words)
 {
     const chunks_json = { chunks: chunks, chunks_id: chunks_id, total_cost: total_cost, total_words: total_words };
     const chunks_cdn = await save_json_to_cdn_as_buffer(ctx, chunks_json);
-    if (is_object_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
+    if (is_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
     return chunks_cdn;
 }
 
 async function save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id)
 {
-    const db = get_db(ctx);
-    const success = await user_db_put(ctx, chunks_cdn, chunks_id, db);
+    const success = await user_db_put(ctx, chunks_cdn, chunks_id);
     if (success == false) throw new Error(`ERROR: could not save chunks_cdn to db`);
     return success;
-}
-
-async function get_chunks_cdn_from_db(ctx, chunks_id)
-{
-    const db = get_db(ctx);
-    const chunks_cdn = await user_db_get(ctx, chunks_id, db);
-    return chunks_cdn;
-
 }
 
 function parse_chapter_info(chapters, chapter_numnber, chapter_info, args)
@@ -1281,7 +1243,6 @@ function parse_chapter_info(chapters, chapter_numnber, chapter_info, args)
     return chapters;
 }
 
-
 // Function to process a chunk and update the chapters object
 function collate_chapter_chunk(chapters, chunk, current_chapter_number, args) 
 {
@@ -1303,24 +1264,8 @@ function collate_chapter_chunk(chapters, chunk, current_chapter_number, args)
     {
         console.log("---------- found new chapter ----------");
         chapterNumber += 1;
-
         console.log(`Chapter ${chapterNumber}:`);
-
         const newChapter = chunk[new_chapter_field];
-        /*
-        const chapterName =  "<unknown>"
-        // Extract chapter number and name
-        if (chapter_name_field in newChapter)
-        {
-            chapterName = newChapter[chapter_name_field];
-        }
-
-        const possible_new_chapte_number = parseInt(chapterName.match(/\d+/)[0]) || current_chapter_number+1;
-        if (possible_new_chapte_number !== null && possible_new_chapte_number !== undefined)
-        {
-            chapterNumber = possible_new_chapte_number;
-        }
-        */
         chapters = parse_chapter_info(chapters, chapterNumber, newChapter, args);
     }
 
@@ -1328,8 +1273,117 @@ function collate_chapter_chunk(chapters, chunk, current_chapter_number, args)
     return { chapters: chapters, chapter_number: chapterNumber };
 }
 
+function get_embedder(ctx, args)
+{
+    const embeddings_model = args.embeddings;
+    let embedder = null;
+    if (embeddings_model == "openai") embedder = new OmniOpenAIEmbeddings(ctx);
+    else if (embeddings_model == "tensorflow") embedder = new TensorFlowEmbeddings();
+    if (embedder == null || embedder == undefined) throw new Error(`get_embedder: Failed to initialize embeddings_model ${embeddings_model}`);
+    return embedder;
+}
+// ---------------------------------------------------------------------------
+async function load_pdf_component(ctx, payload)
+{
 
-async function component_collate_chapters(ctx, chunks_cdn, args)
+    const documents_array = payload.documents;
+    if (is_valid(documents_array) == false) throw new Error(`load_pdf_component: documents_array = ${JSON.stringify(documents_array)} is invalid`);
+
+    const texts_cdns = [];
+    for (let i = 0; i < documents_array.length; i++)
+    {
+
+        const documents_cdn = documents_array[i];
+
+        const pdfParser = new PDFParser();
+        const overwrite = payload.overwrite || true;
+
+        pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError));
+        pdfParser.on("pdfParser_dataReady", pdfData => 
+        {
+            console.log(pdfData);
+        });
+
+        if ("ticket" in documents_cdn == false) throw new Error(`get_json_from_cdn: documents_cdn = ${JSON.stringify(documents_cdn)} is invalid`);
+        const response_from_cdn = await ctx.app.cdn.get(documents_cdn.ticket, null, 'asBase64');
+        if (response_from_cdn == null) throw new Error(`get_json_from_cdn: document = ${JSON.stringify(response_from_cdn)} is invalid`);
+
+        const str = response_from_cdn.data.toString();
+        const dataBuffer = Buffer.from(str, 'base64');
+
+        const pdfData = await parsePDF(dataBuffer);
+        const extractedTextFields = extractTextFields(pdfData);
+        const all_texts = extractedTextFields.join(' ');
+        const cleaned_texts = clean_string(all_texts);
+        const texts_id = "converted_pdf_texts_" + calculate_hash(cleaned_texts);
+
+
+        let texts_cdn = null;
+
+        if (overwrite) 
+        {
+            await user_db_delete(ctx, texts_id);
+        }
+        else
+        {
+            texts_cdn = await user_db_get(ctx, texts_id);
+        }
+
+        if (is_valid(texts_cdn) == false) 
+        {
+            console_log(`Could not find Texts CDN records for id = ${texts_id} in the DB. Saving to CDN...`);
+            texts_cdn = await save_text_to_cdn(ctx, cleaned_texts);
+            if (is_valid(texts_cdn) == false) throw new Error(`ERROR: could not save all_texts to cdn`);
+
+            const success = await user_db_put(ctx, texts_cdn, texts_id);
+            if (success == false) throw new Error(`ERROR: could not save texts_cdn to db`);
+        }
+        else
+        {
+            console_log(`Found Texts CDN records for id = ${texts_id} in the DB. Skipping saving to CDN...`);
+        }
+        texts_cdns.push(texts_cdn);
+    }
+    return texts_cdns;
+}
+// ---------------------------------------------------------------------------
+async function query_chunks_component(ctx, chunks_cdn, query, args)
+{
+    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
+    if (is_valid(chunks) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+
+    const nb_of_results = args.nb_of_results;
+    const embedder = get_embedder(ctx, args);
+    const vectorstore = await compute_vectorstore(chunks, embedder);
+    const query_answers = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder);
+    const cdn_response = await save_json_to_cdn(ctx, query_answers);
+
+    return cdn_response;
+}
+// ---------------------------------------------------------------------------
+async function loop_llm_component(ctx, chunks_cdn, instruction, functions, args)
+{
+    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
+    if (is_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+
+    const temperature = args.temperature || DEFAULT_TEMPERATURE;
+    const top_p = args.top_p || DEFAULT_TOP_P;
+
+    let chunks_results = [];
+    for (let i = 0; i < chunks.length; i++)
+    {
+        const chunk = chunks[i];
+        const chunk_result = await run_llm_on_chunk(ctx, chunk, instruction, functions, temperature, top_p);
+        chunks_results.push(chunk_result);
+    }
+
+
+    const cdn_response = await save_json_to_cdn(ctx, chunks_results);
+
+    return cdn_response;
+}
+// ---------------------------------------------------------------------------
+async function collate_chapters_component(ctx, chunks_cdn, args)
 {
     const chapter_name_field = args.chapter_name_field || "chapter_name";
     const current_chapter_field = args.current_chapter || "current_chapter";
@@ -1407,5 +1461,76 @@ async function component_collate_chapters(ctx, chunks_cdn, args)
 
 
 }
+// ---------------------------------------------------------------------------
+async function chunk_files_component(ctx, payload)
+{
+    console.log(`--------------------------------`);
+    console_log(`[component_chunk_files] payload = ${JSON.stringify(payload)}`);
+    const documents = payload.documents;
+    const overwrite = true; // looks like the boolean component is broken in the Designer // payload.overwrite || false;
+    let chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
+    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
 
-export { component_collate_chapters, component_load_pdf, component_files_to_chunks_cdn, component_query_chunks, component_loop_llm_on_chunks, save_json_to_cdn, clean_vectorstore_name, adjust_chunk_size, OmniOpenAIEmbeddings, NO_FUNCTIONS };
+    const texts = await gather_all_texts_from_documents(ctx, documents);
+    const embedder = get_embedder(ctx, payload);
+
+    vectorstore_name = clean_vectorstore_name(vectorstore_name);
+    chunk_size = adjust_chunk_size(chunk_size);
+
+    const chunks_id = compute_chunks_id(texts, vectorstore_name);
+
+    let chunks_cdn = null;
+
+    if (overwrite)
+    {
+        await user_db_delete(ctx, chunks_id);
+    }
+    else
+    {
+        chunks_cdn = await user_db_get(ctx, chunks_id);
+    }
+    if (is_valid(chunks_cdn) == false) 
+    {
+        console_log(`Found no Chunk CDN records for id = ${chunks_id} in the DB. Chunking now...`);
+
+        let chunks = [];
+        let total_cost = 0;
+        let total_words = 0;
+
+        for (let i = 0; i < texts.length; i++) 
+        {
+            let text = texts[i];
+            const [chunks_list, cost, words] = await compute_chunks(ctx, embedder, text, vectorstore_name, chunk_size);
+            total_cost += cost;
+            total_words += words;
+
+            if (is_valid(chunks_list) == false)
+            {
+                console_log(`ERROR could not chunk the document with doc_checksum = ${doc_id}`);
+                continue;
+            }
+            chunks = chunks.concat(chunks_list);
+        }
+
+        if (is_valid(chunks) == false) 
+        {
+            throw new Error(`ERROR could not chunk the documents`);
+        }
+
+        chunks_cdn = await save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words);
+        if (is_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
+        console_log(`files__to_chunks_cdn: = ${JSON.stringify(chunks_cdn)}`);
+
+        const success = await save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id);
+        if (success == false) throw new Error(`ERROR: could not save chunks_cdn to db`);
+    }
+    else
+    {
+        console_log(`Found Chunk CDN: ${chunks_cdn} in the DB under id: ${chunks_id}. Skipping chunking...`);
+    }
+    console_log(`chunks_cdn = ${JSON.stringify(chunks_cdn)}`);
+    return chunks_cdn;
+}
+// ---------------------------------------------------------------------------
+
+export { chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component };

@@ -1,4 +1,4 @@
-import { component_load_pdf } from "./documentsLib.js";
+import { load_pdf_component } from "./documentsLib.js";
 
 var LoadPDFComponent = {
     schema:
@@ -18,10 +18,16 @@ var LoadPDFComponent = {
               "x-type": "documentArray",
               "description": `Load the PDF and save them as text in the CDN.`,
             },
+            "embeddings": {
+              "title": "Embeddings",
+              "type": "string", 
+              "enum": ["openai", "tensorflow"],
+              "default": "tensorflow",
+            },            
             "overwrite": {
               "title": "Overwrite",
               "type": "boolean",
-              "default": false,
+              "default": true,
               "description": `Overwrite the existing files in the CDN.`,
             },
           },
@@ -70,22 +76,10 @@ var LoadPDFComponent = {
       _exec: async (payload, ctx) =>
       {
   
-        let return_value = { result: { "ok": false }, documents: [] };
+        let return_value = { result: { "ok": false }, documents: [], files: [] };
         if (payload.documents)
         {
-  
-          const input_cdns = payload.documents;
-          const overwrite = payload.overwrite || false;
-          const args = { overwrite: overwrite };
-          const output_cdns = [];
-          for (let i=0; i<input_cdns.length; i++)
-          {
-            const input_cdn = input_cdns[i];
-            const output_cdn = await component_load_pdf(ctx, input_cdn, args);
-            console.log(`cdn_response = ${JSON.stringify(output_cdn)}`);
-            output_cdns.push(output_cdn);
-          }
-  
+          const output_cdns = await load_pdf_component(ctx, payload);
           return_value = { result: { "ok": true }, documents: output_cdns , files: output_cdns};
         }
   
