@@ -1532,5 +1532,35 @@ async function chunk_files_component(ctx, payload)
     return chunks_cdn;
 }
 // ---------------------------------------------------------------------------
+async function read_text_file_component(ctx, payload)
+{
+    console.log(`--------------------------------`);
+    console_log(`[read_text_file] payload = ${JSON.stringify(payload)}`);
+    const documents = payload.documents;
+    //console.log(`documents = ${JSON.stringify(documents)}`);
 
-export { chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component };
+    let texts = [];
+    for (let i = 0; i < documents.length; i++) 
+    {
+        const document_cdn = documents[i];
+        //console.log(`document_cdn = ${JSON.stringify(document_cdn)}`);
+
+        const document = await ctx.app.cdn.get(document_cdn.ticket);
+        //console.log(`document = ${JSON.stringify(document)}`);
+
+        const mimeType = document_cdn.mimeType || 'text/plain; charset=utf-8';
+        const text = document.data.toString() || "";
+        if (is_valid(text) == false) 
+        {
+            console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
+            continue;
+        }
+        texts.push(text);
+    }
+    if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
+    if (texts.length == 1) return texts[0];
+    
+    return texts;
+}
+// ---------------------------------------------------------------------------
+export { read_text_file_component, chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component };
