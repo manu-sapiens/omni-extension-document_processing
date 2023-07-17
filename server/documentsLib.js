@@ -471,7 +471,8 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], 
     args.temperature = temperature;
     args.top_p = top_p;
 
-    if (functions != []) args.functions = functions;
+    if (is_valid(functions)) args.functions = functions;
+    console.log(`[query_advanced_chatgpt] args: ${JSON.stringify(args)}`);
 
     const response = await runChatGPTBlock(ctx, args);
     if (response.error) throw new Error(response.error);
@@ -1282,6 +1283,42 @@ function get_embedder(ctx, args)
     if (embedder == null || embedder == undefined) throw new Error(`get_embedder: Failed to initialize embeddings_model ${embeddings_model}`);
     return embedder;
 }
+
+function parse_object_to_array_of_objects(candidate_object) {
+    console_log(`parse_object_to_array_of_objects: candidate_object = ${JSON.stringify(candidate_object)}`);
+    var objs = [];
+    try {
+        if (Array.isArray(candidate_object) && candidate_object.every(elem => typeof elem === 'object' && elem !== null)) {
+            objs = candidate_object;
+        }
+        else if (typeof candidate_object === 'object' && candidate_object !== null) {
+            objs = [candidate_object];
+        }
+    }
+    catch (error) {
+        throw new Error(`parse_object_to_array_of_objects: Failed to parse candidate_object = ${JSON.stringify(candidate_object)} to array of objects`);
+        objs = [];
+    }
+    return objs;
+}
+
+function parse_text_to_array(candidate_text)
+{
+    var texts = [];
+    try
+    {
+        const parsedArray = JSON.parse(candidate_text);
+        if (Array.isArray(parsedArray) && parsedArray.every(elem => typeof elem === 'string'))
+        {
+            texts = parsedArray;
+        }
+    }
+    catch (error)
+    {
+        texts = [candidate_text];
+    }   
+    return texts;
+}
 // ---------------------------------------------------------------------------
 async function load_pdf_component(ctx, payload)
 {
@@ -1563,4 +1600,74 @@ async function read_text_file_component(ctx, payload)
     return texts;
 }
 // ---------------------------------------------------------------------------
-export { read_text_file_component, chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component };
+async function advanced_llm_component(ctx, payload)
+{
+    console.log(`--------------------------------`);
+    console_log(`[component_adv_llm] payload = ${JSON.stringify(payload)}`);
+    const instructions = parse_text_to_array(payload.instruction);
+    const prompts = parse_text_to_array(payload.prompt);
+    const llm_functions = parse_object_to_array_of_objects(payload.llm_function);
+    const temperature = payload.temperature || 0;
+    const top_p = payload.top_p || 1;
+    const allow_gpt3 = payload.allow_gpt3 || true;
+    const allow_gpt4 = payload.allow_gpt4 || false;
+
+
+    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
+
+    console.log('llm_functions = ' + JSON.stringify(llm_functions));
+
+    let actual_token_cost = 0;
+    const answers = {};
+    let answer_string = "";
+    for (let i = 0; i < instructions.length; i++)
+    {
+        const instruction = instructions[i];
+        for (let p= 0; p < prompts.length; p++)
+        {
+            let id = "answer";
+            if (instructions.length > 1) id+=`_i${i+1}`;
+            if (prompts.length > 1) id+=`_p${p+1}`;
+
+            const prompt = prompts[p];
+
+            console_log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
+
+            const answer_object = await query_advanced_chatgpt(ctx, prompt, instruction, llm_functions, temperature, top_p);
+            if (is_valid(answer_object) == false) continue;
+
+            const answer_text = answer_object.text;
+            const answer_fa = answer_object.function_arguments;
+
+            if (is_valid(answer_text))
+            {
+                answers[id] = answer_text;
+                answer_string += answer_text + "\n";
+            }
+            else
+            {
+                answers[id] = answer_fa;
+                try
+                {
+                    answer_string += JSON.stringify(answer_fa) + "\n";
+                }
+                catch (e)
+                {
+                    answer_string += "n/a\n";
+                }
+            }
+            actual_token_cost += answer_object.total_tokens;
+        }
+    }
+    answers["text"]= answer_string;
+    
+    
+    const cdn_response = await save_json_to_cdn(ctx, answers);
+    answers["document"] = cdn_response;
+    answers["url"] = cdn_response.url;
+    
+    return answers;
+}
+// ---------------------------------------------------------------------------
+
+export { advanced_llm_component, read_text_file_component, chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component};

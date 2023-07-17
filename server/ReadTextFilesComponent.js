@@ -29,8 +29,8 @@ var ReadTextFileComponent = {
               "properties": {
                 "texts": {
                   "title": "Texts from the document(s)",
-                  "type": "string",
-                  "x-type": "text",
+                  "type": "array",
+                  "x-type": "textArray",
                   "description": "The texts contained in the text document(s"
                 },
               },
@@ -40,6 +40,17 @@ var ReadTextFileComponent = {
         },
         "method": "X-CUSTOM"
       },
+      patch:
+      {
+        "title": "Read text files",
+        "category": "Text Manipulation",
+        "summary": "Read text files",
+        "meta": {
+          "source": {
+            "summary": "Read text files",
+          },
+        },
+      },      
     },  
     functions: {
       _exec: async (payload, ctx) =>
