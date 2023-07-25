@@ -7,6 +7,13 @@ import MurmurHash3 from 'imurmurhash';
 import PDFParser from 'pdf2json';
 import "@tensorflow/tfjs-backend-cpu";
 import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
+import { TokenTextSplitter } from "langchain/text_splitter";
+import
+{
+    SupportedTextSplitterLanguages,
+    RecursiveCharacterTextSplitter,
+} from "langchain/text_splitter";
+import { chunk, lte } from "lodash-es";
 
 const GPT_SIZE_MARGIN = 500;
 const GPT3_MODEL_SMALL = "gpt-3.5-turbo";
@@ -20,10 +27,8 @@ const GPT4_SIZE_CUTOFF = 8192 - GPT_SIZE_MARGIN;
 const GPT4_SIZE_MAX = 32768 - GPT_SIZE_MARGIN;
 
 const GPT_MODEL_TIKTOKEN_GPT3 = "gpt-3.5-turbo";
-const NO_FUNCTIONS = "<NO_FUNCTIONS>";
 const OMNITOOL_DOCUMENT_TYPES_USERDOC = 'udoc';
 
-const DEFAULT_CHUNK_SIZE = 2000;
 const DEFAULT_VECTORSTORE_NAME = 'omnitool';
 const DEFAULT_TEMPERATURE = 0.0;
 const DEFAULT_TOP_P = 1.0;
@@ -31,6 +36,251 @@ const DEFAULT_TOP_P = 1.0;
 let GLOBAL_ALLOW_GPT3 = true;
 let GLOBAL_ALLOW_GPT4 = false;
 const VERBOSE = true;
+
+
+const EMBEDINGS_ADA_2 = "text-embedding-ada-002";
+const EMBEDDER_MODEL_OPENAI = "openai";
+const EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
+const DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_TENSORFLOW;
+const HASHER_MODEL_MURMUR3 = "MurmurHash3";
+const DEFAULT_HASHER_MODEL = HASHER_MODEL_MURMUR3;
+const SPLITTER_MODEL_RECURSIVE = "RecursiveCharacterTextSplitter";
+const SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
+const SPLITTER_MODEL_CODE = "CodeSplitter_"; // see extractCodeLanguage()
+const DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
+const SPLITTER_TOKEN_ENCODING = "gpt2";
+const AVERAGE_CHARACTER_PER_WORD = 5;
+const AVERAGE_WORD_PER_TOKEN = 0.75;
+const DEFAULT_CHUNK_SIZE_IN_TOKENS = 512;
+const DEFAULT_CHUNK_OVERLAP_IN_TOKENS = 64;
+
+let global_ctx = null;
+let global_user = null;
+let global_db = null;
+let global_allow_gpt3 = null;
+let global_allow_gpt4 = null;
+let global_verbose = null;
+let global_embedder_model = null;
+let global_hasher_model = null;
+let global_splitter_model = null;
+let global_vectorstore_name = null;
+let global_overwrite = null;
+
+
+function setGlobalVariables(ctx, payload) 
+{
+    global_ctx = ctx;
+    global_user = ctx.userId;
+    global_db = ctx.app.db;
+
+    global_allow_gpt3 = payload.allow_gpt3 || true;
+    global_allow_gpt4 = payload.allow_gpt4 || false;
+    global_verbose = payload.verbose || false;
+    global_embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
+    global_hasher_model = payload.hasher_model || DEFAULT_HASHER_MODEL;
+    global_splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
+    global_vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
+    global_overwrite = payload.overwrite || false;
+}
+
+
+class OmniChunk
+{
+    constructor(chunkData)
+    {
+        this._chunk_text = chunkData.chunk_text || '';
+        this._chunk_hash = chunkData.chunk_hash || '';
+        this._chunk_embedding = chunkData.embedding || null;
+
+        /*this._summary = chunkData.summary || null;
+        this._entities = chunkData.entities || null;
+        this._start_word_index = chunkData.start_word_index || 0;
+        this._end_word_index = chunkData.end_word_index || 0;
+        this._chunk_index = chunkData.chunk_index || 0;
+        this._words_count = chunkData.words_count || 0;
+        this._tokens_count = chunkData.tokens_count || -1;*/
+    }
+
+    // Getters
+    get chunk_text() { return this._chunk_text; }
+    get chunk_id() { return this._chunk_hash; }
+    get chuck_embedding() { return this._chunk_embedding; }
+
+    /*get summary() { return this._summary; }
+    get entities() { return this._entities; }
+    get start_word_index() { return this._start_word_index; }
+    get end_word_index() { return this._end_word_index; }
+    get chunk_index() { return this._chunk_index; }
+    get words_count() { return this._words_count; }
+    get tokens_count() { return this._tokens_count; }*/
+
+    // Setters
+    set chunk_text(value) { this._chunk_text = value; }
+    set chunk_id(value) { this._chunk_hash = value; }
+    set chuck_embedding(value) { this._chunk_embedding = value; }
+
+    /*set summary(value) { this._summary = value; }
+    set entities(value) { this._entities = value; }
+    set start_word_index(value) { this._start_word_index = value; }
+    set end_word_index(value) { this._end_word_index = value; }
+    set chunk_index(value) { this._chunk_index = value; }
+    set words_count(value) { this._words_count = value; }
+    set tokens_count(value) { this._tokens_count = value; }*/
+}
+
+class OmniDocument
+{
+    constructor(docData)
+    {
+        this._texts = docData.texts || [];
+        this._id = docData.hash || '';
+        this._hasher = docData.hasher || '';
+        this._splitter = docData.splitter || '';
+        this._embedder = docData.embedder || '';
+        this._chunker = docData.chunker || '';
+        this._overlap = docData.overlap || 0;
+        this._chunks = (docData.chunks || []).map(chunk => new OmniChunk(chunk));
+    }
+
+    // Getters
+    get texts() { return this._texts; }
+    get id() { return this._id; }
+    get hasher() { return this._hasher; }
+    get splitter() { return this._splitter; }
+    get embedder() { return this._embedder; }
+    get chunker() { return this._chunker; }
+    get overlap() { return this._overlap; }
+    get chunks() { return this._chunks; }
+
+    // Setters
+    set texts(value) { this._texts = value; }
+    set id(value) { this._id = value; }
+    set hasher(value) { this._hasher = value; }
+    set splitter(value) { this._splitter = value; }
+    set embedder(value) { this._embedder = value; }
+    set chunker(value) { this._chunker = value; }
+    set overlap(value) { this._overlap = value; }
+    set chunks(value) { this._chunks = value.map(chunk => new OmniChunk(chunk)); }
+
+    // Method to add a chunk
+    addChunk(chunkData)
+    {
+        this._chunks.push(new OmniChunk(chunkData));
+    }
+}
+
+class Hasher
+{
+    hash(text)
+    {
+        throw new Error('You have to implement the method hash!');
+    }
+}
+
+class Murmur3Hasher extends Hasher
+{
+    constructor()
+    {
+
+        super();
+        this.hasher = new MurmurHash3();
+    }
+
+    hash(text)
+    {
+        if (typeof text === "string")
+        {
+            return this.hasher.hash(text).result().toString();
+        }
+        throw new Error('hash() only accept string as input');
+    }
+
+    hash_list(texts)
+    {
+        if (typeof texts === "string")
+        {
+            return this.hash(texts);
+        }
+
+        if (Array.isArray(texts))
+        {
+            let sum_of_hashs = "";
+            for (let i = 0; i < texts.length; i++)
+            {
+                const text = texts[i];
+                sum_of_hashs += this.hash(text);
+            }
+            return this.hash(sum_of_hashs);
+        }
+
+        throw new Error('hash_list only accept string and list of strings as input');
+    }
+}
+/*
+
+class SentenceTextSplitter
+{
+    constructor(chunkSize, chunkOverlap, wordToTokenRatio = 0.8)
+    {
+        this.chunkSize = chunkSize;
+        this.chunkOverlap = chunkOverlap;
+        this.wordToTokenRatio = wordToTokenRatio;
+    }
+
+    // Splits text into sentences and then creates chunks
+    splitText(text)
+    {
+        const sentences = text.match(/[^.!?]*[.!?]/g) || [];
+        const chunks = [];
+        let chunk = [];
+        let overlap = [];
+        let tokenCount = 0;
+
+        for (let i=0; i<sentences.length; i++)
+        {
+            const sentence = sentences[i].trim();
+            const words = sentence.split(' ');
+            const nb_of_words = words.length;
+            const sentenceTokenCount = nb_of_words * this.wordToTokenRatio;
+             if (tokenCount + sentenceTokenCount <= this.chunkSize)
+            {
+                chunk.push(sentence);
+                tokenCount += sentenceTokenCount;
+            } 
+            else
+            {
+                // Add overlap from the previous chunk
+                if (overlap.length > 0)
+                {
+                    chunk = overlap.concat(chunk);
+                }
+                
+                chunks.push(chunk.join(' '));
+                
+                // Calculate overlap for the next chunk
+                const overlapStart = Math.max(0, chunk.length - this.chunkOverlap);
+                overlap = chunk.slice(overlapStart);
+                
+                chunk = [sentence];
+                tokenCount = sentenceTokenCount;
+            }
+        }
+
+        // Add overlap and push the last chunk
+        if (chunk.length > 0)
+        {
+            if (overlap.length > 0)
+            {
+                chunk = overlap.concat(chunk);
+            }
+            chunks.push(chunk.join(' '));
+        }
+
+        return chunks;
+    }
+}
+*/
+
 
 function is_valid(value)
 {
@@ -151,16 +401,124 @@ function pick_model(text_size)
 
 }
 
-class OmniOpenAIEmbeddings extends Embeddings
+class CachedEmbeddings extends Embeddings
 {
-    constructor(ctx, modelName = "text-embedding-ada-002", stripNewLines = true)
+    // A db-cached version of the embeddings
+    // NOTE: This is a general purpose "cached embeddings" class
+    // that can wrap any langchain embeddings model
+    constructor(ctx, embedder, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME)
     {
         super();
+        this.embedder = embedder;
+
         this.ctx = ctx;
         this.db = ctx.app.services.get('db');
+        this.user = ctx.user;
+        this.vectorstore_name = vectorstore_name;
 
-        this.modelName = modelName;
-        this.stripNewLines = stripNewLines;
+        this.hasher = hasher;
+
+        if (!this.ctx)
+        {
+            throw new Error(`[embedQuery] Context not provided`);
+        }
+    }
+
+    async embedDocuments(texts)
+    {
+
+        const embeddings = [];
+        if (is_valid(texts))
+        {
+            for (let i = 0; i < texts.length; i += 1)
+            {
+                let text = texts[i];
+                const embedding = await this.embedQuery(text);
+                embeddings.push(embedding);
+            }
+        }
+        return embeddings;
+    }
+
+    async embedQuery(text)
+    {
+        if (!is_valid(text))
+        {
+            throw new Error(`[embedQuery] passed text is invalid ${text}`);
+        }
+        console.log(`[embedQuery] Requested to embed text: ${text.slice(0, 128)}[...]`)
+        
+        const embedding_id = compute_chunk_id(this.ctx, text, this.vectorstore_name, this.hasher);
+        console.log(`[embedQuery] embedding_id: ${embedding_id}`)
+
+        let embedding = null;
+
+        if (global_overwrite) 
+        {
+            await user_db_delete(this.ctx, embedding_id);
+        }
+        else
+        {
+            embedding = await user_db_get(this.ctx, embedding_id);
+        }
+
+        if (is_valid(embedding)) 
+        {
+            console.log(`[embedQuery]: embedding found in DB - returning it`)
+            return embedding;
+        }
+
+        console_log(`[embedQuery] Not found in DB. Generating embedding for ${text.slice(0, 128)}[...]`);
+        try
+        {
+            console.log(`[embedQuery] Using embedded: ${this.embedder}`)
+
+            embedding = await this.embedder.embedQuery(text);
+            if (!is_valid(embedding))
+            {
+                console.log(`[embedQuery]: [WARNING] embedding ${embedding} is invalid - returning null <---------------`)
+                return null;
+            }
+
+            console.log(`[embedQuery]: computed embedding: ${embedding.slice(0, 128)}[...]`)
+            const success = await user_db_put(this.ctx, embedding, embedding_id);
+            if (success == false)
+            {
+                throw new Error(`[embedQuery] Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
+            }
+            else
+            {
+                console_log(`[embedQuery] Saved to DB`);
+            }
+
+            return embedding;
+        }
+        catch (error)
+        {
+            throw new Error(`[embedQuery] Error generating embedding: ${error}`);
+        }
+    }
+}
+/*
+class OmniTensorflowEmbeddings extends Embeddings
+{
+    // a db-cached version of the tensorflow embeddings
+    // NOTE: this can easily be extened to a general purpose "cached embeddings" class
+    // wrapper around any embeddings model
+    constructor(ctx, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME)
+    {
+
+        super();
+        const embedder_model = EMBEDDER_MODEL_TENSORFLOW;
+        this.embedder = new TensorFlowEmbeddings();
+
+        this.ctx = ctx;
+        this.db = ctx.app.services.get('db');
+        this.user = ctx.user;
+        this.vectorstore_name = vectorstore_name;
+
+        this.hasher = hasher;
+        this.modelName = embedder_model;
 
         if (!this.ctx)
         {
@@ -177,35 +535,8 @@ class OmniOpenAIEmbeddings extends Embeddings
             for (let i = 0; i < texts.length; i += 1)
             {
                 let text = texts[i];
-                const embedding_id = calculate_hash(text);
-                const db_embedding = await user_db_get(this.ctx, embedding_id); // TBD need to have a method that check if it exists in the DB without creating a lot of error log trash
-                if (is_valid(db_embedding))
-                {
-                    embeddings.push(db_embedding);
-                }
-                else
-                {
-                    console_log(`[${i}] generating embedding for ${text.slice(0, 128)}`);
-                    try
-                    {
-                        const response = await this.compute_embedding_via_runblock(this.ctx, text);
-                        const openai_embedding = response.embedding;
-                        embeddings.push(openai_embedding);
-
-                        const success = await user_db_put(this.ctx, openai_embedding, embedding_id);
-                        if (success == false)
-                        {
-                            throw new Error(`Error saving embedding for text index ${i}`);
-                        }
-                        else
-                        {
-                            console_log(`[${i}] saved to DB`);
-                        }
-                    } catch (error)
-                    {
-                        throw new Error(`Error generating embedding for text index ${i}: ${error}`);
-                    }
-                }
+                const embedding = await this.embedQuery(text);
+                embeddings.push(embedding);
             }
         }
         return embeddings;
@@ -213,8 +544,80 @@ class OmniOpenAIEmbeddings extends Embeddings
 
     async embedQuery(text)
     {
-        const embedding = await this.compute_embedding_via_runblock(this.ctx, text);
-        return embedding;
+        const embedding_id = compute_chunk_id(text, this.vectorstore_name, this.hasher);
+        const db_embedding = await user_db_get(this.ctx, embedding_id);
+        if (is_valid(db_embedding)) return db_embedding;
+
+        console_log(`Generating embedding for ${text.slice(0, 128)}[...]`);
+        try
+        {
+            const embedding = await this.embedder.embedQuery(text);
+            const success = await user_db_put(this.ctx, embedding, embedding_id);
+            if (success == false)
+            {
+                throw new Error(`Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
+            }
+            else
+            {
+                console_log(`Saved to DB`);
+            }
+
+            return embedding;
+        }
+        catch (error)
+        {
+            throw new Error(`Error generating embedding for text index ${i}: ${error}`);
+        }
+    }
+
+}
+*/
+
+class OmniOpenAIEmbeddings extends Embeddings
+{
+    constructor(ctx)
+    {
+        super();
+        this.ctx = ctx;
+    }
+
+    async embedDocuments(texts)
+    {
+
+        const embeddings = [];
+        if (is_valid(texts))
+        {
+            for (let i = 0; i < texts.length; i += 1)
+            {
+                let text = texts[i];
+                const embedding = await this.embedQuery(text);
+                embeddings.push(embedding);
+            }
+        }
+        return embeddings;
+    }
+
+    async embedQuery(text)
+    {
+        console.log(`[OmniOpenAIEmbeddings] embedQuery: Requested to embed text: ${text.slice(0, 128)}[...]`)
+        if (!is_valid(text)) 
+        {
+            console.log(`[OmniOpenAIEmbeddings] WARNING embedQuery: passed text is invalid ${text}`);
+            return null;
+        }
+
+        console_log(`[OmniOpenAIEmbeddings] generating embedding for ${text.slice(0, 128)}`);
+        try
+        {
+            const response = await this.compute_embedding_via_runblock(this.ctx, text);
+            console.log(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
+            const embedding = response;
+            return embedding;
+        } catch (error)
+        {
+            console.log(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text}\nError: ${error}`);
+            return null;
+        }
     }
 
     async compute_embedding_via_runblock(ctx, input)
@@ -230,20 +633,20 @@ class OmniOpenAIEmbeddings extends Embeddings
         }
         catch (err)
         {
-            let error_message = `Error running openai.embeddings: ${err.message}`;
+            let error_message = `[OmniOpenAIEmbeddings] Error running openai.embeddings: ${err.message}`;
             console.error(error_message);
             throw err;
         }
 
-        if (response == null) { throw new Error(`embedding runBlock response is null`); };
+            if (response == null) { throw new Error(`[OmniOpenAIEmbeddings embedding runBlock response is null`); };
 
         if (response.error)
         {
-            throw new Error(`embedding runBlock response.error: ${response.error}`);
+            throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response.error: ${response.error}`);
         }
 
         let data = response?.data || null;
-        if (is_valid(data) == false) { throw new Error(`embedding runBlock response is invalid: ${JSON.stringify(response)}`); };
+        if (is_valid(data) == false) { throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response is invalid: ${JSON.stringify(response)}`); };
 
         const embedding = response?.data[0]?.embedding || null;
         return embedding;
@@ -543,7 +946,7 @@ async function run_llm_on_chunk(ctx, chunk, instruction, functions, temperature,
 
     return json_results;
 }
-
+/*
 function break_into_sentences(text, chunk_size)
 {
     let sentences = text.match(/[^.!?]+[.!?]+/g) || [];
@@ -582,7 +985,7 @@ function break_into_sentences(text, chunk_size)
     console_log(`Number of sentences: ${sentences.length} : Total Token Cost =${total_cost}, Total number of words=${total_words}, ratio: ${total_words / total_cost} `);
     return [sentence_infos, total_cost, total_words];
 }
-
+*/
 
 function split_into_sentences(text)
 {
@@ -591,14 +994,14 @@ function split_into_sentences(text)
 }
 
 
-
+/*
 // Main function to populate chunks
-async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000, overlap_sentences = 1)
+async function compute_chunks(ctx, embedder, hasher, text, base_name, chunk_size = 3000, overlap_sentences = 1)
 {
     if (embedder == null) throw new Error("No global embeddings available");
 
     console.log(`----------------> initial text = ${text}`);
-    const [chunks_list, total_cost, total_words] = create_chunks(text, base_name, chunk_size, overlap_sentences);
+    const [chunks_list, total_cost, total_words] = create_chunks(text, base_name, hasher, chunk_size, overlap_sentences);
 
     for (let i = 0; i < chunks_list.length; i++) 
     {
@@ -609,9 +1012,33 @@ async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000,
 
     return [chunks_list, total_cost, total_words];
 }
+*/
+function compute_chunk_id(ctx, text, vectorstore_name, hasher)
+{
+    const user = ctx.userId;
+    const hash = hasher.hash(text);
+    const chunk_id = `chunk_${vectorstore_name}_${user}_${hash}`;
+    return chunk_id;
+}
 
+async function get_cached_cdn(ctx, object_id, overwrite = false)
+{
+    let cdn = null;
+    if (overwrite)
+    {
+        await user_db_delete(ctx, object_id);
+    }
+    else
+    {
+        cdn = await user_db_get(ctx, object_id);
+    }
+    console.log(`[get_cached_cdn] cdn = ${JSON.stringify(cdn)}, typeof cdn = ${typeof cdn}`);
+
+    return cdn;
+}
+/*
 // Main function to create chunks
-function create_chunks(text, base_name, chunk_size_in_tokens, overlap_size = 1, word_to_token_ratio = 0.8)
+function create_chunks(text, base_name, hasher, chunk_size_in_tokens, overlap_size = 1, word_to_token_ratio = 0.8)
 {
     if (typeof text !== 'string') throw new TypeError("Text must be a string");
     if (typeof chunk_size_in_tokens !== 'number' || chunk_size_in_tokens <= 0) throw new TypeError("Chunk size must be a positive number");
@@ -656,12 +1083,12 @@ function create_chunks(text, base_name, chunk_size_in_tokens, overlap_size = 1, 
         {
 
             // finalize the current chunk
-            chunk.id = base_name + "_" + calculate_hash(chunk.text);
+            chunk.id = base_name + "_" + hasher.hash(chunk.text);
             chunks_list.push(chunk);
 
             // calculate the total token cost
             total_cost += chunk.token_cost;
-            
+
             console.log(`Finalizing chunk#${chunk_index} with ${chunk.token_cost} tokens, total cost = ${total_cost}`);
             console.log(`chunk#${chunk_index} = ${chunk.text}`);
             console.log(`----------------------------------------`);
@@ -702,80 +1129,8 @@ function create_chunks(text, base_name, chunk_size_in_tokens, overlap_size = 1, 
     console.log(`Chunked the document into ${chunks_list.length} chunks with an estimated token cost of ${chunk_token_count}`);
     return [chunks_list, total_cost, total_words];
 }
-
-
-/*
-async function compute_chunks(ctx, embedder, text, base_name, chunk_size = 3000)
-{
-    if (embedder == null) throw new Error("No global embeddings available");
-
-    console_log(`Computing chunks for ${base_name} with chunk size ${chunk_size}, text length ${text.length}, chunk size ${chunk_size}`);
-    const [sentence_infos, total_cost, total_words] = break_into_sentences(text, chunk_size);
-    if (is_valid(sentence_infos) == false) throw new Error("No sentence infos available");
-
-    const chunks_list = [];
-    let chunk_index = 0;
-
-    let chunk = {
-        index: 0,
-        text: "",
-        first_sentence_index: 0,
-        token_cost: 0,
-        overlap_text: "",
-        overlap_cost: 0,
-        id: "",
-        embedding: null,
-    };
-
-    let overlap_text = "";
-    let overlap_cost = 0;
-    for (let sentence_index = 0; sentence_index < sentence_infos.length; sentence_index++)
-    {
-        let sentence_info = sentence_infos[sentence_index];
-
-
-        if (chunk.token_cost + sentence_info.token_cost <= chunk_size)
-        {
-            // build the current chunk with this sentence
-            chunk.token_cost += sentence_info.token_cost;
-            chunk.text += " " + sentence_info.text;
-            overlap_text = sentence_info.text;
-            overlap_cost = sentence_info.token_cost;
-        }
-        else
-        {
-            // finalize the current chunk
-            chunk.id = base_name + "_" + calculate_hash(chunk.text);
-            const chunk_embedding = await compute_and_save_chunk_embedding(ctx, embedder, chunk);
-            chunk.embedding = chunk_embedding;
-            chunks_list.push(chunk);
-
-            // prepare the next chunk
-            chunk_index++;
-            chunk = {
-                index: chunk_index,
-                text: sentence_info.text,
-                first_sentence_index: sentence_info.index,
-                token_cost: sentence_info.token_cost,
-                overlap_text: overlap_text || "",
-                overlap_cost: overlap_cost || 0,
-                id: "",
-                embedding: null,
-            };
-        }
-    }
-
-    // finalize the very last chunk
-    chunk.id = base_name + "_" + calculate_hash(chunk.text);
-    const last_chunk_embedding = await compute_and_save_chunk_embedding(ctx, embedder, chunk);
-    chunk.embedding = last_chunk_embedding;
-    chunks_list.push(chunk);
-
-    console_log(`Chunked the document into ${chunks_list.length} chunks with an estimated token cost of ${total_cost} and ${total_words} words`);
-    let return_value = [chunks_list, total_cost, total_words];
-    return return_value;
-}
 */
+/*
 async function compute_and_cache_chunk_embedding(ctx, embedder, chunk)
 {
     const chunk_text = chunk.text;
@@ -784,14 +1139,15 @@ async function compute_and_cache_chunk_embedding(ctx, embedder, chunk)
     await save_embedding_to_db(ctx, embedding, chunk_id);
     return embedding;
 }
-
+*/
+/*
 async function save_embedding_to_db(ctx, embedding, embedding_id)
 {
     const db = get_db(ctx);
     const success = await user_db_put(ctx, embedding, embedding_id);
     if (!success) throw new Error("Failed to save embedding to db");
 }
-
+*/
 function get_db(ctx)
 {
     const db = ctx.app.services.get('db');
@@ -923,24 +1279,24 @@ async function query_vectorstore(vector_store, query, nb_of_results = 1, embedde
     const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
     return results;
 }
-
-function calculate_hash(text)
+/*
+function calculate_hash(text, hasher)
 {
-    const hashState = new MurmurHash3();
-    const checksum = hashState.hash(text).result().toString();
-    return checksum;
+    const hashed = hasher.hash(text);
+    return hashed;
 }
-
-function get_texts_and_ids(chunks_list)
+*/
+function get_texts_and_ids(chunks)
 {
-    if (is_valid(chunks_list) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
+    if (is_valid(chunks) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
     let chunk_texts = [];
     let chunk_ids = [];
-    for (let i = 0; i < chunks_list.length; i++)
+    for (let i = 0; i < chunks.length; i++)
     {
-        const chunk_info = chunks_list[i];
-        const chunk_text = chunk_info.text;
-        const chunk_id = chunk_info.id;
+        const chunk = chunks[i];
+
+        const chunk_text = chunk.text;
+        const chunk_id = chunk.id;
 
         chunk_ids.push({ id: chunk_id });
         chunk_texts.push(chunk_text);
@@ -949,11 +1305,11 @@ function get_texts_and_ids(chunks_list)
     return [chunk_texts, chunk_ids];
 }
 
-
-function adjust_chunk_size(chunk_size)
+/*
+function adjust_chunk_size(chunk_size, allow_gpt4)
 {
 
-    if (GLOBAL_ALLOW_GPT4)
+    if (allow_gpt4)
     {
         const max_size = GPT4_SIZE_MAX;
         if (chunk_size > max_size) 
@@ -974,7 +1330,7 @@ function adjust_chunk_size(chunk_size)
 
     return chunk_size;
 }
-
+*/
 async function save_text_to_cdn(ctx, text)
 {
     const buffer = Buffer.from(text);
@@ -1095,24 +1451,19 @@ function clean_vectorstore_name(vectorstore_name)
     return clean_name;
 }
 
-function compute_chunks_id(texts, vectorstore_name)
+function compute_document_id(ctx, texts, vectorstore_name, hasher)
 {
     // get the key so that we can pass it around
     if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
 
-    // we want the same texts but chunked differently to produce a different hash
-    let sum_of_hashs = "";
-    for (let i = 0; i < texts.length; i++)
-    {
-        sum_of_hashs += calculate_hash(texts[i]);
-    }
-    const chunks_id = vectorstore_name + "_" + calculate_hash(sum_of_hashs);
-    console_log(`chunks_id = ${chunks_id}`);
+    const user = ctx.userId;
+    const document_hash = hasher.hash_list(texts);
+    const document_id = `doc_${vectorstore_name}_${user}_${document_hash}`;
 
-    return chunks_id;
+    return document_id;
 }
 
-
+// return an array of texts gathered from all the documents (1 per document)
 async function gather_all_texts_from_documents(ctx, documents)
 {
     if (is_valid(documents) == false) throw new Error(`ERROR: documents is invalid. documents = ${JSON.stringify(documents)}`);
@@ -1123,17 +1474,24 @@ async function gather_all_texts_from_documents(ctx, documents)
 
         const document_cdn = documents[i];
         //TBD: convert docs files to text when necessary
-        const document = await ctx.app.cdn.get(document_cdn.ticket);
-        const mimeType = document_cdn.mimeType || 'text/plain; charset=utf-8';
-        const text = document.data.toString() || "";
-        if (is_valid(text) == false) 
+        try
         {
-            console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
-            continue;
-        }
+            const document = await ctx.app.cdn.get(document_cdn.ticket);
+            const mimeType = document_cdn.mimeType || 'text/plain; charset=utf-8';
+            const text = document.data.toString() || "";
+            if (is_valid(text) == false) 
+            {
+                console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
+                continue;
+            }
 
-        const clearn_text = clean_string(text);
-        texts.push(clearn_text);
+            const clearn_text = clean_string(text);
+            texts.push(clearn_text);
+        }
+        catch (error)
+        {
+            console_log(`WARNING: document ${JSON.stringify(document_cdn)} cannot be retrieved from cdn`);
+        }
     }
 
     if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
@@ -1141,6 +1499,16 @@ async function gather_all_texts_from_documents(ctx, documents)
     return texts;
 }
 
+/*
+async function save_chunk_to_cdn(ctx, chunk_json)
+{
+    const chunk_cdn = await save_json_to_cdn_as_buffer(ctx, chunk_json);
+    if (is_valid(chunk_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
+    return chunk_cdn;
+}
+*/
+
+/*
 async function save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words)
 {
     const chunks_json = { chunks: chunks, chunks_id: chunks_id, total_cost: total_cost, total_words: total_words };
@@ -1148,6 +1516,7 @@ async function save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_word
     if (is_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
     return chunks_cdn;
 }
+*/
 
 async function save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id)
 {
@@ -1274,28 +1643,134 @@ function collate_chapter_chunk(chapters, chunk, current_chapter_number, args)
     return { chapters: chapters, chapter_number: chapterNumber };
 }
 
-function get_embedder(ctx, args)
+function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME)
 {
-    const embeddings_model = args.embeddings;
+
     let embedder = null;
-    if (embeddings_model == "openai") embedder = new OmniOpenAIEmbeddings(ctx);
-    else if (embeddings_model == "tensorflow") embedder = new TensorFlowEmbeddings();
-    if (embedder == null || embedder == undefined) throw new Error(`get_embedder: Failed to initialize embeddings_model ${embeddings_model}`);
+    if (embedder_model == EMBEDDER_MODEL_OPENAI)
+    { 
+        console.log("Using embedder: EMBEDDER_MODEL_OPENAI <------------------")
+        const raw_embedder = new OmniOpenAIEmbeddings(ctx);
+        embedder = new CachedEmbeddings(ctx, raw_embedder, hasher, vectorstore_name);
+    }
+    else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) 
+    {
+        console.log("Using embedder: EMBEDDER_MODEL_TENSORFLOW <------------------")
+        const raw_embedder = new TensorFlowEmbeddings();
+        embedder = new CachedEmbeddings(ctx, raw_embedder, hasher, vectorstore_name);
+    }
+
+    // TBD: more embeddings here
+
+    if (embedder == null || embedder == undefined) throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
     return embedder;
 }
 
-function parse_object_to_array_of_objects(candidate_object) {
+function initialize_hasher(ctx, hasher_model = DEFAULT_HASHER_MODEL)
+{
+
+    let hasher = null;
+    if (hasher_model == HASHER_MODEL_MURMUR3) hasher = new Murmur3Hasher();
+    else  
+    {
+        throw new Error(`initialize_hasher: Unknown hasher model: ${hasher_model}`);
+    }
+    // TBD: more hasher choices here
+
+    if (!is_valid(hasher)) throw new Error(`get_hasher: Failed to initialize hasher_model ${hasher_model}`);
+    return hasher;
+}
+
+function extractCodeLanguage(str)
+{
+    const pattern = new RegExp('^' + SPLITTER_MODEL_CODE + '(\\w+)$', 'i');
+    const match = str.match(pattern);
+
+    if (match)
+    {
+        const language = match[1].toLowerCase();
+        const validLanguages = SupportedTextSplitterLanguages;
+        /*
+        [
+            'cpp', 'go', 'java', 'js', 'php', 'proto',
+            'python', 'rst', 'ruby', 'rust', 'scala',
+            'swift', 'markdown', 'latex', 'html'
+        ];
+        */
+        if (validLanguages.includes(language))
+        {
+            return language;
+        }
+    }
+
+    return null;
+}
+
+
+function initialize_splitter(ctx, splitter_model = DEFAULT_SPLITTER_MODEL, args = {})
+{
+
+    const average_character_per_word = args.average_character_per_word || AVERAGE_CHARACTER_PER_WORD;
+    const average_word_per_token = args.average_word_per_token || AVERAGE_WORD_PER_TOKEN;
+
+    const characters_per_token = average_character_per_word * average_word_per_token;
+
+    const chunk_size_in_tokens = args.chunk_size_in_tokens || DEFAULT_CHUNK_SIZE_IN_TOKENS;
+    const chunk_size_in_characters = args.chunk_size_in_characters || chunk_size_in_tokens * characters_per_token;
+    const chunk_overlap_in_tokens = args.chunk_overlap_in_tokens || DEFAULT_CHUNK_OVERLAP_IN_TOKENS;
+    const chunk_overlap_in_characters = args.chunk_overlap_in_characters || chunk_overlap_in_tokens * characters_per_token;
+
+    let splitter = null;
+    if (splitter_model == SPLITTER_MODEL_RECURSIVE) 
+    {
+        splitter = new RecursiveCharacterTextSplitter({
+            chunkSize: chunk_size_in_characters, // in characters!
+            chunkOverlap: chunk_overlap_in_characters, // in characters!
+        });
+    }
+    else if (splitter_model == SPLITTER_MODEL_TOKEN) 
+    {
+        splitter = new TokenTextSplitter({
+            encodingName: SPLITTER_TOKEN_ENCODING,
+            chunkSize: chunk_size_in_tokens, // in tokens!
+            chunkOverlap: chunk_overlap_in_tokens, // in tokens!
+        });
+    }
+    else
+    {
+        // SPLITTER_CODE
+        const code_language = extractCodeLanguage(splitter_model);
+        if (code_language)
+        {
+            splitter = RecursiveCharacterTextSplitter.fromLanguage(code_language, {
+                chunkSize: chunk_size_in_characters, // in characters!
+                chunkOverlap: chunk_overlap_in_characters, // in characters!
+            });
+        }
+    }
+    // TBD: more splitters here
+
+    if (splitter == null || splitter == undefined) throw new Error(`initialize_splitter: Failed to initialize splitter_model ${splitter_model}`);
+    return splitter;
+}
+
+function parse_object_to_array_of_objects(candidate_object)
+{
     console_log(`parse_object_to_array_of_objects: candidate_object = ${JSON.stringify(candidate_object)}`);
     var objs = [];
-    try {
-        if (Array.isArray(candidate_object) && candidate_object.every(elem => typeof elem === 'object' && elem !== null)) {
+    try
+    {
+        if (Array.isArray(candidate_object) && candidate_object.every(elem => typeof elem === 'object' && elem !== null))
+        {
             objs = candidate_object;
         }
-        else if (typeof candidate_object === 'object' && candidate_object !== null) {
+        else if (typeof candidate_object === 'object' && candidate_object !== null)
+        {
             objs = [candidate_object];
         }
     }
-    catch (error) {
+    catch (error)
+    {
         throw new Error(`parse_object_to_array_of_objects: Failed to parse candidate_object = ${JSON.stringify(candidate_object)} to array of objects`);
         objs = [];
     }
@@ -1316,12 +1791,21 @@ function parse_text_to_array(candidate_text)
     catch (error)
     {
         texts = [candidate_text];
-    }   
+    }
+
+    console.log(`parse_text_to_array: texts = ${JSON.stringify(texts)}`);
+    if (texts.length == 0) return null;
+    if (texts.length == 1 && texts[0] == "") return [];
+
     return texts;
 }
+
+
 // ---------------------------------------------------------------------------
 async function load_pdf_component(ctx, payload)
 {
+    console.time("processTime");
+    setGlobalVariables(ctx, payload);
 
     const documents_array = payload.documents;
     if (is_valid(documents_array) == false) throw new Error(`load_pdf_component: documents_array = ${JSON.stringify(documents_array)} is invalid`);
@@ -1352,7 +1836,11 @@ async function load_pdf_component(ctx, payload)
         const extractedTextFields = extractTextFields(pdfData);
         const all_texts = extractedTextFields.join(' ');
         const cleaned_texts = clean_string(all_texts);
-        const texts_id = "converted_pdf_texts_" + calculate_hash(cleaned_texts);
+
+        const hasher_model = payload.hasher || DEFAULT_HASHER_MODEL;
+        const hasher = initialize_hasher(ctx, hasher_model);
+
+        const texts_id = "converted_pdf_texts_" + hasher.hash(cleaned_texts);
 
 
         let texts_cdn = null;
@@ -1381,25 +1869,44 @@ async function load_pdf_component(ctx, payload)
         }
         texts_cdns.push(texts_cdn);
     }
+
+    console.timeEnd("processTime");
     return texts_cdns;
 }
 // ---------------------------------------------------------------------------
-async function query_chunks_component(ctx, chunks_cdn, query, args)
+async function query_chunks_component(ctx, document_cdn, query, payload)
 {
-    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_valid(chunks) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+    console.time("query_chunks_component_processTime");
+    setGlobalVariables(ctx, payload);
 
-    const nb_of_results = args.nb_of_results;
-    const embedder = get_embedder(ctx, args);
+    const nb_of_results = payload.nb_of_results;
+    const document_json = await get_json_from_cdn(ctx, document_cdn);
+    if (is_valid(document_json) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
+
+    const vectorstore_name = document_json.vectorstore_name;
+    const hasher_model = document_json.hasher_model;
+    const embedder_model = document_json.embedder_model;
+    const chunks = document_json.chunks;
+    if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
+
+    console_log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
+
+    const hasher = initialize_hasher(ctx, hasher_model);
+    const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
+ 
     const vectorstore = await compute_vectorstore(chunks, embedder);
     const query_answers = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder);
     const cdn_response = await save_json_to_cdn(ctx, query_answers);
 
+    console.timeEnd("query_chunks_component_processTime");
     return cdn_response;
 }
 // ---------------------------------------------------------------------------
 async function loop_llm_component(ctx, chunks_cdn, instruction, functions, args)
 {
+    console.time("loop_llm_component_processTime");
+    setGlobalVariables(ctx, payload);
+
     const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
     if (is_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
 
@@ -1417,11 +1924,15 @@ async function loop_llm_component(ctx, chunks_cdn, instruction, functions, args)
 
     const cdn_response = await save_json_to_cdn(ctx, chunks_results);
 
+    console.timeEnd("loop_llm_component_processTime");
     return cdn_response;
 }
 // ---------------------------------------------------------------------------
 async function collate_chapters_component(ctx, chunks_cdn, args)
 {
+    console.time("processTime");
+    setGlobalVariables(ctx, payload);
+
     const chapter_name_field = args.chapter_name_field || "chapter_name";
     const current_chapter_field = args.current_chapter || "current_chapter";
     const new_chapter_field = args.new_chapter || "new_chapter";
@@ -1494,10 +2005,11 @@ async function collate_chapters_component(ctx, chunks_cdn, args)
     const cdn_summary = await save_text_to_cdn(ctx, summary);
     const cdn_plot = await save_text_to_cdn(ctx, plot);
 
+    console.timeEnd("processTime");
     return { chapters: cdn_chapters, summary: cdn_summary, plot: cdn_plot };
 
-
 }
+/*
 // ---------------------------------------------------------------------------
 async function chunk_files_component(ctx, payload)
 {
@@ -1508,13 +2020,24 @@ async function chunk_files_component(ctx, payload)
     let chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
     let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
 
+
+    // tbd replace these by a comma separated list of models (payload.models)
+    const allow_gpt3 = payload.allow_gpt3 || true;
+    const allow_gpt4 = payload.allow_gpt4 || false;
+    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
+
     const texts = await gather_all_texts_from_documents(ctx, documents);
-    const embedder = get_embedder(ctx, payload);
+
+    const embedder_model = payload.embeddings || DEFAULT_EMBEDDER;
+    const embedder = initialize_embedder(ctx, embedder_model);
+
+    const hasher_model = payload.hasher || DEFAULT_HASHER;
+    const hasher = initialize_hasher(ctx, hasher_model);
 
     vectorstore_name = clean_vectorstore_name(vectorstore_name);
     chunk_size = adjust_chunk_size(chunk_size);
 
-    const chunks_id = compute_chunks_id(texts, vectorstore_name);
+    const chunks_id = compute_document_id(texts, vectorstore_name, hasher);
 
     let chunks_cdn = null;
 
@@ -1537,7 +2060,7 @@ async function chunk_files_component(ctx, payload)
         for (let i = 0; i < texts.length; i++) 
         {
             let text = texts[i];
-            const [chunks_list, cost, words] = await compute_chunks(ctx, embedder, text, vectorstore_name, chunk_size);
+            const [chunks_list, cost, words] = await compute_chunks(ctx, embedder, hasher, text, vectorstore_name, chunk_size);
             total_cost += cost;
             total_words += words;
 
@@ -1568,42 +2091,114 @@ async function chunk_files_component(ctx, payload)
     console_log(`chunks_cdn = ${JSON.stringify(chunks_cdn)}`);
     return chunks_cdn;
 }
+*/
+function rebuildToTicketObjectsIfNeeded(data) 
+{
+    const documents = [];
+
+    // Check if the data is an array of tickets
+
+    if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && item.ticket))
+    {
+        return data; // Already in the ticket format, return as is.
+    }
+
+    // Check if the data is an array of URLs pointing to fids
+    if (Array.isArray(data) && data.every(item => typeof item === 'string'))
+    {
+        // Rebuild URLs into ticket objects
+
+        for (let i = 0; i < data.length; i++)
+        {
+            const url = data[i];
+            const fidRegex = /\/fid\/(.+)/; // Regular expression to extract the fid part after "/fid/"
+            const match = url.match(fidRegex);
+
+            if (match)
+            {
+                const baseurl = url.substring(0, match.index); // Extract the base URL before "/fid/"
+                const fid = match[1]; // Extract the fid part from the regex match
+                const filename = `${fid}.txt`;
+
+                const rebuilt_cdn = {
+                    ticket: {
+                        fid: fid,
+                        count: 1,
+                        url: baseurl,
+                        publicUrl: baseurl,
+                    },
+                    fileName: filename,
+                    size: 0,
+                    url: url,
+                    furl: `fid://${filename}`,
+                    mimeType: "text/plain; charset=utf-8",
+                    expires: 0,
+                    meta:
+                    {
+                        created: 0
+                    }
+                };
+                // we recerate a cdn object, knowing that most likely only the ticket will be used
+                documents.push(rebuilt_cdn);
+                console.log(`rebuild url = ${url} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
+
+            }
+        }
+    }
+
+    console.timeEnd("processTime");
+    return documents;
+}
+
 // ---------------------------------------------------------------------------
 async function read_text_file_component(ctx, payload)
 {
+    console.time("processTime");
+    setGlobalVariables(ctx, payload);
+
+    const documents = [];
     console.log(`--------------------------------`);
-    console_log(`[read_text_file] payload = ${JSON.stringify(payload)}`);
-    const documents = payload.documents;
-    //console.log(`documents = ${JSON.stringify(documents)}`);
+    console_log(`[read_text_file_component] payload = ${JSON.stringify(payload)}`);
 
-    let texts = [];
-    for (let i = 0; i < documents.length; i++) 
+    const texts = parse_text_to_array(payload.text);
+    console.log(`[read_text_file_component] texts #  ${texts.length}`);
+
+    const urls = parse_text_to_array(payload.url);
+    console.log(`[read_text_file_component] urls #  ${urls.length}`);
+
+    const cdn_tickets_from_urls = rebuildToTicketObjectsIfNeeded(urls);
+    console.log(`[read_text_file_component] cdn_tickets_from_urls #  ${cdn_tickets_from_urls.length}`);
+
+    for (let i = 0; i < cdn_tickets_from_urls.length; i++) 
     {
-        const document_cdn = documents[i];
-        //console.log(`document_cdn = ${JSON.stringify(document_cdn)}`);
-
-        const document = await ctx.app.cdn.get(document_cdn.ticket);
-        //console.log(`document = ${JSON.stringify(document)}`);
-
-        const mimeType = document_cdn.mimeType || 'text/plain; charset=utf-8';
-        const text = document.data.toString() || "";
-        if (is_valid(text) == false) 
-        {
-            console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
-            continue;
-        }
-        texts.push(text);
+        const cdn_ticket = cdn_tickets_from_urls[i];
+        documents.push(cdn_ticket);
     }
-    if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
-    if (texts.length == 1) return texts[0];
-    
-    return texts;
+
+    for (let i = 0; i < texts.length; i++) 
+    {
+        const text = texts[i];
+        const buffer = Buffer.from(text);
+        const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
+
+        documents.push(document_cdn);
+    }
+
+    if (is_valid(documents) == false) throw new Error(`ERROR: could not convert to documents`);
+    console.log(`[read_text_file_component] documents # = ${documents.length}`);
+    console.log(`[read_text_file_component] documents = ${JSON.stringify(documents)}`);
+
+    console.timeEnd("processTime");
+    return documents;
 }
 // ---------------------------------------------------------------------------
 async function advanced_llm_component(ctx, payload)
 {
+    console.time("processTime");
+    setGlobalVariables(ctx, payload);
+
     console.log(`--------------------------------`);
-    console_log(`[component_adv_llm] payload = ${JSON.stringify(payload)}`);
+    console_log(`[advanced_llm_component] payload = ${JSON.stringify(payload)}`);
     const instructions = parse_text_to_array(payload.instruction);
     const prompts = parse_text_to_array(payload.prompt);
     const llm_functions = parse_object_to_array_of_objects(payload.llm_function);
@@ -1611,11 +2206,11 @@ async function advanced_llm_component(ctx, payload)
     const top_p = payload.top_p || 1;
     const allow_gpt3 = payload.allow_gpt3 || true;
     const allow_gpt4 = payload.allow_gpt4 || false;
-
-
+    GLOBAL_ALLOW_GPT3 = allow_gpt3;
+    GLOBAL_ALLOW_GPT4 = allow_gpt4;
     if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
 
-    console.log('llm_functions = ' + JSON.stringify(llm_functions));
+    console.log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
 
     let actual_token_cost = 0;
     const answers = {};
@@ -1623,11 +2218,11 @@ async function advanced_llm_component(ctx, payload)
     for (let i = 0; i < instructions.length; i++)
     {
         const instruction = instructions[i];
-        for (let p= 0; p < prompts.length; p++)
+        for (let p = 0; p < prompts.length; p++)
         {
             let id = "answer";
-            if (instructions.length > 1) id+=`_i${i+1}`;
-            if (prompts.length > 1) id+=`_p${p+1}`;
+            if (instructions.length > 1) id += `_i${i + 1}`;
+            if (prompts.length > 1) id += `_p${p + 1}`;
 
             const prompt = prompts[p];
 
@@ -1659,15 +2254,166 @@ async function advanced_llm_component(ctx, payload)
             actual_token_cost += answer_object.total_tokens;
         }
     }
-    answers["text"]= answer_string;
-    
-    
+    answers["text"] = answer_string;
+
+
     const cdn_response = await save_json_to_cdn(ctx, answers);
     answers["document"] = cdn_response;
     answers["url"] = cdn_response.url;
-    
+
+    console.timeEnd("processTime");
     return answers;
 }
-// ---------------------------------------------------------------------------
 
-export { advanced_llm_component, read_text_file_component, chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component};
+// ---------------------------------------------------------------------------
+async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, payload)
+{
+    let document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
+    let document_json = null;
+    if (is_valid(document_cdn))
+    {
+        console.log(`[process_chapter] Found document_cdn: ${JSON.stringify(document_cdn)} in the DB under id: ${document_id}. Skipping chunking...`);
+        try
+        {
+            document_json = await get_json_from_cdn(ctx, document_cdn);
+        }
+        catch (error)
+        {
+            console.log(`[process_chapter] WARNING: could not get document_json from cdn`);
+            document_cdn = null;
+        }   
+    }
+
+    if (!is_valid(document_cdn))
+    {
+        console.log(`[process_chapter] Found no records for document id = ${document_id} in the DB. Chunking now...`);
+
+        const chunker_results = await break_chapter_into_chunks(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter);
+        const chapter_chunks = chunker_results.chunks;
+
+        const hasher_model = payload.hasher_model;
+        const embedder_model = payload.embedder_model;
+        const splitter_model = payload.splitter_model;
+
+        document_json = { id: document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: chapter_chunks, chapters: [chapter_text], args: payload};
+        document_cdn = await save_json_to_cdn_as_buffer(ctx, document_json);
+
+        if (is_valid(document_cdn) == false) throw new Error(`ERROR: could not save document_cdn to cdn`);
+        console.log(`[process_chapter] document_cdn: = ${JSON.stringify(document_cdn)}`);
+
+        const success = await save_chunks_cdn_to_db(ctx, document_cdn, document_id);
+        if (success == false) throw new Error(`ERROR: could not save document_cdn to db`);
+    }
+
+    console.timeEnd("processTime");
+    return {cdn: document_cdn, json: document_json};
+}
+
+async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, embedder, splitter)
+{
+
+    const chunks = [];
+    const splitted_texts = await splitter.splitText(text);
+
+    let total_nb_of_chars = 0;
+    console.log(`[break_chapter_into_chunks] splitted texts # = ${splitted_texts.length}`);
+
+    for (let splitted_index = 0; splitted_index < splitted_texts.length; splitted_index++)
+    {
+        const nb_of_chars = splitted_texts[splitted_index].length;
+        if (nb_of_chars > 0)
+        {
+            console.log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
+            total_nb_of_chars += nb_of_chars;
+
+            const chunk_text = splitted_texts[splitted_index];
+            console.log(`[break_chapter_into_chunks] [${splitted_index}] splitted text (first 1024)= ${chunk_text.slice(0, 1024)}`);
+            const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
+            const chunk_embedding = await embedder.embedQuery(chunk_text);
+            const chunk_json = { text: chunk_text, id: chunk_id, embedding: chunk_embedding };
+            chunks.push(chunk_json);
+        }
+    }
+    const average_nb_of_chars = total_nb_of_chars / splitted_texts.length;
+    console.log(`[break_chapter_into_chunks] average_nb_of_chars = ${average_nb_of_chars}`);
+
+    if (is_valid(chunks) == false) 
+    {
+        throw new Error(`ERROR could not chunk the documents`);
+    }
+
+    console.timeEnd("processTime");
+    return { chunks: chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars: total_nb_of_chars, average_nb_of_chars: average_nb_of_chars };
+}
+async function chunk_files_component(ctx, payload)
+{
+    console.log(`--------------------------------`);
+    console_log(`[chunk_files_component] payload = ${JSON.stringify(payload)}`);
+
+    console.time("processTime");
+    setGlobalVariables(ctx, payload);
+
+    const documents = payload.documents;
+    const overwrite = payload.overwrite || false;
+    const collate = payload.collate || true;
+
+    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
+    vectorstore_name = clean_vectorstore_name(vectorstore_name);
+
+    const hasher_model = payload.hasher_model || DEFAULT_HASHER_MODEL;
+    const hasher = initialize_hasher(ctx, hasher_model);
+
+    const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
+    const splitter = initialize_splitter(ctx, splitter_model, payload); // payload is passed to the splitter for initialization purposes
+
+    const embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
+    const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
+
+    console.log(`[chunk_files_component] hasher_model = ${hasher_model}, splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`   )
+
+
+    const chapters = await gather_all_texts_from_documents(ctx, documents);
+    // gather an array of texts, 1 per document. we will split and chunk them separately
+    // if collate is true, we will then put them all in the same arrays
+    // This allows to feed a book as an array of chapters, for examplea and have chunks that do not overlap across chapter transitions
+    // For this reason, we call each of the passed documents a 'chapter'
+
+    let cdns = [];
+    let all_texts = "";
+    let all_chunks = [];
+    for (let chapter_index = 0; chapter_index < chapters.length; chapter_index++)
+    {
+        const text = chapters[chapter_index];
+        const document_id = compute_document_id(ctx, [text], vectorstore_name, hasher);
+        let response = await process_chapter(ctx, text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, payload);
+
+        if (collate)
+        {
+            const document_json = response.json;
+            all_texts += text+"\n\n";
+            all_chunks = all_chunks.concat(document_json.chunks);
+            
+        }
+        else
+        {
+            const document_cdn = response.cdn;
+            cdns.push(document_cdn);
+        }
+    }
+
+    if (collate)
+    {
+        console.log(`collating #${chapters.length} chapters. # of chunks = ${all_chunks.length}`);
+        const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
+        const collated_json = {id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: all_chunks, chapters: chapters, args: payload};
+        const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);
+        cdns = [collated_document_cdn];
+    }
+
+    console.timeEnd("processTime");
+    return cdns;
+}
+
+  
+
+export { advanced_llm_component, read_text_file_component, chunk_files_component, collate_chapters_component, loop_llm_component, query_chunks_component, load_pdf_component };

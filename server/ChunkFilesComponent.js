@@ -18,29 +18,46 @@ var ChunkFilesComponent = {
               "x-type": "documentArray",
               "description": `Chunk the files and save the chunks to the CDN.`,
             },
-            "chunk_size": {
-              "title": "Chunk Size",
-              "type": "number",
-              "default": 1000,
-              "minimum": 0,
-              "maximum": 100000,
-              "description": `The size of each chunk in tokens.`,
-            },
-            "vectorstore_name": {
-              "title": "Vectorstore Name (optional)",
-              "type": "string",
-              "default": "optional vectorstore name",
-            },
-            "embeddings": {
-              "title": "Embeddings",
+            "embedder_model": {
+              "title": "Embedding Model",
               "type": "string", 
               "enum": ["openai", "tensorflow"],
               "default": "tensorflow",
-            },            
+            },        
+            "splitter_model": {
+              "title": "Splitter Model",
+              "type": "string", 
+              "enum": [ "RecursiveCharacterTextSplitter", "TokenTextSplitter","CodeSplitter_cpp","CodeSplitter_go","CodeSplitter_java","CodeSplitter_ruby","CodeSplitter_js","CodeSplitter_php","CodeSplitter_proto","CodeSplitter_python","CodeSplitter_rst","CodeSplitter_rust","CodeSplitter_scala","CodeSplitter_swift","CodeSplitter_markdown","CodeSplitter_latex","CodeSplitter_html"],
+              "default": "RecursiveCharacterTextSplitter",
+            },
+            "chunk_size_in_tokens": {
+              "title": "Chunk Size in Tokens",
+              "type": "number",
+              "default": 512,
+              "minimum": 32
+            },
+            "chunk_overlap_in_tokens": {
+              "title": "Chunk Overlap in Tokens",
+              "type": "number",
+              "default": 64,
+              "minimum": 0
+            },
+            "collate": {
+              "title": "Collate",
+              "type": "boolean",
+              "default": true,
+            },
             "overwrite": {
               "title": "Overwrite",
               "type": "boolean",
-              "description": `Overwrite the existing files in the CDN.`,
+              "default": false,
+            },
+            "args": {
+              "title": "Additional Arguments",
+              "type": "object",
+              "x-type": "object",
+              "default": {},
+              "description": `Additional optional arguments such as overwrite, various chunking parameters, etc.`,
             },            
           }
         },
@@ -92,11 +109,19 @@ var ChunkFilesComponent = {
       _exec: async (payload, ctx) =>
       {
   
+        // Copy fields from args to payload
+        for (let key in payload.args) {
+          payload[key] = payload.args[key];
+        }
+
+        // Remove args from payload
+        delete payload.args;
+
         let return_value = { result: { "ok": false }, documents: [] };
         if (payload.documents)
         {
-          const chunks_cdn = await chunk_files_component(ctx, payload);
-          return_value = { result: { "ok": true }, documents: [chunks_cdn] , files: [chunks_cdn]};
+          const result_cdns = await chunk_files_component(ctx, payload);
+          return_value = { result: { "ok": true }, documents: result_cdns , files: result_cdns};
         }
   
         return return_value;

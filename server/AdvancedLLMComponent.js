@@ -16,13 +16,13 @@ var AdvancedLLMComponent = {
                         "title": "Instruction",
                         "type": "string",
                         "x-type": "text",
-                        'description': 'instruction or comma-separated list of instructions',
+                        'description': 'instruction or JSON list of instructions',
                     },
                     "prompt": {
                         "title": "Prompt",
                         "type": "string",
                         "x-type": "text",
-                        'description': 'prompt or comma-separated list of prompts',
+                        'description': 'prompt or JSON list of prompts',
                     },
                     "llm_function": {
                         "title": "Function",
