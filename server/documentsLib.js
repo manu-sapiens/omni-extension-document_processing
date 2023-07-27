@@ -35,6 +35,7 @@ const DEFAULT_TOP_P = 1.0;
 
 let GLOBAL_ALLOW_GPT3 = true;
 let GLOBAL_ALLOW_GPT4 = false;
+let GLOBAL_OVERWRITE = false;
 const VERBOSE = true;
 
 
@@ -51,123 +52,8 @@ const DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
 const SPLITTER_TOKEN_ENCODING = "gpt2";
 const AVERAGE_CHARACTER_PER_WORD = 5;
 const AVERAGE_WORD_PER_TOKEN = 0.75;
-const DEFAULT_CHUNK_SIZE_IN_TOKENS = 512;
-const DEFAULT_CHUNK_OVERLAP_IN_TOKENS = 64;
-
-let global_ctx = null;
-let global_user = null;
-let global_db = null;
-let global_allow_gpt3 = null;
-let global_allow_gpt4 = null;
-let global_verbose = null;
-let global_embedder_model = null;
-let global_hasher_model = null;
-let global_splitter_model = null;
-let global_vectorstore_name = null;
-let global_overwrite = null;
-
-
-function setGlobalVariables(ctx, payload) 
-{
-    global_ctx = ctx;
-    global_user = ctx.userId;
-    global_db = ctx.app.db;
-
-    global_allow_gpt3 = payload.allow_gpt3 || true;
-    global_allow_gpt4 = payload.allow_gpt4 || false;
-    global_verbose = payload.verbose || false;
-    global_embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
-    global_hasher_model = payload.hasher_model || DEFAULT_HASHER_MODEL;
-    global_splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
-    global_vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
-    global_overwrite = payload.overwrite || false;
-}
-
-
-class OmniChunk
-{
-    constructor(chunkData)
-    {
-        this._chunk_text = chunkData.chunk_text || '';
-        this._chunk_hash = chunkData.chunk_hash || '';
-        this._chunk_embedding = chunkData.embedding || null;
-
-        /*this._summary = chunkData.summary || null;
-        this._entities = chunkData.entities || null;
-        this._start_word_index = chunkData.start_word_index || 0;
-        this._end_word_index = chunkData.end_word_index || 0;
-        this._chunk_index = chunkData.chunk_index || 0;
-        this._words_count = chunkData.words_count || 0;
-        this._tokens_count = chunkData.tokens_count || -1;*/
-    }
-
-    // Getters
-    get chunk_text() { return this._chunk_text; }
-    get chunk_id() { return this._chunk_hash; }
-    get chuck_embedding() { return this._chunk_embedding; }
-
-    /*get summary() { return this._summary; }
-    get entities() { return this._entities; }
-    get start_word_index() { return this._start_word_index; }
-    get end_word_index() { return this._end_word_index; }
-    get chunk_index() { return this._chunk_index; }
-    get words_count() { return this._words_count; }
-    get tokens_count() { return this._tokens_count; }*/
-
-    // Setters
-    set chunk_text(value) { this._chunk_text = value; }
-    set chunk_id(value) { this._chunk_hash = value; }
-    set chuck_embedding(value) { this._chunk_embedding = value; }
-
-    /*set summary(value) { this._summary = value; }
-    set entities(value) { this._entities = value; }
-    set start_word_index(value) { this._start_word_index = value; }
-    set end_word_index(value) { this._end_word_index = value; }
-    set chunk_index(value) { this._chunk_index = value; }
-    set words_count(value) { this._words_count = value; }
-    set tokens_count(value) { this._tokens_count = value; }*/
-}
-
-class OmniDocument
-{
-    constructor(docData)
-    {
-        this._texts = docData.texts || [];
-        this._id = docData.hash || '';
-        this._hasher = docData.hasher || '';
-        this._splitter = docData.splitter || '';
-        this._embedder = docData.embedder || '';
-        this._chunker = docData.chunker || '';
-        this._overlap = docData.overlap || 0;
-        this._chunks = (docData.chunks || []).map(chunk => new OmniChunk(chunk));
-    }
-
-    // Getters
-    get texts() { return this._texts; }
-    get id() { return this._id; }
-    get hasher() { return this._hasher; }
-    get splitter() { return this._splitter; }
-    get embedder() { return this._embedder; }
-    get chunker() { return this._chunker; }
-    get overlap() { return this._overlap; }
-    get chunks() { return this._chunks; }
-
-    // Setters
-    set texts(value) { this._texts = value; }
-    set id(value) { this._id = value; }
-    set hasher(value) { this._hasher = value; }
-    set splitter(value) { this._splitter = value; }
-    set embedder(value) { this._embedder = value; }
-    set chunker(value) { this._chunker = value; }
-    set overlap(value) { this._overlap = value; }
-    set chunks(value) { this._chunks = value.map(chunk => new OmniChunk(chunk)); }
-
-    // Method to add a chunk
-    addChunk(chunkData)
-    {
-        this._chunks.push(new OmniChunk(chunkData));
-    }
-}
+const DEFAULT_CHUNK_SIZE = 512;
+const DEFAULT_CHUNK_OVERLAP = 64;
 
 class Hasher
 {
@@ -216,71 +102,6 @@ class Murmur3Hasher extends Hasher
         throw new Error('hash_list only accept string and list of strings as input');
     }
 }
-/*
-
-class SentenceTextSplitter
-{
-    constructor(chunkSize, chunkOverlap, wordToTokenRatio = 0.8)
-    {
-        this.chunkSize = chunkSize;
-        this.chunkOverlap = chunkOverlap;
-        this.wordToTokenRatio = wordToTokenRatio;
-    }
-
-    // Splits text into sentences and then creates chunks
-    splitText(text)
-    {
-        const sentences = text.match(/[^.!?]*[.!?]/g) || [];
-        const chunks = [];
-        let chunk = [];
-        let overlap = [];
-        let tokenCount = 0;
-
-        for (let i=0; i<sentences.length; i++)
-        {
-            const sentence = sentences[i].trim();
-            const words = sentence.split(' ');
-            const nb_of_words = words.length;
-            const sentenceTokenCount = nb_of_words * this.wordToTokenRatio;
-             if (tokenCount + sentenceTokenCount <= this.chunkSize)
-            {
-                chunk.push(sentence);
-                tokenCount += sentenceTokenCount;
-            } 
-            else
-            {
-                // Add overlap from the previous chunk
-                if (overlap.length > 0)
-                {
-                    chunk = overlap.concat(chunk);
-                }
-                
-                chunks.push(chunk.join(' '));
-                
-                // Calculate overlap for the next chunk
-                const overlapStart = Math.max(0, chunk.length - this.chunkOverlap);
-                overlap = chunk.slice(overlapStart);
-                
-                chunk = [sentence];
-                tokenCount = sentenceTokenCount;
-            }
-        }
-
-        // Add overlap and push the last chunk
-        if (chunk.length > 0)
-        {
-            if (overlap.length > 0)
-            {
-                chunk = overlap.concat(chunk);
-            }
-            chunks.push(chunk.join(' '));
-        }
-
-        return chunks;
-    }
-}
-*/
-
 
 function is_valid(value)
 {
@@ -374,7 +195,7 @@ function console_log(...args)
     }
 }
 
-function pick_model(text_size) 
+function pick_model(text_size)
 {
 
     if (text_size > GPT4_SIZE_MAX) throw new Error(`Text size ${text_size} is too large`);
@@ -453,7 +274,7 @@ class CachedEmbeddings extends Embeddings
 
         let embedding = null;
 
-        if (global_overwrite) 
+        if (GLOBAL_OVERWRITE) 
         {
             await user_db_delete(this.ctx, embedding_id);
         }
@@ -499,79 +320,6 @@ class CachedEmbeddings extends Embeddings
         }
     }
 }
-/*
-class OmniTensorflowEmbeddings extends Embeddings
-{
-    // a db-cached version of the tensorflow embeddings
-    // NOTE: this can easily be extened to a general purpose "cached embeddings" class
-    // wrapper around any embeddings model
-    constructor(ctx, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME)
-    {
-
-        super();
-        const embedder_model = EMBEDDER_MODEL_TENSORFLOW;
-        this.embedder = new TensorFlowEmbeddings();
-
-        this.ctx = ctx;
-        this.db = ctx.app.services.get('db');
-        this.user = ctx.user;
-        this.vectorstore_name = vectorstore_name;
-
-        this.hasher = hasher;
-        this.modelName = embedder_model;
-
-        if (!this.ctx)
-        {
-            throw new error(`Context not provided`);
-        }
-    }
-
-    async embedDocuments(texts)
-    {
-
-        const embeddings = [];
-        if (is_valid(texts))
-        {
-            for (let i = 0; i < texts.length; i += 1)
-            {
-                let text = texts[i];
-                const embedding = await this.embedQuery(text);
-                embeddings.push(embedding);
-            }
-        }
-        return embeddings;
-    }
-
-    async embedQuery(text)
-    {
-        const embedding_id = compute_chunk_id(text, this.vectorstore_name, this.hasher);
-        const db_embedding = await user_db_get(this.ctx, embedding_id);
-        if (is_valid(db_embedding)) return db_embedding;
-
-        console_log(`Generating embedding for ${text.slice(0, 128)}[...]`);
-        try
-        {
-            const embedding = await this.embedder.embedQuery(text);
-            const success = await user_db_put(this.ctx, embedding, embedding_id);
-            if (success == false)
-            {
-                throw new Error(`Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
-            }
-            else
-            {
-                console_log(`Saved to DB`);
-            }
-
-            return embedding;
-        }
-        catch (error)
-        {
-            throw new Error(`Error generating embedding for text index ${i}: ${error}`);
-        }
-    }
-
-}
-*/
 
 class OmniOpenAIEmbeddings extends Embeddings
 {
@@ -760,6 +508,10 @@ async function fix_json_string(ctx, passed_string)
         throw new Error(`[FIXING] fix_json_string: passed string is not valid: ${passed_string}`);
 
     }
+    if (typeof passed_string !== 'string')
+    {
+        throw new Error(`[FIXING] fix_json_string: passed string is not a string: ${passed_string}, type = ${typeof passed_string}`);
+    }
 
     // Replace \n with actual line breaks
     let cleanedString = passed_string.replace(/\\n/g, '\n');
@@ -864,7 +616,7 @@ const runBlock = async (ctx, block, args) =>
     }
 };
 
-async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], temperature = 0, top_p = 1)
+async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], temperature = 0, top_p = 1, model = GPT3_MODEL_SMALL)
 {
 
     let args = {};
@@ -873,6 +625,7 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], 
     args.instruction = instruction;
     args.temperature = temperature;
     args.top_p = top_p;
+    args.model = model;
 
     if (is_valid(functions)) args.functions = functions;
     console.log(`[query_advanced_chatgpt] args: ${JSON.stringify(args)}`);
@@ -882,14 +635,15 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], 
 
     const total_tokens = response?.usage?.total_tokens || 0;
     let text = response?.answer_text || "";
-    let function_arguments = response?.function_arguments || "";
+    const function_arguments_string = response?.function_arguments_string || "";
+    let function_arguments = null;
 
-    if (is_valid(function_arguments) == true) function_arguments = await fix_json_string(ctx, function_arguments);
+    if (is_valid(function_arguments_string) == true) function_arguments = await fix_json_string(ctx, function_arguments_string);
     if (is_valid(text) == true) text = clean_string(text);
-
 
     const return_value = {
         text: text,
+        function_arguments_string: function_arguments_string,
         function_arguments: function_arguments,
         total_tokens: total_tokens
     };
@@ -926,93 +680,6 @@ function count_tokens_in_text(text)
     }
 }
 
-async function run_llm_on_chunk(ctx, chunk, instruction, functions, temperature, top_p)
-{
-
-    let combined_text = chunk.overlap_text + " " + chunk.text;
-
-    const gpt_results = await query_advanced_chatgpt(ctx, combined_text, instruction, functions, temperature, top_p);
-    const actual_token_cost = gpt_results.total_tokens;
-
-    let json_results = {
-        index: chunk.index,
-        first_sentence_index: chunk.first_sentence_index,
-    };
-    const sanetized_results = sanitizeJSON(gpt_results);
-
-    json_results = Object.assign(json_results, sanetized_results);
-    json_results.total_tokens = actual_token_cost;
-    json_results.total_cost = actual_token_cost;
-
-    return json_results;
-}
-/*
-function break_into_sentences(text, chunk_size)
-{
-    let sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-    let total_words = 0;
-    let sentence_infos = [];
-    let total_cost = 0;
-
-    for (let i = 0; i < sentences.length; i++)
-    {
-        let sentence = sentences[i].trim();
-        if (i % 100 == 0) console_log(`sentence #${i}: ${sentence}`);
-
-        let token_cost = count_tokens_in_text(sentence);
-
-        // Check for sentences that exceed the chunk size
-        if (token_cost > chunk_size)
-        {
-            console.warning(`[WARNING] sentence #${i} with cost ${token_cost} exceeds the chunk size ${chunk_size}`);
-            continue; // skip this sentence or handle it appropriately
-        }
-
-        let words = sentence.split(" ");
-        let num_words = words.length;
-        total_words += num_words;
-        total_cost += token_cost;
-
-        let sentence_info = {
-            text: sentence,
-            index: i,
-            token_cost: token_cost,
-        };
-
-        sentence_infos.push(sentence_info);
-    }
-
-    console_log(`Number of sentences: ${sentences.length} : Total Token Cost =${total_cost}, Total number of words=${total_words}, ratio: ${total_words / total_cost} `);
-    return [sentence_infos, total_cost, total_words];
-}
-*/
-
-function split_into_sentences(text)
-{
-    // Use a regular expression to consider sequences not containing '. ', '? ', or '! ' followed by a '.', '?', or '!'
-    return text.match(/[^.!?]*[.!?]/g) || [];
-}
-
-
-/*
-// Main function to populate chunks
-async function compute_chunks(ctx, embedder, hasher, text, base_name, chunk_size = 3000, overlap_sentences = 1)
-{
-    if (embedder == null) throw new Error("No global embeddings available");
-
-    console.log(`----------------> initial text = ${text}`);
-    const [chunks_list, total_cost, total_words] = create_chunks(text, base_name, hasher, chunk_size, overlap_sentences);
-
-    for (let i = 0; i < chunks_list.length; i++) 
-    {
-        const embedding_value = await await compute_and_cache_chunk_embedding(ctx, embedder, chunks_list[i]);
-        chunks_list[i].embedding = embedding_value;
-        console.log(`Computed embeddings for Chunk  ${i}`);
-    }
-
-    return [chunks_list, total_cost, total_words];
-}
-*/
 function compute_chunk_id(ctx, text, vectorstore_name, hasher)
 {
     const user = ctx.userId;
@@ -1036,123 +703,14 @@ async function get_cached_cdn(ctx, object_id, overwrite = false)
 
     return cdn;
 }
-/*
-// Main function to create chunks
-function create_chunks(text, base_name, hasher, chunk_size_in_tokens, overlap_size = 1, word_to_token_ratio = 0.8)
-{
-    if (typeof text !== 'string') throw new TypeError("Text must be a string");
-    if (typeof chunk_size_in_tokens !== 'number' || chunk_size_in_tokens <= 0) throw new TypeError("Chunk size must be a positive number");
-    if (typeof overlap_size !== 'number' || overlap_size < 0) throw new TypeError("Overlap sentences must be a non-negative number");
 
-    console.log(`Computing chunks for ${base_name} with chunk size ${chunk_size_in_tokens}, text length ${text.length}, chunk size ${chunk_size_in_tokens}`);
 
-    const sentences = split_into_sentences(text);
-    console.log("sentence_infos = ", sentences);
-    if (sentences.length === 0) throw new Error("No sentence infos available");
-
-    const chunks_list = [];
-    let chunk_index = 0;
-
-    let chunk = {
-        index: 0,
-        text: "",
-        first_sentence_index: 0,
-        token_cost: 0,
-        overlap_text: "",
-        overlap_cost: 0,
-        id: "",
-        embedding: "<not computed>",
-    };
-    let chunk_token_count = 0;  // initialize chunk_token_count
-    let total_cost = 0;  // to keep track of the total token cost
-    let total_words = 0;  // to keep track of the total number of words
-
-    for (let sentence_index = 0; sentence_index < sentences.length; sentence_index++) 
-    {
-        let sentence = sentences[sentence_index];
-        let sentence_token_count = sentence.split(' ').length * word_to_token_ratio;
-
-        if ((chunk.token_cost + sentence_token_count) <= chunk_size_in_tokens)
-        {
-            // build the current chunk with this sentence
-            chunk.text += sentence;
-            chunk.token_cost += sentence_token_count;
-
-            console.log(`Adding sentence#${sentence_index} to chunk#${chunk_index} -----> ${sentence}`);
-        } else
-        {
-
-            // finalize the current chunk
-            chunk.id = base_name + "_" + hasher.hash(chunk.text);
-            chunks_list.push(chunk);
-
-            // calculate the total token cost
-            total_cost += chunk.token_cost;
-
-            console.log(`Finalizing chunk#${chunk_index} with ${chunk.token_cost} tokens, total cost = ${total_cost}`);
-            console.log(`chunk#${chunk_index} = ${chunk.text}`);
-            console.log(`----------------------------------------`);
-            // prepare the next chunk with overlapping sentences
-            chunk_index++;
-
-            chunk = {
-                index: chunk_index,
-                text: sentence,
-                first_sentence_index: sentence_index,
-                token_cost: sentence_token_count,
-                overlap_text: "",
-                overlap_cost: "",
-                id: "",
-                embedding: "<not computed>",
-            };
-
-            // build the overlap
-            const go_back = Math.max(0, sentence_index - overlap_size);
-            for (let i = go_back; i < sentence_index; i++)
-            {
-                let overlap_sentence = sentences[i];
-                let overlap_sentence_token_count = overlap_sentence.split(' ').length * word_to_token_ratio;
-                chunk.overlap_text += overlap_sentence;
-                chunk.overlap_cost += overlap_sentence_token_count;
-            }
-        }
-    }
-
-    // finalize the very last chunk
-    chunk.id = base_name + "_" + calculate_hash(chunk.text);
-    chunks_list.push(chunk);
-
-    // calculate the total token cost
-    total_cost += chunk.token_cost;
-    total_words = total_cost / word_to_token_ratio;
-
-    console.log(`Chunked the document into ${chunks_list.length} chunks with an estimated token cost of ${chunk_token_count}`);
-    return [chunks_list, total_cost, total_words];
-}
-*/
-/*
-async function compute_and_cache_chunk_embedding(ctx, embedder, chunk)
-{
-    const chunk_text = chunk.text;
-    const chunk_id = chunk.id;
-    const embedding = await embedder.embedQuery(chunk_text);
-    await save_embedding_to_db(ctx, embedding, chunk_id);
-    return embedding;
-}
-*/
-/*
-async function save_embedding_to_db(ctx, embedding, embedding_id)
-{
-    const db = get_db(ctx);
-    const success = await user_db_put(ctx, embedding, embedding_id);
-    if (!success) throw new Error("Failed to save embedding to db");
-}
-*/
 function get_db(ctx)
 {
     const db = ctx.app.services.get('db');
     return db;
 }
+
 
 function get_effective_key(ctx, key)
 {
@@ -1239,6 +797,7 @@ async function user_db_put(ctx, value, key, rev = undefined)
     return true;
 }
 
+
 async function user_db_get(ctx, key)
 {
     const effectiveKey = get_effective_key(ctx, key);
@@ -1266,6 +825,8 @@ async function user_db_get(ctx, key)
 
     return json_value;
 }
+
+
 async function create_vectorstore_from_texts(texts, text_ids, embedder)
 {
     console_log(`ingest: texts = ${texts.length}, text_ids = ${text_ids.length}, embedder = ${embedder != null}`);
@@ -1273,19 +834,15 @@ async function create_vectorstore_from_texts(texts, text_ids, embedder)
     return vectorstore;
 }
 
+
 async function query_vectorstore(vector_store, query, nb_of_results = 1, embedder)
 {
     const vector_query = await embedder.embedQuery(query);
     const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
     return results;
 }
-/*
-function calculate_hash(text, hasher)
-{
-    const hashed = hasher.hash(text);
-    return hashed;
-}
-*/
+
+
 function get_texts_and_ids(chunks)
 {
     if (is_valid(chunks) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
@@ -1305,32 +862,7 @@ function get_texts_and_ids(chunks)
     return [chunk_texts, chunk_ids];
 }
 
-/*
-function adjust_chunk_size(chunk_size, allow_gpt4)
-{
 
-    if (allow_gpt4)
-    {
-        const max_size = GPT4_SIZE_MAX;
-        if (chunk_size > max_size) 
-        {
-            console.warn(`WARNING: chunk_size ${chunk_size} is too large for GPT4, adjusting to max size of ${max_size}`);
-            return max_size;
-        }
-    }
-    else
-    {
-        const max_size = GPT3_SIZE_MAX;
-        if (chunk_size > max_size)
-        {
-            console.warn(`WARNING: chunk_size ${chunk_size} is too large for GPT3, adjusting to max size of ${max_size}`);
-            return max_size;
-        }
-    }
-
-    return chunk_size;
-}
-*/
 async function save_text_to_cdn(ctx, text)
 {
     const buffer = Buffer.from(text);
@@ -1361,6 +893,7 @@ async function save_json_to_cdn(ctx, json)
     return cdn_response;
 }
 
+
 async function get_json_from_cdn(ctx, cdn_response)
 {
     if ("ticket" in cdn_response == false) throw new Error(`get_json_from_cdn: cdn_response = ${JSON.stringify(cdn_response)} is invalid`);
@@ -1386,6 +919,7 @@ async function get_json_from_cdn(ctx, cdn_response)
     return json;
 }
 
+
 async function get_chunks_from_cdn(ctx, chunks_cdn)
 {
     const chunks_json = await get_json_from_cdn(ctx, chunks_cdn);
@@ -1394,6 +928,7 @@ async function get_chunks_from_cdn(ctx, chunks_cdn)
 
     return chunks;
 }
+
 
 async function compute_vectorstore(chunks, embedder)
 {
@@ -1411,10 +946,10 @@ async function compute_vectorstore(chunks, embedder)
     return vectorstore;
 }
 
-async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder)
+
+async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder, allow_gpt3, allow_gpt4)
 {
-    console_log(`----= smartquery from vectorstore =----`);
-    console_log(`query = ${query}, nb_of_results = ${nb_of_results}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
+    console_log(`[smartquery_from_vectorstore] query = ${query}, nb_of_results = ${nb_of_results}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
 
     if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
     let vectorstore_responses = await query_vectorstore(vectorstore, query, nb_of_results, embedder);
@@ -1463,6 +998,7 @@ function compute_document_id(ctx, texts, vectorstore_name, hasher)
     return document_id;
 }
 
+
 // return an array of texts gathered from all the documents (1 per document)
 async function gather_all_texts_from_documents(ctx, documents)
 {
@@ -1499,24 +1035,6 @@ async function gather_all_texts_from_documents(ctx, documents)
     return texts;
 }
 
-/*
-async function save_chunk_to_cdn(ctx, chunk_json)
-{
-    const chunk_cdn = await save_json_to_cdn_as_buffer(ctx, chunk_json);
-    if (is_valid(chunk_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
-    return chunk_cdn;
-}
-*/
-
-/*
-async function save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words)
-{
-    const chunks_json = { chunks: chunks, chunks_id: chunks_id, total_cost: total_cost, total_words: total_words };
-    const chunks_cdn = await save_json_to_cdn_as_buffer(ctx, chunks_json);
-    if (is_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
-    return chunks_cdn;
-}
-*/
 
 async function save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id)
 {
@@ -1524,6 +1042,7 @@ async function save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id)
     if (success == false) throw new Error(`ERROR: could not save chunks_cdn to db`);
     return success;
 }
+
 
 function parse_chapter_info(chapters, chapter_numnber, chapter_info, args)
 {
@@ -1666,7 +1185,7 @@ function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hashe
     return embedder;
 }
 
-function initialize_hasher(ctx, hasher_model = DEFAULT_HASHER_MODEL)
+function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL)
 {
 
     let hasher = null;
@@ -1707,33 +1226,23 @@ function extractCodeLanguage(str)
 }
 
 
-function initialize_splitter(ctx, splitter_model = DEFAULT_SPLITTER_MODEL, args = {})
+function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
 {
-
-    const average_character_per_word = args.average_character_per_word || AVERAGE_CHARACTER_PER_WORD;
-    const average_word_per_token = args.average_word_per_token || AVERAGE_WORD_PER_TOKEN;
-
-    const characters_per_token = average_character_per_word * average_word_per_token;
-
-    const chunk_size_in_tokens = args.chunk_size_in_tokens || DEFAULT_CHUNK_SIZE_IN_TOKENS;
-    const chunk_size_in_characters = args.chunk_size_in_characters || chunk_size_in_tokens * characters_per_token;
-    const chunk_overlap_in_tokens = args.chunk_overlap_in_tokens || DEFAULT_CHUNK_OVERLAP_IN_TOKENS;
-    const chunk_overlap_in_characters = args.chunk_overlap_in_characters || chunk_overlap_in_tokens * characters_per_token;
 
     let splitter = null;
     if (splitter_model == SPLITTER_MODEL_RECURSIVE) 
     {
         splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: chunk_size_in_characters, // in characters!
-            chunkOverlap: chunk_overlap_in_characters, // in characters!
+            chunkSize: chunk_size, // in characters!
+            chunkOverlap: chunk_overlap, // in characters!
         });
     }
     else if (splitter_model == SPLITTER_MODEL_TOKEN) 
     {
         splitter = new TokenTextSplitter({
             encodingName: SPLITTER_TOKEN_ENCODING,
-            chunkSize: chunk_size_in_tokens, // in tokens!
-            chunkOverlap: chunk_overlap_in_tokens, // in tokens!
+            chunkSize: chunk_size, // in tokens!
+            chunkOverlap: chunk_overlap, // in tokens!
         });
     }
     else
@@ -1743,8 +1252,8 @@ function initialize_splitter(ctx, splitter_model = DEFAULT_SPLITTER_MODEL, args 
         if (code_language)
         {
             splitter = RecursiveCharacterTextSplitter.fromLanguage(code_language, {
-                chunkSize: chunk_size_in_characters, // in characters!
-                chunkOverlap: chunk_overlap_in_characters, // in characters!
+                chunkSize: chunk_size, // in characters!
+                chunkOverlap: chunk_overlap, // in characters!
             });
         }
     }
@@ -1754,32 +1263,11 @@ function initialize_splitter(ctx, splitter_model = DEFAULT_SPLITTER_MODEL, args 
     return splitter;
 }
 
-function parse_object_to_array_of_objects(candidate_object)
-{
-    console_log(`parse_object_to_array_of_objects: candidate_object = ${JSON.stringify(candidate_object)}`);
-    var objs = [];
-    try
-    {
-        if (Array.isArray(candidate_object) && candidate_object.every(elem => typeof elem === 'object' && elem !== null))
-        {
-            objs = candidate_object;
-        }
-        else if (typeof candidate_object === 'object' && candidate_object !== null)
-        {
-            objs = [candidate_object];
-        }
-    }
-    catch (error)
-    {
-        throw new Error(`parse_object_to_array_of_objects: Failed to parse candidate_object = ${JSON.stringify(candidate_object)} to array of objects`);
-        objs = [];
-    }
-    return objs;
-}
 
 function parse_text_to_array(candidate_text)
 {
     var texts = [];
+    if (is_valid(candidate_text) == false) return texts;
     try
     {
         const parsedArray = JSON.parse(candidate_text);
@@ -1802,30 +1290,27 @@ function parse_text_to_array(candidate_text)
 
 
 // ---------------------------------------------------------------------------
-async function load_pdf_component(ctx, payload)
+async function load_pdf_component(ctx, documents, overwrite = false)
 {
-    console.time("processTime");
-    setGlobalVariables(ctx, payload);
 
-    const documents_array = payload.documents;
-    if (is_valid(documents_array) == false) throw new Error(`load_pdf_component: documents_array = ${JSON.stringify(documents_array)} is invalid`);
+    console.time("load_pdf_component_processTime"); 
+    if (is_valid(documents) == false) throw new Error(`load_pdf_component: documents_array = ${JSON.stringify(documents)} is invalid`);
+
+    const pdfParser = new PDFParser();
+    pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError));
+    pdfParser.on("pdfParser_dataReady", pdfData => 
+    {
+        console.log(pdfData);
+    });
+
+    GLOBAL_OVERWRITE = overwrite;
 
     const texts_cdns = [];
-    for (let i = 0; i < documents_array.length; i++)
+    for (let i = 0; i < documents.length; i++)
     {
-
-        const documents_cdn = documents_array[i];
-
-        const pdfParser = new PDFParser();
-        const overwrite = payload.overwrite || true;
-
-        pdfParser.on("pdfParser_dataError", errData => console.error(errData.parserError));
-        pdfParser.on("pdfParser_dataReady", pdfData => 
-        {
-            console.log(pdfData);
-        });
-
+        const documents_cdn = documents[i];
         if ("ticket" in documents_cdn == false) throw new Error(`get_json_from_cdn: documents_cdn = ${JSON.stringify(documents_cdn)} is invalid`);
+
         const response_from_cdn = await ctx.app.cdn.get(documents_cdn.ticket, null, 'asBase64');
         if (response_from_cdn == null) throw new Error(`get_json_from_cdn: document = ${JSON.stringify(response_from_cdn)} is invalid`);
 
@@ -1837,11 +1322,8 @@ async function load_pdf_component(ctx, payload)
         const all_texts = extractedTextFields.join(' ');
         const cleaned_texts = clean_string(all_texts);
 
-        const hasher_model = payload.hasher || DEFAULT_HASHER_MODEL;
-        const hasher = initialize_hasher(ctx, hasher_model);
-
-        const texts_id = "converted_pdf_texts_" + hasher.hash(cleaned_texts);
-
+        const hasher = initialize_hasher(DEFAULT_HASHER_MODEL);
+        const texts_id = "converted_pdf_texts_" + ctx.userId + "_" + hasher.hash(cleaned_texts);
 
         let texts_cdn = null;
 
@@ -1870,73 +1352,91 @@ async function load_pdf_component(ctx, payload)
         texts_cdns.push(texts_cdn);
     }
 
-    console.timeEnd("processTime");
+    console.timeEnd("load_pdf_component_processTime");
     return texts_cdns;
 }
+
+
 // ---------------------------------------------------------------------------
-async function query_chunks_component(ctx, document_cdn, query, payload)
+async function query_chunks_component(ctx, document_cdns, query, nb_of_results=2, allow_gpt3=true, allow_gpt4=false)
 {
     console.time("query_chunks_component_processTime");
-    setGlobalVariables(ctx, payload);
+    let query_results_array = [];
+    for (let i = 0; i < document_cdns.length; i++)
+    {
+        const document_cdn = document_cdns[i];
+        const document_json = await get_json_from_cdn(ctx, document_cdn);
+        if (is_valid(document_json) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
 
-    const nb_of_results = payload.nb_of_results;
-    const document_json = await get_json_from_cdn(ctx, document_cdn);
-    if (is_valid(document_json) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
+        const vectorstore_name = document_json.vectorstore_name;
+        const hasher_model = document_json.hasher_model;
+        const embedder_model = document_json.embedder_model;
+        const chunks = document_json.chunks;
+        if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
 
-    const vectorstore_name = document_json.vectorstore_name;
-    const hasher_model = document_json.hasher_model;
-    const embedder_model = document_json.embedder_model;
-    const chunks = document_json.chunks;
-    if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
+        console_log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
 
-    console_log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
-
-    const hasher = initialize_hasher(ctx, hasher_model);
-    const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
- 
-    const vectorstore = await compute_vectorstore(chunks, embedder);
-    const query_answers = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder);
-    const cdn_response = await save_json_to_cdn(ctx, query_answers);
-
+        const hasher = initialize_hasher(hasher_model);
+        const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
+    
+        const vectorstore = await compute_vectorstore(chunks, embedder);
+        const query_results = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder, allow_gpt3, allow_gpt4);
+        query_results_array = query_results_array.concat(query_results);
+    }
+    const results_cdn = await save_json_to_cdn(ctx, query_results_array);
+    const response = {cdn: results_cdn, answers: query_results_array};
     console.timeEnd("query_chunks_component_processTime");
-    return cdn_response;
+    return response
 }
 // ---------------------------------------------------------------------------
-async function loop_llm_component(ctx, chunks_cdn, instruction, functions, args)
+async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions = [], allow_gpt3=true, allow_gpt4=false, temperature = 0, top_p = 1)
 {
     console.time("loop_llm_component_processTime");
-    setGlobalVariables(ctx, payload);
+  
+    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
+    GLOBAL_ALLOW_GPT3 = allow_gpt3;
+    GLOBAL_ALLOW_GPT4 = allow_gpt4;
 
-    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
-
-    const temperature = args.temperature || DEFAULT_TEMPERATURE;
-    const top_p = args.top_p || DEFAULT_TOP_P;
-
-    let chunks_results = [];
-    for (let i = 0; i < chunks.length; i++)
+    const chunks_results = [];
+    for (let chapter_index = 0; chapter_index < chapters_cdns.length; chapter_index++)
     {
-        const chunk = chunks[i];
-        const chunk_result = await run_llm_on_chunk(ctx, chunk, instruction, functions, temperature, top_p);
-        chunks_results.push(chunk_result);
+        const chunks_cdn = chapters_cdns[chapter_index];
+        const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
+        if (is_valid(chunks) == false) throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
+
+        for (let chunk_index = 0; chunk_index < chunks.length; chunk_index++)
+        {
+            //TBD: concatenate chunks into something that fits in the max size of the model. Although don't concatenate across chapters.
+            const chunk = chunks[chunk_index];
+            if (is_valid(chunk) && is_valid(chunk.text))
+            {
+                const model = pick_model(chunk.text)
+                const gpt_results = await query_advanced_chatgpt(ctx, chunk.text, instruction, llm_functions, temperature, top_p, model);
+                const sanetized_results = sanitizeJSON(gpt_results);
+                chunks_results.push(sanetized_results);
+            }
+            else
+            {
+                console.log(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
+            }
+        }
     }
 
-
-    const cdn_response = await save_json_to_cdn(ctx, chunks_results);
-
+    const results_cdn = await save_json_to_cdn(ctx, chunks_results);
+    const response = {cdn: results_cdn, answers : chunks_results};
     console.timeEnd("loop_llm_component_processTime");
-    return cdn_response;
+    return response
 }
 // ---------------------------------------------------------------------------
 async function collate_chapters_component(ctx, chunks_cdn, args)
 {
     console.time("processTime");
-    setGlobalVariables(ctx, payload);
 
     const chapter_name_field = args.chapter_name_field || "chapter_name";
     const current_chapter_field = args.current_chapter || "current_chapter";
     const new_chapter_field = args.new_chapter || "new_chapter";
     const overwrite = args.overwrite || false;
+    GLOBAL_OVERWRITE = overwrite;
 
 
     console.log(`[component_collate_chapters] [INFO] chapter_name_field = ${chapter_name_field}, current_chapter_field = ${current_chapter_field}, new_chapter_field = ${new_chapter_field}, overwrite = ${overwrite}`);
@@ -2009,89 +1509,8 @@ async function collate_chapters_component(ctx, chunks_cdn, args)
     return { chapters: cdn_chapters, summary: cdn_summary, plot: cdn_plot };
 
 }
-/*
-// ---------------------------------------------------------------------------
-async function chunk_files_component(ctx, payload)
-{
-    console.log(`--------------------------------`);
-    console_log(`[component_chunk_files] payload = ${JSON.stringify(payload)}`);
-    const documents = payload.documents;
-    const overwrite = true; // looks like the boolean component is broken in the Designer // payload.overwrite || false;
-    let chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
-    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
 
 
-    // tbd replace these by a comma separated list of models (payload.models)
-    const allow_gpt3 = payload.allow_gpt3 || true;
-    const allow_gpt4 = payload.allow_gpt4 || false;
-    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
-
-    const texts = await gather_all_texts_from_documents(ctx, documents);
-
-    const embedder_model = payload.embeddings || DEFAULT_EMBEDDER;
-    const embedder = initialize_embedder(ctx, embedder_model);
-
-    const hasher_model = payload.hasher || DEFAULT_HASHER;
-    const hasher = initialize_hasher(ctx, hasher_model);
-
-    vectorstore_name = clean_vectorstore_name(vectorstore_name);
-    chunk_size = adjust_chunk_size(chunk_size);
-
-    const chunks_id = compute_document_id(texts, vectorstore_name, hasher);
-
-    let chunks_cdn = null;
-
-    if (overwrite)
-    {
-        await user_db_delete(ctx, chunks_id);
-    }
-    else
-    {
-        chunks_cdn = await user_db_get(ctx, chunks_id);
-    }
-    if (is_valid(chunks_cdn) == false) 
-    {
-        console_log(`Found no Chunk CDN records for id = ${chunks_id} in the DB. Chunking now...`);
-
-        let chunks = [];
-        let total_cost = 0;
-        let total_words = 0;
-
-        for (let i = 0; i < texts.length; i++) 
-        {
-            let text = texts[i];
-            const [chunks_list, cost, words] = await compute_chunks(ctx, embedder, hasher, text, vectorstore_name, chunk_size);
-            total_cost += cost;
-            total_words += words;
-
-            if (is_valid(chunks_list) == false)
-            {
-                console_log(`ERROR could not chunk the document with doc_checksum = ${doc_id}`);
-                continue;
-            }
-            chunks = chunks.concat(chunks_list);
-        }
-
-        if (is_valid(chunks) == false) 
-        {
-            throw new Error(`ERROR could not chunk the documents`);
-        }
-
-        chunks_cdn = await save_chunks_to_cdn(ctx, chunks, chunks_id, total_cost, total_words);
-        if (is_valid(chunks_cdn) == false) throw new Error(`ERROR: could not save chunks_cdn to cdn`);
-        console_log(`files__to_chunks_cdn: = ${JSON.stringify(chunks_cdn)}`);
-
-        const success = await save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id);
-        if (success == false) throw new Error(`ERROR: could not save chunks_cdn to db`);
-    }
-    else
-    {
-        console_log(`Found Chunk CDN: ${chunks_cdn} in the DB under id: ${chunks_id}. Skipping chunking...`);
-    }
-    console_log(`chunks_cdn = ${JSON.stringify(chunks_cdn)}`);
-    return chunks_cdn;
-}
-*/
 function rebuildToTicketObjectsIfNeeded(data) 
 {
     const documents = [];
@@ -2151,19 +1570,15 @@ function rebuildToTicketObjectsIfNeeded(data)
 }
 
 // ---------------------------------------------------------------------------
-async function read_text_file_component(ctx, payload)
+async function read_text_file_component(ctx, url, text ="")
 {
+    console.log(`[read_text_file_component] url = ${url}, text = ${text}`);
     console.time("processTime");
-    setGlobalVariables(ctx, payload);
 
     const documents = [];
     console.log(`--------------------------------`);
-    console_log(`[read_text_file_component] payload = ${JSON.stringify(payload)}`);
 
-    const texts = parse_text_to_array(payload.text);
-    console.log(`[read_text_file_component] texts #  ${texts.length}`);
-
-    const urls = parse_text_to_array(payload.url);
+    const urls = parse_text_to_array(url);
     console.log(`[read_text_file_component] urls #  ${urls.length}`);
 
     const cdn_tickets_from_urls = rebuildToTicketObjectsIfNeeded(urls);
@@ -2175,13 +1590,19 @@ async function read_text_file_component(ctx, payload)
         documents.push(cdn_ticket);
     }
 
-    for (let i = 0; i < texts.length; i++) 
+    if (text != "")
     {
-        const text = texts[i];
-        const buffer = Buffer.from(text);
-        const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
+        const texts = parse_text_to_array(text);
+        console.log(`[read_text_file_component] texts #  ${texts.length}`);
 
-        documents.push(document_cdn);
+        for (let i = 0; i < texts.length; i++) 
+        {
+            const individual_text = texts[i];
+            const buffer = Buffer.from(individual_text);
+            const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
+
+            documents.push(document_cdn);
+        }
     }
 
     if (is_valid(documents) == false) throw new Error(`ERROR: could not convert to documents`);
@@ -2192,23 +1613,16 @@ async function read_text_file_component(ctx, payload)
     return documents;
 }
 // ---------------------------------------------------------------------------
-async function advanced_llm_component(ctx, payload)
+async function advanced_llm_component(ctx, instruction, prompt, llm_functions = [], allow_gpt3=true, allow_gpt4=false, temperature = 0, top_p = 1)  
 {
     console.time("processTime");
-    setGlobalVariables(ctx, payload);
-
+    
     console.log(`--------------------------------`);
-    console_log(`[advanced_llm_component] payload = ${JSON.stringify(payload)}`);
-    const instructions = parse_text_to_array(payload.instruction);
-    const prompts = parse_text_to_array(payload.prompt);
-    const llm_functions = parse_object_to_array_of_objects(payload.llm_function);
-    const temperature = payload.temperature || 0;
-    const top_p = payload.top_p || 1;
-    const allow_gpt3 = payload.allow_gpt3 || true;
-    const allow_gpt4 = payload.allow_gpt4 || false;
+    const instructions = parse_text_to_array(instruction);
+    const prompts = parse_text_to_array(prompt);
+    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
     GLOBAL_ALLOW_GPT3 = allow_gpt3;
     GLOBAL_ALLOW_GPT4 = allow_gpt4;
-    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
 
     console.log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
 
@@ -2228,11 +1642,15 @@ async function advanced_llm_component(ctx, payload)
 
             console_log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
-            const answer_object = await query_advanced_chatgpt(ctx, prompt, instruction, llm_functions, temperature, top_p);
+            let model = pick_model(prompt);
+            const token_cost = count_tokens_in_text(prompt);
+            if (token_cost > GPT4_SIZE_MAX) {console.log('WARNING: token cost > GPT4_SIZE_MAX');}
+            const answer_object = await query_advanced_chatgpt(ctx, prompt, instruction, llm_functions, temperature, top_p, model);
             if (is_valid(answer_object) == false) continue;
 
             const answer_text = answer_object.text;
             const answer_fa = answer_object.function_arguments;
+            const answer_fa_string = answer_object.function_arguments_string;
 
             if (is_valid(answer_text))
             {
@@ -2242,14 +1660,7 @@ async function advanced_llm_component(ctx, payload)
             else
             {
                 answers[id] = answer_fa;
-                try
-                {
-                    answer_string += JSON.stringify(answer_fa) + "\n";
-                }
-                catch (e)
-                {
-                    answer_string += "n/a\n";
-                }
+                answer_string += answer_fa_string + "\n";
             }
             actual_token_cost += answer_object.total_tokens;
         }
@@ -2260,13 +1671,14 @@ async function advanced_llm_component(ctx, payload)
     const cdn_response = await save_json_to_cdn(ctx, answers);
     answers["document"] = cdn_response;
     answers["url"] = cdn_response.url;
+    
 
     console.timeEnd("processTime");
     return answers;
 }
 
 // ---------------------------------------------------------------------------
-async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, payload)
+async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, hasher_model, embedder_model, splitter_model)
 {
     let document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
     let document_json = null;
@@ -2291,11 +1703,7 @@ async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embe
         const chunker_results = await break_chapter_into_chunks(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter);
         const chapter_chunks = chunker_results.chunks;
 
-        const hasher_model = payload.hasher_model;
-        const embedder_model = payload.embedder_model;
-        const splitter_model = payload.splitter_model;
-
-        document_json = { id: document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: chapter_chunks, chapters: [chapter_text], args: payload};
+        document_json = { id: document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: chapter_chunks, chapters: [chapter_text] };
         document_cdn = await save_json_to_cdn_as_buffer(ctx, document_json);
 
         if (is_valid(document_cdn) == false) throw new Error(`ERROR: could not save document_cdn to cdn`);
@@ -2345,31 +1753,18 @@ async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, em
     console.timeEnd("processTime");
     return { chunks: chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars: total_nb_of_chars, average_nb_of_chars: average_nb_of_chars };
 }
-async function chunk_files_component(ctx, payload)
+async function chunk_files_component(ctx, documents, vectorstore_name=DEFAULT_VECTORSTORE_NAME, overwrite=false, collate=true, embedder_model=DEFAULT_EMBEDDER_MODEL, splitter_model=DEFAULT_SPLITTER_MODEL, chunk_size=DEFAULT_CHUNK_SIZE,chunk_overlap=DEFAULT_CHUNK_OVERLAP)
 {
     console.log(`--------------------------------`);
-    console_log(`[chunk_files_component] payload = ${JSON.stringify(payload)}`);
-
     console.time("processTime");
-    setGlobalVariables(ctx, payload);
 
-    const documents = payload.documents;
-    const overwrite = payload.overwrite || false;
-    const collate = payload.collate || true;
-
-    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
     vectorstore_name = clean_vectorstore_name(vectorstore_name);
-
-    const hasher_model = payload.hasher_model || DEFAULT_HASHER_MODEL;
-    const hasher = initialize_hasher(ctx, hasher_model);
-
-    const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
-    const splitter = initialize_splitter(ctx, splitter_model, payload); // payload is passed to the splitter for initialization purposes
-
-    const embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
+    const hasher_model = DEFAULT_HASHER_MODEL;
+    const hasher = initialize_hasher(hasher_model);
+    const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
     const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
 
-    console.log(`[chunk_files_component] hasher_model = ${hasher_model}, splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`   )
+    console.log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`   )
 
 
     const chapters = await gather_all_texts_from_documents(ctx, documents);
@@ -2385,7 +1780,7 @@ async function chunk_files_component(ctx, payload)
     {
         const text = chapters[chapter_index];
         const document_id = compute_document_id(ctx, [text], vectorstore_name, hasher);
-        let response = await process_chapter(ctx, text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, payload);
+        let response = await process_chapter(ctx, text, vectorstore_name, hasher, embedder, splitter, document_id, overwrite, hasher_model, embedder_model, splitter_model);
 
         if (collate)
         {
@@ -2405,7 +1800,7 @@ async function chunk_files_component(ctx, payload)
     {
         console.log(`collating #${chapters.length} chapters. # of chunks = ${all_chunks.length}`);
         const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
-        const collated_json = {id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: all_chunks, chapters: chapters, args: payload};
+        const collated_json = {id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: all_chunks, chapters: chapters};
         const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);
         cdns = [collated_document_cdn];
     }

@@ -117,37 +117,11 @@ var LoopLLMComponent = {
     functions: {
       _exec: async (payload, ctx) =>
       {
-        let return_value = { result: { "ok": false }, documents: [] };
-        if (payload.documents)
-        {
-          const files = payload.documents;
-          const instruction = payload.instruction;
-          let llm_functions = payload.llm_functions || [];
-          const temperature = payload.temperature || 0;
-          const top_p = payload.top_p || 1;
-          const allow_gpt3 = payload.allow_gpt3 || true;
-          const allow_gpt4 = payload.allow_gpt4 || false;
-          const overwrite = payload.overwrite || false;
-          const embeddings = payload.embeddings || "tensorflow";
-          if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
+        
+        const response = await loop_llm_component(ctx, payload);
+        const { result_cdn, answers } = response;
+        return { result: { "ok": true }, documents: [result_cdn], files: [result_cdn] };
   
-          if (llm_functions.length === 0) llm_functions = NO_FUNCTIONS;
-          
-          const args = { temperature: temperature, top_p: top_p, allow_gpt3: allow_gpt3, allow_gpt4: allow_gpt4, overwrite: overwrite, embeddings: embeddings };
-  
-          const cdn_response_array = [];
-          for (let i = 0; i < files.length; i++)
-          {
-            const chunks_cdn = files[i];
-            const cdn_response = await loop_llm_component(ctx, chunks_cdn, instruction, llm_functions, args);
-            cdn_response_array.push(cdn_response);
-            
-            console.log(`cdn_response = ${JSON.stringify(cdn_response)}`);
-          }
-          return_value = { result: { "ok": true }, files: cdn_response_array, documents: cdn_response_array };
-        }
-  
-        return return_value;
       }
     }
   };

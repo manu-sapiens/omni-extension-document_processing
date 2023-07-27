@@ -18,12 +18,6 @@ var LoadPDFComponent = {
               "x-type": "documentArray",
               "description": `Load the PDF and save them as text in the CDN.`,
             },
-            "embeddings": {
-              "title": "Embeddings",
-              "type": "string", 
-              "enum": ["openai", "tensorflow"],
-              "default": "tensorflow",
-            },            
             "overwrite": {
               "title": "Overwrite",
               "type": "boolean",
@@ -75,11 +69,12 @@ var LoadPDFComponent = {
     functions: {
       _exec: async (payload, ctx) =>
       {
-  
+        const { documents, overwrite} = payload;
+
         let return_value = { result: { "ok": false }, documents: [], files: [] };
-        if (payload.documents)
+        if (documents)
         {
-          const output_cdns = await load_pdf_component(ctx, payload);
+          const output_cdns = await load_pdf_component(ctx, documents, overwrite);
           return_value = { result: { "ok": true }, documents: output_cdns , files: output_cdns};
         }
   

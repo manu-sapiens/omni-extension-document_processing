@@ -4,33 +4,34 @@ var AdvancedLLMComponent = {
     schema:
     {
         "tags": ['default'],
-        "componentKey": "advancedLLM",
+        "componentKey": "chatGpt_IxP",
         "category": "Document Processing",
         "operation": {
             "schema": {
-                "title": "Loop [instructions]x[prompts] times through a LLM",
+                "title": "Run chat GPT [instructions]x[prompts] times",
                 "type": "object",
                 "required": [],
                 "properties": {
                     "instruction": {
-                        "title": "Instruction",
+                        "title": "Instruction(s)",
                         "type": "string",
                         "x-type": "text",
+                        "default": "You are a helpful bot answering the user with their question to the best of your ability.",
                         'description': 'instruction or JSON list of instructions',
                     },
                     "prompt": {
-                        "title": "Prompt",
+                        "title": "Prompt(s)",
                         "type": "string",
                         "x-type": "text",
                         'description': 'prompt or JSON list of prompts',
                     },
-                    "llm_function": {
-                        "title": "Function",
-                        "type": "object",
-                        "x-type": "object",
-                        'description': 'function(s) to constrain the LLM output',
-                        'default': null
-                    },
+                    "llm_functions": {
+                        "title": "Functions",
+                        "type": "array",
+                        'x-type': 'objectArray',
+                        'description': 'functions to constrain the LLM output',
+                        'default': [],
+                      },
                     "top_p": {
                         "title": "Top_p",
                         "type": "number",
@@ -91,18 +92,22 @@ var AdvancedLLMComponent = {
         },
         patch:
         {
-            "title": "Advanced LLM",
+            "title": "chatGPT IxP",
             "category": "Text Manipulation",
-            "summary": "Run a LLM over each combination of instructions and prompts",
+            "summary": "Run chatGPT over each combination of instructions and prompts",
             "meta": {
                 "source": {
-                    "summary": "advanced a LLM (chatGPT) over chunked files",
+                    "summary": "Run chatGPT over each combination of instructions and prompts",
                     links: {
-                        "Langchainjs Website": "https://docs.langchain.com/docs/",
-                        "Documentation": "https://js.langchain.com/docs/",
-                        "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-                        "Faiss": "https://faiss.ai/"
+                        "OpenAI Chat GPT function calling": "https://platform.openai.com/docs/guides/gpt/function-calling",
                     },
+                },
+            },
+            "inputs": {
+                "llm_functions": {
+                    "control" :{
+                        "type":"AlpineCodeMirrorComponent"
+                    }
                 },
             },
         },
@@ -112,7 +117,15 @@ var AdvancedLLMComponent = {
         {
             console.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
 
-            const answers = await advanced_llm_component(ctx, payload);
+            const instruction = payload.instruction;
+            const prompt = payload.prompt;
+            const llm_functions = payload.llm_functions;
+            const temperature = payload.temperature;
+            const top_p = payload.top_p;
+            const allow_gpt3 = payload.allow_gpt3;
+            const allow_gpt4 = payload.allow_gpt4;
+            
+            const answers = await advanced_llm_component(ctx, instruction, prompt, llm_functions, allow_gpt3, allow_gpt4, temperature, top_p)  
             console.log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
 
             const return_value = { result: { "ok": true }, answers: answers, text: answers.text, documents: [answers.document] };

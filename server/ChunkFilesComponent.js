@@ -30,14 +30,14 @@ var ChunkFilesComponent = {
               "enum": [ "RecursiveCharacterTextSplitter", "TokenTextSplitter","CodeSplitter_cpp","CodeSplitter_go","CodeSplitter_java","CodeSplitter_ruby","CodeSplitter_js","CodeSplitter_php","CodeSplitter_proto","CodeSplitter_python","CodeSplitter_rst","CodeSplitter_rust","CodeSplitter_scala","CodeSplitter_swift","CodeSplitter_markdown","CodeSplitter_latex","CodeSplitter_html"],
               "default": "RecursiveCharacterTextSplitter",
             },
-            "chunk_size_in_tokens": {
-              "title": "Chunk Size in Tokens",
+            "chunk_size": {
+              "title": "Chunk Size",
               "type": "number",
               "default": 512,
               "minimum": 32
             },
-            "chunk_overlap_in_tokens": {
-              "title": "Chunk Overlap in Tokens",
+            "chunk_overlap": {
+              "title": "Chunk Overlap",
               "type": "number",
               "default": 64,
               "minimum": 0
@@ -52,13 +52,12 @@ var ChunkFilesComponent = {
               "type": "boolean",
               "default": false,
             },
-            "args": {
-              "title": "Additional Arguments",
-              "type": "object",
-              "x-type": "object",
-              "default": {},
-              "description": `Additional optional arguments such as overwrite, various chunking parameters, etc.`,
-            },            
+            "vectorstore_name": {
+              "title": "Vectorstore Name",
+              "type": "string", 
+              "default": "omnitool",
+            },
+
           }
         },
         "responseTypes": {
@@ -117,10 +116,22 @@ var ChunkFilesComponent = {
         // Remove args from payload
         delete payload.args;
 
+
+        const documents_cdns = payload.documents;
+        const overwrite = payload.overwrite || false;
+        const collate = payload.collate || true;
+    
+        const vectorstore_name = payload.vectorstore_name;
+        const splitter_model = payload.splitter_model;
+        const embedder_model = payload.embedder_model;
+
+        const chunk_size = payload.chunk_size;
+        const chunk_overlap = payload.chunk_overlap;
+
         let return_value = { result: { "ok": false }, documents: [] };
         if (payload.documents)
         {
-          const result_cdns = await chunk_files_component(ctx, payload);
+          const result_cdns = await chunk_files_component(ctx, documents_cdns, vectorstore_name, overwrite, collate, embedder_model, splitter_model, chunk_size,chunk_overlap);
           return_value = { result: { "ok": true }, documents: result_cdns , files: result_cdns};
         }
   
