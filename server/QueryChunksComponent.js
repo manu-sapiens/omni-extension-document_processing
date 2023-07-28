@@ -55,6 +55,12 @@ var QueryChunksComponent = {
                   "x-type": "documentArray",
                   "description": "The files containing the results"
                 },
+                "answer": {
+                  "title": "Answer",
+                  "type": "string",
+                  "x-type": "text",
+                  "description": "The answer to the query or prompt"
+                },
               },
             },
             "contentType": "application/json"
@@ -94,8 +100,10 @@ var QueryChunksComponent = {
           const allow_gpt4 = payload.allow_gpt4 || false;
           if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
           
-          const cdn_response_array =  await query_chunks_component(ctx, documents_cdns, query, allow_gpt3,allow_gpt4);
-          return_value = { result: { "ok": true }, files: cdn_response_array, documents: cdn_response_array };
+          const response =  await query_chunks_component(ctx, documents_cdns, query, allow_gpt3,allow_gpt4);
+          const results_cdn = response.results_cdn;
+          const answer = response.answer;
+          return_value = { result: { "ok": true }, files: [results_cdn], documents: [results_cdn], answer: answer };
         }
   
         return return_value;

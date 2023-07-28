@@ -73,6 +73,12 @@ var SimpleLLMComponent = {
                         "required": [],
                         "type": "object",
                         "properties": {
+                            "answer": {
+                                "title": "Answer",
+                                "type": "string",
+                                "x-type": "text",
+                                "description": "The answer to the query or prompt"
+                            },                            
                             "files": {
                                 "title": "Result Files",
                                 "type": "array",
@@ -84,12 +90,6 @@ var SimpleLLMComponent = {
                                 "type": "array",
                                 "x-type": "documentArray",
                                 "description": "The documents containing the results"
-                            },
-                            "answers": {
-                                "title": "Answers",
-                                "type": "object",
-                                "x-type": "object",
-                                "description": "The answers to the query or prompt"
                             },
                         },
                     },
@@ -139,13 +139,16 @@ var SimpleLLMComponent = {
             const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns, overwrite);
 
             let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
+            let response_cdn = null;
+            let answer = "";
+
             if (usage == "query_documents")
             {
                 if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
                 const response = await query_chunks_component(ctx, chunked_documents_cdns, prompt, allow_gpt3, allow_gpt4);
-                const results_cdn = response.cdn;
-                const answers = response.answers;
-                return_value = { result: { "ok": true }, answers: {answers:answers}, documents: [results_cdn], files: [results_cdn] };
+                response_cdn = response.cdn;
+                answer = response.answer;
+                return_value = { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
 
             }
             else if (usage == "run_prompt_on_documents")
@@ -153,10 +156,9 @@ var SimpleLLMComponent = {
                 if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");
  
                 const instruction = default_instruction + "\n" + prompt;
-                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, [], temperature, allow_gpt3, allow_gpt4 );
-                const results_cdn = response.cdn;
-                const answers = response.answers;
-                return_value = { result: { "ok": true }, answers: {answers:answers}, documents: [results_cdn], files: [results_cdn] };
+                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, [], allow_gpt3, allow_gpt4, temperature );
+                response_cdn = response.cdn;
+                answer = response.answer;
             }
             else if (usage == "run_functions_on_documents")
             {
@@ -168,17 +170,15 @@ var SimpleLLMComponent = {
                     instruction = "You are a helpful bot answering the user with their question to the best of your ability using the provided functions.";
                 }
 
-                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, llm_functions, temperature, allow_gpt3, allow_gpt4 );
-                const results_cdn = response.cdn;
-                const answers = response.answers;
-                console.log(`[SimpleLLMComponent]: answers = ${JSON.stringify(answers)}`);
-                
-                return_value = { result: { "ok": true }, answers: {answers: answers}, documents: [results_cdn], files: [results_cdn] };
+                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, llm_functions, allow_gpt3, allow_gpt4, temperature );
+                response_cdn = response.cdn;
+                answer = response.function_string;
             }
             else
             {
                 throw new Error(`Unknown usage: ${usage}`);
             }
+            return_value = { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
             console.log(`[SimpleLLMComponent]: return_value = ${JSON.stringify(return_value)}`);
             return return_value;
         }
