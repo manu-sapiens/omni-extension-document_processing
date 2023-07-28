@@ -58,6 +58,12 @@ var SimpleLLMComponent = {
                         "type": "boolean",
                         "default": false,
                     },
+                    "overwrite": {
+                        "title": "Overwrite",
+                        "type": "boolean",
+                        "default": false,
+                        "description": `Overwrite the existing files in the CDN.`,
+                    },
                 },
             },
             "responseTypes": {
@@ -125,17 +131,18 @@ var SimpleLLMComponent = {
             const allow_gpt3 = payload.allow_gpt3;
             const allow_gpt4 = payload.allow_gpt4;
             const llm_functions = payload.llm_functions;
+            const overwrite = payload.overwrite;
             let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
 
 
             const read_documents_cdns = await read_text_file_component(ctx, url);
-            const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns);
+            const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns, overwrite);
 
             let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
             if (usage == "query_documents")
             {
                 if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
-                const response = await query_chunks_component(ctx, chunked_documents_cdns, prompt, 2, allow_gpt3, allow_gpt4);
+                const response = await query_chunks_component(ctx, chunked_documents_cdns, prompt, allow_gpt3, allow_gpt4);
                 const results_cdn = response.cdn;
                 const answers = response.answers;
                 return_value = { result: { "ok": true }, answers: {answers:answers}, documents: [results_cdn], files: [results_cdn] };

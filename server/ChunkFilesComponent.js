@@ -131,7 +131,7 @@ var ChunkFilesComponent = {
         let return_value = { result: { "ok": false }, documents: [] };
         if (payload.documents)
         {
-          const result_cdns = await chunk_files_component(ctx, documents_cdns, vectorstore_name, overwrite, collate, embedder_model, splitter_model, chunk_size,chunk_overlap);
+          const result_cdns = await chunk_files_component(ctx, documents_cdns, overwrite, vectorstore_name, collate, embedder_model, splitter_model, chunk_size,chunk_overlap);
           return_value = { result: { "ok": true }, documents: result_cdns , files: result_cdns};
         }
   

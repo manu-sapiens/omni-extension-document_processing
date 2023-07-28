@@ -947,35 +947,44 @@ async function compute_vectorstore(chunks, embedder)
 }
 
 
-async function smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder, allow_gpt3, allow_gpt4)
+async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, allow_gpt3, allow_gpt4)
 {
-    console_log(`[smartquery_from_vectorstore] query = ${query}, nb_of_results = ${nb_of_results}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
+    console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
 
     if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
-    let vectorstore_responses = await query_vectorstore(vectorstore, query, nb_of_results, embedder);
+    let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
+    // TBD we should have a better way of deciding how many results to return, also  we should check for a minimum score
 
-    let query_answers = [];
+    let total_tokens = 0;
+    
+    let max_size = GPT3_SIZE_MAX
+    if (allow_gpt4) max_size = GPT4_SIZE_MAX;
+
+    const instruction = `Please review the snippets of texts and see if you can find answers to the following question in them: ${query}.\nHowever, do not say 'Based solely on the document,' or anything like that. Instead, just answer the question giving as much details as possible, quoting the source if is is useful. Thanks!`;
+
+    let combined_text = "";
     for (let i = 0; i < vectorstore_responses.length; i++) 
     {
         const vectorestore_response_array = vectorstore_responses[i];
         const [vectorstore_response, score] = vectorestore_response_array;
-        const pageContent = vectorstore_response?.pageContent;
-        const metadata = vectorstore_response?.metadata; // contains reference to the chunk that was matched
 
-        const instruction = `Please review the passed document fragment and see if you can answer the following question based solely on it: ${query}.\nHowever, do not say 'Based solely on the document fragment,' or anything like that. Instead, just answer the question. Thanks!`;
-        const query_answer_json = await query_advanced_chatgpt(ctx, pageContent, instruction);
-        const query_answer = query_answer_json?.text || null;
-        if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
-        query_answers.push(query_answer);
+        console.log(`vectorstore_responses[${i}] score = ${score}`);
+
+        const raw_text = vectorstore_response?.pageContent;
+        const text = `[...] ${raw_text} [...]\n\n`;
+        const token_cost = count_tokens_in_text(text)
+        const metadata = vectorstore_response?.metadata; // TBD: contains reference to the chunk that was matched. We could read the token_cost from there
+        console.log(`vectorstore_responses[${i}] metadata = ${JSON.stringify(metadata)}`)
+
+        if (total_tokens + token_cost > max_size) break;
+        total_tokens += token_cost;
+        combined_text += text;
     }
+    const query_answer_json = await query_advanced_chatgpt(ctx, combined_text, instruction);
+    const query_answer = query_answer_json?.text || null;
+    if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 
-    if (is_valid(query_answers) == false)
-    {
-        let error_message = `[ERROR] Error getting answers from query_vectorstore_with_llm with query = ${query}`;
-        throw new Error(error_message);
-    }
-
-    return query_answers;
+    return query_answer;
 }
 
 
@@ -1358,7 +1367,7 @@ async function load_pdf_component(ctx, documents, overwrite = false)
 
 
 // ---------------------------------------------------------------------------
-async function query_chunks_component(ctx, document_cdns, query, nb_of_results=2, allow_gpt3=true, allow_gpt4=false)
+async function query_chunks_component(ctx, document_cdns, query, allow_gpt3=true, allow_gpt4=false)
 {
     console.time("query_chunks_component_processTime");
     let query_results_array = [];
@@ -1380,8 +1389,8 @@ async function query_chunks_component(ctx, document_cdns, query, nb_of_results=2
         const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
     
         const vectorstore = await compute_vectorstore(chunks, embedder);
-        const query_results = await smartquery_from_vectorstore(ctx, vectorstore, query, nb_of_results, embedder, allow_gpt3, allow_gpt4);
-        query_results_array = query_results_array.concat(query_results);
+        const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, allow_gpt3, allow_gpt4);
+        query_results_array = query_results_array.concat(query_result+"\n");
     }
     const results_cdn = await save_json_to_cdn(ctx, query_results_array);
     const response = {cdn: results_cdn, answers: query_results_array};
@@ -1738,7 +1747,8 @@ async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, em
             console.log(`[break_chapter_into_chunks] [${splitted_index}] splitted text (first 1024)= ${chunk_text.slice(0, 1024)}`);
             const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
             const chunk_embedding = await embedder.embedQuery(chunk_text);
-            const chunk_json = { text: chunk_text, id: chunk_id, embedding: chunk_embedding };
+            const chunk_token_count = count_tokens_in_text(chunk_text);
+            const chunk_json = { text: chunk_text, id: chunk_id, token_count : chunk_token_count, embedding: chunk_embedding };
             chunks.push(chunk_json);
         }
     }
@@ -1753,7 +1763,7 @@ async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, em
     console.timeEnd("processTime");
     return { chunks: chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars: total_nb_of_chars, average_nb_of_chars: average_nb_of_chars };
 }
-async function chunk_files_component(ctx, documents, vectorstore_name=DEFAULT_VECTORSTORE_NAME, overwrite=false, collate=true, embedder_model=DEFAULT_EMBEDDER_MODEL, splitter_model=DEFAULT_SPLITTER_MODEL, chunk_size=DEFAULT_CHUNK_SIZE,chunk_overlap=DEFAULT_CHUNK_OVERLAP)
+async function chunk_files_component(ctx, documents, overwrite=false, vectorstore_name=DEFAULT_VECTORSTORE_NAME, collate=true, embedder_model=DEFAULT_EMBEDDER_MODEL, splitter_model=DEFAULT_SPLITTER_MODEL, chunk_size=DEFAULT_CHUNK_SIZE,chunk_overlap=DEFAULT_CHUNK_OVERLAP)
 {
     console.log(`--------------------------------`);
     console.time("processTime");
