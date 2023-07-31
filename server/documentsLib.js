@@ -13,13 +13,15 @@ import
     SupportedTextSplitterLanguages,
     RecursiveCharacterTextSplitter,
 } from "langchain/text_splitter";
-import { chunk, lte } from "lodash-es";
+import { chunk, lte, result } from "lodash-es";
+import { type } from "os";
 
 const GPT_SIZE_MARGIN = 500;
 const GPT3_MODEL_SMALL = "gpt-3.5-turbo";
 const GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
 const GPT3_SIZE_CUTOFF = 4096 - GPT_SIZE_MARGIN;
-const GPT3_SIZE_MAX = 8192 - GPT_SIZE_MARGIN;
+const GPT3_SIZE_MAX = 16384 - GPT_SIZE_MARGIN;
+const DEFAULT_GPT_MODEL = GPT3_MODEL_LARGE;
 
 const GPT4_MODEL_SMALL = "gpt-4";
 const GPT4_MODEL_LARGE = "gpt-4-32k";
@@ -32,9 +34,6 @@ const OMNITOOL_DOCUMENT_TYPES_USERDOC = 'udoc';
 const DEFAULT_VECTORSTORE_NAME = 'omnitool';
 const DEFAULT_TEMPERATURE = 0.0;
 const DEFAULT_TOP_P = 1.0;
-
-let GLOBAL_ALLOW_GPT3 = true;
-let GLOBAL_ALLOW_GPT4 = false;
 let GLOBAL_OVERWRITE = false;
 const VERBOSE = true;
 
@@ -170,31 +169,28 @@ function console_log(...args)
     }
 }
 
-function pick_model(text_size)
+function adjust_model(text_size, current_model)
 {
-
-    if (text_size > GPT4_SIZE_MAX) throw new Error(`Text size ${text_size} is too large`);
-
-    if (text_size > GPT4_SIZE_CUTOFF) 
+    if (typeof text_size !== 'number')
     {
-        if (GLOBAL_ALLOW_GPT4) return GPT4_MODEL_LARGE;
+        throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
     }
 
-    if (text_size > GPT3_SIZE_MAX) 
+    if (current_model == GPT3_MODEL_SMALL) return current_model; 
+
+    if (current_model == GPT3_MODEL_LARGE)
     {
-        if (GLOBAL_ALLOW_GPT4) return GPT4_MODEL_SMALL;
-        throw new Error(`Text size ${text_size} is too large for GPT-3`);
+        if (text_size < GPT3_SIZE_CUTOFF) return GPT3_MODEL_SMALL;  else return current_model;
     }
 
-    if (!GLOBAL_ALLOW_GPT3) return GPT4_MODEL_SMALL;
+    if (current_model == GPT4_MODEL_SMALL) return current_model; 
 
-    if (text_size > GPT3_SIZE_CUTOFF) 
+    if (current_model == GPT4_MODEL_LARGE)
     {
-        return GPT3_MODEL_LARGE;
+        if (text_size < GPT4_SIZE_CUTOFF) return GPT3_MODEL_SMALL;  else return current_model;   
     }
 
-    return GPT3_MODEL_SMALL;
-
+    throw new Error(`pick_model: Unknown model: ${current_model}`);
 }
 
 class CachedEmbeddings extends Embeddings
@@ -455,6 +451,16 @@ function sanitizeJSON(jsonData)
     return jsonData;
 }
 
+function get_model_max_size(model)
+{
+    if (model == GPT3_MODEL_SMALL) return GPT3_SIZE_CUTOFF;
+    if (model == GPT3_MODEL_LARGE) return GPT3_SIZE_MAX;
+    if (model == GPT4_MODEL_SMALL) return GPT4_SIZE_CUTOFF;
+    if (model == GPT4_MODEL_LARGE) return GPT4_SIZE_MAX;
+
+    throw new Error(`get_model_max_size: Unknown model: ${model}`);
+
+}
 
 function delay(ms)
 {
@@ -474,12 +480,13 @@ async function runChatGPTBlock(ctx, args)
 {
     const prompt = args.prompt;
     const instruction = args.instruction;
+    const model = args.model;
 
     const prompt_cost = count_tokens_in_text(prompt);
     const instruction_cost = count_tokens_in_text(instruction);
     const cost = prompt_cost + instruction_cost;
 
-    args.model = pick_model(cost);
+    args.model = adjust_model(cost, model);
 
     let response = null;
     try
@@ -643,7 +650,7 @@ const runBlock = async (ctx, block, args) =>
     }
 };
 
-async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], temperature = 0, top_p = 1, model = GPT3_MODEL_SMALL)
+async function query_advanced_chatgpt(ctx, prompt, instruction, llm_functions = [], temperature = 0, top_p = 1, model = GPT3_MODEL_SMALL)
 {
 
     let args = {};
@@ -653,8 +660,8 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, functions = [], 
     args.temperature = temperature;
     args.top_p = top_p;
     args.model = model;
+    args.functions = llm_functions;
 
-    if (is_valid(functions)) args.functions = functions;
     console.log(`[query_advanced_chatgpt] args: ${JSON.stringify(args)}`);
 
     const response = await runChatGPTBlock(ctx, args);
@@ -974,7 +981,7 @@ async function compute_vectorstore(chunks, embedder)
 }
 
 
-async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, allow_gpt3, allow_gpt4)
+async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model)
 {
     console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
 
@@ -984,9 +991,8 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, al
 
     let total_tokens = 0;
 
-    let max_size = GPT3_SIZE_MAX;
-    if (allow_gpt4) max_size = GPT4_SIZE_MAX;
-
+    let max_size = get_model_max_size(model);
+    
     const instruction = `Please review the snippets of texts and see if you can find answers to the following question in them: ${query}.\nHowever, do not say 'Based solely on the document,' or anything like that. Instead, just answer the question giving as much details as possible, quoting the source if is is useful. Thanks!`;
 
     let combined_text = "";
@@ -1008,7 +1014,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, al
         combined_text += text;
     }
 
-    const query_answer_json = await query_advanced_chatgpt(ctx, combined_text, instruction);
+    const query_answer_json = await query_advanced_chatgpt(ctx, combined_text, instruction, [], 0, 1, model);
     const query_answer = query_answer_json?.text || null;
     if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 
@@ -1395,7 +1401,7 @@ async function load_pdf_component(ctx, documents, overwrite = false)
 
 
 // ---------------------------------------------------------------------------
-async function query_chunks_component(ctx, document_cdns, query, allow_gpt3 = true, allow_gpt4 = false, concat = true)
+async function query_chunks_component(ctx, document_cdns, query, model, concat = true)
 {
     console.time("query_chunks_component_processTime");
     let combined_answer = "";
@@ -1417,7 +1423,7 @@ async function query_chunks_component(ctx, document_cdns, query, allow_gpt3 = tr
         const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
 
         const vectorstore = await compute_vectorstore(chunks, embedder);
-        const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, allow_gpt3, allow_gpt4);
+        const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model);
         combined_answer += query_result + "\n\n";
     }
 
@@ -1444,32 +1450,27 @@ function combineStringsWithoutOverlap(str1, str2)
     return str1 + str2.substring(overlap);
 }
 // ---------------------------------------------------------------------------
-async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions = [], allow_gpt3 = true, allow_gpt4 = false, temperature = 0, top_p = 1, chunk_size = 2000)
+async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions = [], llm_model=DEFAULT_GPT_MODEL, temperature = 0, top_p = 1, chunk_size = 2000)
 {
+    console.log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
+
     let maximize_chunks = false;
     let max_size = chunk_size;
 
     if (chunk_size == -1) 
     {
         maximize_chunks = true;
-        max_size = GPT3_SIZE_MAX;
-        if (allow_gpt4) max_size = GPT4_SIZE_MAX;
+        max_size = get_model_max_size(llm_model);
     }
     else if (chunk_size > 0)
     {
         maximize_chunks = true;
-        max_size = chunk_size;
+        max_size = Math.min(chunk_size, get_model_max_size(llm_model));
     }
-
     console.time("loop_llm_component_processTime");
 
-    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
-    GLOBAL_ALLOW_GPT3 = allow_gpt3;
-    GLOBAL_ALLOW_GPT4 = allow_gpt4;
-
-
     const chunks_results = [];
-
+    console.log(`Processing ${chapters_cdns.length} chapter(s)`)
     for (let chapter_index = 0; chapter_index < chapters_cdns.length; chapter_index++)
     {
         const chunks_cdn = chapters_cdns[chapter_index];
@@ -1480,9 +1481,9 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
         let total_token_cost = 0;
         let combined_text = "";
 
+        console.log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`)
         for (let chunk_index = 0; chunk_index < chunks.length; chunk_index++)
         {
-            console.log(`[loop_llm_component] chunk_index = ${chunk_index}`);
             //concatenate chunks into something that fits in the max size of the model. Although don't concatenate across chapters.
             const chunk = chunks[chunk_index];
 
@@ -1500,20 +1501,17 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
 
                     if (can_fit)
                     {
-                        count++;
-                        console.log(`count = ${count}, max_size = ${max_size}, total_token_cost = ${total_token_cost}, token_cost = ${token_cost}`);
-                        console.log(`before: combined text = ${combined_text}`);
                         combined_text = combineStringsWithoutOverlap(combined_text, text);
-
-                        console.log(`after: combined text = ${combined_text}`);
                         total_token_cost += token_cost; // TBD: this is not accurate because we are not counting the tokens in the overlap or the instructions
 
                     }
                     if (!can_fit || is_last_index)
                     {
-                        const model = pick_model(total_token_cost);
+                        const model = adjust_model(total_token_cost, llm_model);
                         const gpt_results = await query_advanced_chatgpt(ctx, combined_text, instruction, llm_functions, temperature, top_p, model);
                         const sanetized_results = sanitizeJSON(gpt_results);
+
+                        console.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
                         chunks_results.push(sanetized_results);
 
                         //reset the combined text and token cost
@@ -1523,9 +1521,11 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
                 }
                 else
                 {
-                    const model = pick_model(token_cost);
+                    const model = adjust_model(token_cost, llm_model);
                     const gpt_results = await query_advanced_chatgpt(ctx, text, instruction, llm_functions, temperature, top_p, model);
                     const sanetized_results = sanitizeJSON(gpt_results);
+                    console.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
+
                     chunks_results.push(sanetized_results);
                 }
             }
@@ -1539,21 +1539,24 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
     }
 
     let combined_answer = "";
-    let combined_function_string = "";
     let combined_function_argumnets = [];
+    console.log(`chunks_results.length = ${chunks_results.length}`);
     for (let i = 0; i < chunks_results.length; i++)
     {
         const chunk_result = chunks_results[i];
-        const text = chunk_result.text || "";
-        const function_string = chunk_result.function_string || "";
+        console.log(`chunk_result = ${JSON.stringify(chunk_result)}`);
+
+        const result_text = chunk_result.text || "";
+        const function_string = chunk_result.function_arguments_string || "";
         const function_arguments = chunk_result.function_arguments || [];
-        combined_answer += text + "\n\n";
-        combined_function_string += function_string + "\n\n";
+
+        combined_answer += result_text + function_string + "\n\n";
+        console.log(`[$[i}] combined_answer = ${combined_answer}`)
         combined_function_argumnets = combined_function_argumnets.concat(function_arguments);
     }
 
     const results_cdn = await save_json_to_cdn(ctx, chunks_results);
-    const response = { cdn: results_cdn, answer: combined_answer, function_string: combined_function_string, function_arguments: combined_function_argumnets };
+    const response = { cdn: results_cdn, answer: combined_answer, function_arguments: combined_function_argumnets };
     console.timeEnd("loop_llm_component_processTime");
     return response;
 }
@@ -1743,16 +1746,14 @@ async function read_text_file_component(ctx, url, text = "")
     return documents;
 }
 // ---------------------------------------------------------------------------
-async function advanced_llm_component(ctx, instruction, prompt, llm_functions = [], allow_gpt3 = true, allow_gpt4 = false, temperature = 0, top_p = 1)  
+async function advanced_llm_component(ctx, instruction, prompt, llm_functions = [], llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1)  
 {
     console.time("processTime");
 
     console.log(`--------------------------------`);
     const instructions = parse_text_to_array(instruction);
     const prompts = parse_text_to_array(prompt);
-    if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
-    GLOBAL_ALLOW_GPT3 = allow_gpt3;
-    GLOBAL_ALLOW_GPT4 = allow_gpt4;
+    const max_size = get_model_max_size(llm_model);
 
     console.log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
 
@@ -1772,8 +1773,9 @@ async function advanced_llm_component(ctx, instruction, prompt, llm_functions = 
 
             console_log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
-            let model = pick_model(prompt);
             const token_cost = count_tokens_in_text(prompt);
+            let model = adjust_model(token_cost, llm_model);
+
             if (token_cost > GPT4_SIZE_MAX) { console.log('WARNING: token cost > GPT4_SIZE_MAX'); }
             const answer_object = await query_advanced_chatgpt(ctx, prompt, instruction, llm_functions, temperature, top_p, model);
             if (is_valid(answer_object) == false) continue;

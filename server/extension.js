@@ -7,10 +7,10 @@ import {QueryChunksComponent} from "./QueryChunksComponent.js";
 import { CollateChaptersComponent } from "./CollateChaptersComponent.js";
 import { ReadTextFileComponent } from  "./ReadTextFilesComponent.js";
 import { AdvancedLLMComponent } from  "./AdvancedLLMComponent.js";
-import { SimpleLLMComponent } from  "./SimpleLLMComponent.js";
+import { TextsToChatGPTComponent } from  "./TextsToChatGPTComponent.js";
 
 
-var components = [SimpleLLMComponent, AdvancedLLMComponent, ReadTextFileComponent, LoadPDFComponent, ChunkFilesComponent, LoopLLMComponent, QueryChunksComponent, CollateChaptersComponent];
+var components = [TextsToChatGPTComponent, AdvancedLLMComponent, ReadTextFileComponent, LoadPDFComponent, ChunkFilesComponent, LoopLLMComponent, QueryChunksComponent, CollateChaptersComponent];
 var components_default = (FactoryFn) =>
 {
   return components.map((c) => FactoryFn(c.schema, c.functions));

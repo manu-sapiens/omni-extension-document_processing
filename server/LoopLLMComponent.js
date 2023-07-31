@@ -46,15 +46,11 @@ var LoopLLMComponent = {
             "minimum": 0,
             "maximum": 1
           },
-          "allow_gpt3": {
-            "title": "Allow GPT3 usage",
-            "type": "boolean",
-            "default": true,
-          },
-          "allow_gpt4": {
-            "title": "Allow GPT4 usage",
-            "type": "boolean",
-            "default": false,
+          "model": {
+            "title": "LLM Model",
+            "type": "string",
+            "enum": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"],
+            "default": "gpt-3.5-turbo-16k"
           },
         },
       },
@@ -124,12 +120,9 @@ var LoopLLMComponent = {
       const instruction = payload.instruction;
       const temperature = payload.temperature;
       const top_p = payload.top_p;
-      const allow_gpt3 = payload.allow_gpt3;
-      const allow_gpt4 = payload.allow_gpt4;
-  
+      const model = payload.model;
 
-
-      const response = await loop_llm_component(ctx, documents, instruction, llm_functions, temperature, top_p, allow_gpt3, allow_gpt4);
+      const response = await loop_llm_component(ctx, documents, instruction, llm_functions, model, temperature, top_p);
       const response_cdn = response.cdn;
       let answer = "";
       if (llm_functions !== null && llm_functions !== undefined && llm_functions.length > 0)

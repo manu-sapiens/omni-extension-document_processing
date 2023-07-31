@@ -24,15 +24,11 @@ var QueryChunksComponent = {
               'x-type': 'text',
               'description': 'The Query',
             },
-            "allow_gpt3": {
-              "title": "Allow GPT3 usage",
-              "type": "boolean",
-              "default": true,
-            },
-            "allow_gpt4": {
-              "title": "Allow GPT4 usage",
-              "type": "boolean",
-              "default": false,
+            "model": {
+              "title": "LLM Model",
+              "type": "string",
+              "enum": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"],
+              "default": "gpt-3.5-turbo-16k"
             },
           },
         },
@@ -75,7 +71,7 @@ var QueryChunksComponent = {
         "summary": "Query chunked files",
         "meta": {
           "source": {
-            "summary": "Query chunked text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+            "summary": "Query chunked text files and save the chunks to the CDN using FAISS, OpenAI/Tensorflow embeddings and Langchain",
             links: {
               "Langchainjs Website": "https://docs.langchain.com/docs/",
               "Documentation": "https://js.langchain.com/docs/",
@@ -96,11 +92,9 @@ var QueryChunksComponent = {
   
           const documents_cdns = payload.documents;
           const query = payload.query;
-          const allow_gpt3 = payload.allow_gpt3 || true;
-          const allow_gpt4 = payload.allow_gpt4 || false;
-          if (!allow_gpt3 && !allow_gpt4) throw new Error(`ERROR: You must allow at least one LLM model`);
+          const model = payload.model;
           
-          const response =  await query_chunks_component(ctx, documents_cdns, query, allow_gpt3,allow_gpt4);
+          const response =  await query_chunks_component(ctx, documents_cdns, query, model);
           const results_cdn = response.results_cdn;
           const answer = response.answer;
           return_value = { result: { "ok": true }, files: [results_cdn], documents: [results_cdn], answer: answer };

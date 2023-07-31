@@ -31,7 +31,7 @@ var AdvancedLLMComponent = {
                         'x-type': 'objectArray',
                         'description': 'functions to constrain the LLM output',
                         'default': [],
-                      },
+                    },
                     "top_p": {
                         "title": "Top_p",
                         "type": "number",
@@ -46,15 +46,11 @@ var AdvancedLLMComponent = {
                         "minimum": 0,
                         "maximum": 1
                     },
-                    "allow_gpt3": {
-                        "title": "Allow GPT3 usage",
-                        "type": "boolean",
-                        "default": true,
-                    },
-                    "allow_gpt4": {
-                        "title": "Allow GPT4 usage",
-                        "type": "boolean",
-                        "default": false,
+                    "model": {
+                        "title": "LLM Model",
+                        "type": "string",
+                        "enum": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"],
+                        "default": "gpt-3.5-turbo-16k"
                     },
                 },
             },
@@ -105,8 +101,8 @@ var AdvancedLLMComponent = {
             },
             "inputs": {
                 "llm_functions": {
-                    "control" :{
-                        "type":"AlpineCodeMirrorComponent"
+                    "control": {
+                        "type": "AlpineCodeMirrorComponent"
                     }
                 },
             },
@@ -122,10 +118,9 @@ var AdvancedLLMComponent = {
             const llm_functions = payload.llm_functions;
             const temperature = payload.temperature;
             const top_p = payload.top_p;
-            const allow_gpt3 = payload.allow_gpt3;
-            const allow_gpt4 = payload.allow_gpt4;
-            
-            const answers = await advanced_llm_component(ctx, instruction, prompt, llm_functions, allow_gpt3, allow_gpt4, temperature, top_p)  
+            const model = payload.model;
+
+            const answers = await advanced_llm_component(ctx, instruction, prompt, llm_functions, model, temperature, top_p);
             console.log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
 
             const return_value = { result: { "ok": true }, answers: answers, text: answers.text, documents: [answers.document] };
