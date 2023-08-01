@@ -1,6 +1,7 @@
 import { t } from "tar";
 import { read_text_file_component, chunk_files_component, query_chunks_component, loop_llm_component } from "./documentsLib.js";
 import { run } from "node:test";
+import { error } from "console";
 
 var TextsToChatGPTComponent = {
     schema:
@@ -14,8 +15,14 @@ var TextsToChatGPTComponent = {
                 "type": "object",
                 "required": [],
                 "properties": {
+                    "documents": {
+                        "title": "Text Documents",
+                        "type": "array",
+                        "x-type": "documentArray",
+                        "description": "Text document(s) to process"
+                    },                    
                     "url": {
-                        "title": "url(s) of text files",
+                        "title": "text or url(s) of text file(s)",
                         "type": "string",
                         "x-type": "text",
                         'description': 'url or JSON list of urls',
@@ -106,6 +113,20 @@ var TextsToChatGPTComponent = {
         _exec: async (payload, ctx) =>
         {
             console.log(`[SimpleLLMComponent]: payload = ${JSON.stringify(payload)}`);
+            const passed_documents = payload.documents;
+
+            const documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
+            
+            if (documents_are_valid) 
+            {
+                console.log(`read #${passed_documents.lentgh} from "documents" input`);
+                console.log(`passed_documents = ${JSON.stringify(passed_documents)}`)
+            }
+            else
+            {
+                console.log(`documents = ${passed_documents} is invalid`)
+            }
+
             const url = payload.url;
             const usage = payload.usage;
             const prompt = payload.prompt;
@@ -113,11 +134,38 @@ var TextsToChatGPTComponent = {
             const model = payload.model;
             const overwrite = payload.overwrite;
             let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
+ 
+            let read_documents_cdns = await read_text_file_component(ctx, url);
+            const read_documents_are_valid = (read_documents_cdns != null && read_documents_cdns != undefined && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0)
+            if (read_documents_are_valid)
+            {
+                console.log(`type of read_documents_cdns = ${typeof read_documents_cdns}`)
+                console.log(`read #${read_documents_cdns.lentgh} from "read_documents_cdns"`);
+                console.log(`read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`)
+            }
+            else
+            {
+                console.log(`documents = ${read_documents_cdns} is invalid`)
+            }
 
 
-            const read_documents_cdns = await read_text_file_component(ctx, url);
+            // TBD read doc types and process documents to turn them into text.
+            // TBD for now, we assume they all are text files
+            if (documents_are_valid && read_documents_are_valid) read_documents_cdns = passed_documents.concat(read_documents_cdns);
+            if (documents_are_valid && !read_documents_are_valid) read_documents_cdns = passed_documents;
+            if (!documents_are_valid && !read_documents_are_valid) throw new Error(`no texts passed as text, url or documents`) 
+
+            if (read_documents_are_valid)
+            {
+                console.log(`2] read #${read_documents_cdns.lentgh} from "read_documents_cdns"`);
+                console.log(`2] read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`)
+            }
+            else
+            {
+                console.log(`2] documents = ${read_documents_cdns} is invalid`)
+            }
+
             const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns, overwrite);
-
             let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
             let response_cdn = null;
             let answer = "";
