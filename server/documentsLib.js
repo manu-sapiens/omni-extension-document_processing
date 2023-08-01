@@ -1392,7 +1392,7 @@ async function load_pdf_component(ctx, documents, overwrite = false)
 
 
 // ---------------------------------------------------------------------------
-async function query_chunks_component(ctx, document_cdns, query, model, concat = true)
+async function query_chunks_component(ctx, document_cdns, query, model)
 {
     console.time("query_chunks_component_processTime");
     let combined_answer = "";
@@ -1950,6 +1950,7 @@ async function chunk_files_component(ctx, documents, overwrite = false, vectorst
 {
     console.log(`--------------------------------`);
     console.time("chunk_files_component_processTime");
+    GLOBAL_OVERWRITE = overwrite;
 
     vectorstore_name = clean_vectorstore_name(vectorstore_name);
     const hasher_model = DEFAULT_HASHER_MODEL;
