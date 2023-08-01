@@ -1721,50 +1721,55 @@ function parse_text_to_array(candidate_text)
 // ---------------------------------------------------------------------------
 async function read_text_file_component(ctx, url_or_text)
 {
+    const returned_documents = [];
+
     console.log(`[read_text_file_component] url_or_text = ${url_or_text}`);
-    console.time("read_text_file_component_processTime");
-
-    const documents = [];
-    console.log(`--------------------------------`);
-
-    const parsedArray = parse_text_to_array(url_or_text);
-    console.log(`[read_text_file_component] parsedArray #  ${parsedArray.length}`);
-
-    const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
-    console.log(`[read_text_file_component] cdn_tickets #  ${cdn_tickets.length}`);
-
-    if (cdn_tickets.length > 0)
+    if (is_valid(url_or_text))
     {
-        // The parsedArray contains CDN tickets, return them as is.
-        for (let i = 0; i < cdn_tickets.length; i++)
+        console.time("read_text_file_component_processTime");
+
+
+        console.log(`--------------------------------`);
+
+        const parsedArray = parse_text_to_array(url_or_text);
+        console.log(`[read_text_file_component] parsedArray #  ${parsedArray.length}`);
+
+        const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
+        console.log(`[read_text_file_component] cdn_tickets #  ${cdn_tickets.length}`);
+
+        if (cdn_tickets.length > 0)
         {
-            const cdn_ticket = cdn_tickets[i];
-            documents.push(cdn_ticket);
-        }
-    } else if (parsedArray.length === 1 && typeof parsedArray[0] === 'string')
-    {
-        // The parsedArray contains a single text string, save it to the CDN and return the ticket.
-        const individual_text = parsedArray[0];
-        const buffer = Buffer.from(individual_text);
-        const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
-
-        documents.push(document_cdn);
-    } else
-    {
-        // The parsedArray contains URLs, rebuild them into tickets and return as an array.
-        for (let i = 0; i < cdn_tickets.length; i++)
+            // The parsedArray contains CDN tickets, return them as is.
+            for (let i = 0; i < cdn_tickets.length; i++)
+            {
+                const cdn_ticket = cdn_tickets[i];
+                returned_documents.push(cdn_ticket);
+            }
+        } else if (parsedArray.length === 1 && typeof parsedArray[0] === 'string')
         {
-            const cdn_ticket = cdn_tickets[i];
-            documents.push(cdn_ticket);
+            // The parsedArray contains a single text string, save it to the CDN and return the ticket.
+            const individual_text = parsedArray[0];
+            const buffer = Buffer.from(individual_text);
+            const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: 'text/plain; charset=utf-8', userId: ctx.userId });
+
+            returned_documents.push(document_cdn);
+        } else
+        {
+            // The parsedArray contains URLs, rebuild them into tickets and return as an array.
+            for (let i = 0; i < cdn_tickets.length; i++)
+            {
+                const cdn_ticket = cdn_tickets[i];
+                returned_documents.push(cdn_ticket);
+            }
         }
+
+        if (is_valid(returned_documents) == false) throw new Error(`ERROR: could not convert to documents`);
+        console.log(`[read_text_file_component] documents # = ${returned_documents.length}`);
+        console.log(`[read_text_file_component] documents = ${JSON.stringify(returned_documents)}`);
+
+        console.timeEnd("read_text_file_component_processTime");
     }
-
-    if (is_valid(documents) == false) throw new Error(`ERROR: could not convert to documents`);
-    console.log(`[read_text_file_component] documents # = ${documents.length}`);
-    console.log(`[read_text_file_component] documents = ${JSON.stringify(documents)}`);
-
-    console.timeEnd("read_text_file_component_processTime");
-    return documents;
+    return returned_documents;
 }
 
 // ---------------------------------------------------------------------------
@@ -1871,7 +1876,39 @@ async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embe
 
     return { cdn: chapter_cdn, json: chapter_json };
 }
+async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, embedder, splitter) {
+  const splitted_texts = await splitter.splitText(text);
 
+  console.log(`[break_chapter_into_chunks] splitted texts # = ${splitted_texts.length}`);
+
+  const embeddingPromises = splitted_texts.map(async (chunk_text) => {
+    const nb_of_chars = chunk_text.length;
+    if (nb_of_chars > 0) {
+      console.log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
+
+      const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
+      const chunk_embedding = await embedder.embedQuery(chunk_text);
+      const chunk_token_count = count_tokens_in_text(chunk_text);
+      const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
+      console.log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
+      return chunk_json;
+    }
+  });
+
+  const chunks = await Promise.all(embeddingPromises);
+  const total_nb_of_chars = chunks.reduce((total, chunk) => total + chunk.text.length, 0);
+  const average_nb_of_chars = total_nb_of_chars / splitted_texts.length;
+  console.log(`[break_chapter_into_chunks] average_nb_of_chars = ${average_nb_of_chars}`);
+
+  if (is_valid(chunks) === false) {
+    throw new Error(`ERROR could not chunk the documents`);
+  }
+
+  return { chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars, average_nb_of_chars };
+}
+
+
+/*
 async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, embedder, splitter)
 {
 
@@ -1908,6 +1945,7 @@ async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, em
 
     return { chunks: chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars: total_nb_of_chars, average_nb_of_chars: average_nb_of_chars };
 }
+*/
 async function chunk_files_component(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, collate = true, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
 {
     console.log(`--------------------------------`);

@@ -16,13 +16,14 @@ var TextsToChatGPTComponent = {
                 "required": [],
                 "properties": {
                     "documents": {
-                        "title": "Text Documents",
+                        "title": "input some Text Documents",
                         "type": "array",
                         "x-type": "documentArray",
-                        "description": "Text document(s) to process"
+                        "description": "Text document(s) to process",
+                        "default": []
                     },                    
                     "url": {
-                        "title": "text or url(s) of text file(s)",
+                        "title": "or some Texts to process (text or url(s))",
                         "type": "string",
                         "x-type": "text",
                         'description': 'url or JSON list of urls',
@@ -36,13 +37,13 @@ var TextsToChatGPTComponent = {
                         "enum": ["query_documents", "run_prompt_on_documents", "run_functions_on_documents"],
                     },
                     "prompt": {
-                        "title": "prompt",
+                        "title": "Prompt (question or function)",
                         "type": "string",
                         'x-type': 'text',
                         'description': 'The Query or Prompt or Functions to process',
                     },
                     "temperature": {
-                        "title": "Temperature",
+                        "title": "Temperature (0 most strict, 1 most creative)",
                         "type": "number",
                         "default": 1,
                         "minimum": 0,
@@ -107,15 +108,22 @@ var TextsToChatGPTComponent = {
                     },
                 },
             },
+            "inputs": {
+                "documents": {
+                    "control": {
+                        "type": "AlpineCodeMirrorComponent"
+                    }
+                },
+            },
         },
     },
     functions: {
         _exec: async (payload, ctx) =>
         {
             console.log(`[SimpleLLMComponent]: payload = ${JSON.stringify(payload)}`);
-            const passed_documents = payload.documents;
+            let passed_documents = payload.documents;
 
-            const documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
+            let documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
             
             if (documents_are_valid) 
             {
@@ -125,6 +133,14 @@ var TextsToChatGPTComponent = {
             else
             {
                 console.log(`documents = ${passed_documents} is invalid`)
+                passed_documents = await read_text_file_component(ctx, passed_documents);
+                documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
+                if (documents_are_valid)
+                {
+                    console.log(`RECOVERED  #${passed_documents.lentgh} from "documents" input`);
+                    console.log(`RECOVERED passed_documents = ${JSON.stringify(passed_documents)}`)
+
+                }
             }
 
             const url = payload.url;
