@@ -1,7 +1,11 @@
 import { t } from "tar";
-import { read_text_file_component, chunk_files_component, query_chunks_component, loop_llm_component } from "./documentsLib.js";
 import { run } from "node:test";
 import { error } from "console";
+import { read_text_file_component } from "./ReadTextFilesComponent.js";
+import { chunk_files_component } from "./ChunkFilesComponent.js";
+import { query_chunks_component } from "./QueryChunksComponent.js";
+import { loop_llm_component } from "./LoopLLMComponent.js";
+import { console_log } from "./utils.js";
 
 var TextsToChatGPTComponent = {
     schema:
@@ -21,7 +25,7 @@ var TextsToChatGPTComponent = {
                         "x-type": "documentArray",
                         "description": "Text document(s) to process",
                         "default": []
-                    },                    
+                    },
                     "url": {
                         "title": "or some Texts to process (text or url(s))",
                         "type": "string",
@@ -75,7 +79,7 @@ var TextsToChatGPTComponent = {
                                 "type": "string",
                                 "x-type": "text",
                                 "description": "The answer to the query or prompt"
-                            },                            
+                            },
                             "files": {
                                 "title": "Result Files",
                                 "type": "array",
@@ -120,124 +124,131 @@ var TextsToChatGPTComponent = {
     functions: {
         _exec: async (payload, ctx) =>
         {
-            console.log(`[SimpleLLMComponent]: payload = ${JSON.stringify(payload)}`);
-            let passed_documents = payload.documents;
-
-            let documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
-            
-            if (documents_are_valid) 
-            {
-                console.log(`read #${passed_documents.lentgh} from "documents" input`);
-                console.log(`passed_documents = ${JSON.stringify(passed_documents)}`)
-            }
-            else
-            {
-                console.log(`documents = ${passed_documents} is invalid`)
-                passed_documents = await read_text_file_component(ctx, passed_documents);
-                documents_are_valid = (passed_documents != null && passed_documents != undefined && Array.isArray(passed_documents) && passed_documents.length > 0)
-                if (documents_are_valid)
-                {
-                    console.log(`RECOVERED  #${passed_documents.lentgh} from "documents" input`);
-                    console.log(`RECOVERED passed_documents = ${JSON.stringify(passed_documents)}`)
-
-                }
-            }
-
+            console_log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
+      
+        
+            const documents = payload.documents;
             const url = payload.url;
             const usage = payload.usage;
             const prompt = payload.prompt;
             const temperature = payload.temperature;
             const model = payload.model;
             const overwrite = payload.overwrite;
-            let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
- 
-            let read_documents_cdns = await read_text_file_component(ctx, url);
-            const read_documents_are_valid = (read_documents_cdns != null && read_documents_cdns != undefined && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0)
-            if (read_documents_are_valid)
-            {
-                console.log(`type of read_documents_cdns = ${typeof read_documents_cdns}`)
-                console.log(`read #${read_documents_cdns.lentgh} from "read_documents_cdns"`);
-                console.log(`read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`)
-            }
-            else
-            {
-                console.log(`documents = ${read_documents_cdns} is invalid`)
-            }
 
+            const response = await texts_to_chatGPT_component(ctx, documents, url, usage, prompt, temperature, model, overwrite)
+            const response_cdn = response.response_cdn;
+            const response_answer = response.answer;
 
-            // TBD read doc types and process documents to turn them into text.
-            // TBD for now, we assume they all are text files
-            if (documents_are_valid && read_documents_are_valid) read_documents_cdns = passed_documents.concat(read_documents_cdns);
-            if (documents_are_valid && !read_documents_are_valid) read_documents_cdns = passed_documents;
-            if (!documents_are_valid && !read_documents_are_valid) throw new Error(`no texts passed as text, url or documents`) 
-
-            if (read_documents_are_valid)
-            {
-                console.log(`2] read #${read_documents_cdns.lentgh} from "read_documents_cdns"`);
-                console.log(`2] read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`)
-            }
-            else
-            {
-                console.log(`2] documents = ${read_documents_cdns} is invalid`)
-            }
-
-            const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns, overwrite);
-            let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
-            let response_cdn = null;
-            let answer = "";
-
-            if (usage == "query_documents")
-            {
-                if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
-                const response = await query_chunks_component(ctx, chunked_documents_cdns, prompt, model);
-                response_cdn = response.cdn;
-                answer = response.answer;
-                return_value = { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
-
-            }
-            else if (usage == "run_prompt_on_documents")
-            {
-                if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");
- 
-                const instruction = default_instruction + "\n" + prompt;
-                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, [], model, temperature );
-                response_cdn = response.cdn;
-                answer = response.answer;
-            }
-            else if (usage == "run_functions_on_documents")
-            {
-                const instruction = "You are a helpful bot answering the user with their question to the best of your ability using the provided functions.";
-
-                let llm_functions = null;
-                try
-                {
-                    llm_functions = JSON.parse(prompt);
-                    console.log(`[SimpleLLMComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
-                }
-                catch
-                {
-                    throw new Error(`Invalid JSON in [Prompt] field: ${prompt}`);
-                }
-                if (llm_functions === null || llm_functions === undefined || llm_functions.length == 0) throw new Error("No valid functions specified in [prompt] field");
-                if (!Array.isArray(llm_functions)) 
-                {
-                    llm_functions = [llm_functions];
-                    console.log(`[SimpleLLMComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
-                }
-
-                const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature );
-                response_cdn = response.cdn;
-                answer = response.answer;
-            }
-            else
-            {
-                throw new Error(`Unknown usage: ${usage}`);
-            }
-            return_value = { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
-            console.log(`[SimpleLLMComponent]: return_value = ${JSON.stringify(return_value)}`);
-            return return_value;
+            const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
+            console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+            return return_value;   
+        
         }
     }
 };
 
-export { TextsToChatGPTComponent };
+async function texts_to_chatGPT_component(ctx, passed_documents_cdns, url, usage, prompt, temperature, model, overwrite)
+{
+    let passed_documents_are_valid = (passed_documents_cdns != null && passed_documents_cdns != undefined && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0);
+    if (passed_documents_are_valid) 
+    {
+        console_log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
+    }
+    else
+    {
+        console_log(`documents = ${passed_documents_cdns} is invalid`);
+        passed_documents_cdns = await read_text_file_component(ctx, passed_documents_cdns);
+        passed_documents_are_valid = (passed_documents_cdns != null && passed_documents_cdns != undefined && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0);
+        if (passed_documents_are_valid)
+        {
+            console_log(`RECOVERED  #${passed_documents_cdns.lentgh} from "documents" input, RECOVERED passed_documents = ${JSON.stringify(passed_documents_cdns)}`);
+
+        }
+    }
+    
+    let read_documents_cdns = await read_text_file_component(ctx, url);
+    const read_documents_are_valid = (read_documents_cdns != null && read_documents_cdns != undefined && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0);
+    if (read_documents_are_valid)
+    {
+        console_log(`type of read_documents_cdns = ${typeof read_documents_cdns}, read #${read_documents_cdns.length} from "read_documents_cdns", read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
+    }
+    else
+    {
+        console_log(`documents = ${read_documents_cdns} is invalid`);
+    }
+
+
+    // TBD read doc types and process documents to turn them into text.
+    // TBD for now, we assume they all are text files
+    if (passed_documents_are_valid && read_documents_are_valid) read_documents_cdns = passed_documents_cdns.concat(read_documents_cdns);
+    if (passed_documents_are_valid && !read_documents_are_valid) read_documents_cdns = passed_documents_cdns;
+    if (!passed_documents_are_valid && !read_documents_are_valid) throw new Error(`no texts passed as text, url or documents`);
+
+    if (read_documents_are_valid)
+    {
+        console_log(`2] read #${read_documents_cdns.length} from "read_documents_cdns"`);
+        console_log(`2] read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
+    }
+    else
+    {
+        console_log(`2] documents = ${read_documents_cdns} is invalid`);
+    }
+
+    const chunked_documents_cdns = await chunk_files_component(ctx, read_documents_cdns, overwrite);
+    let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
+    let response_cdn = null;
+    let answer = "";
+    let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
+
+    if (usage == "query_documents")
+    {
+        if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
+        const response = await query_chunks_component(ctx, chunked_documents_cdns, prompt, model);
+        response_cdn = response.cdn;
+        answer = response.answer;
+    }
+    else if (usage == "run_prompt_on_documents")
+    {
+        if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");
+
+        const instruction = default_instruction + "\n" + prompt;
+        const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, [], model, temperature);
+        response_cdn = response.cdn;
+        answer = response.answer;
+    }
+    else if (usage == "run_functions_on_documents")
+    {
+        const instruction = "You are a helpful bot answering the user with their question to the best of your ability using the provided functions.";
+
+        let llm_functions = null;
+        try
+        {
+            llm_functions = JSON.parse(prompt);
+            console_log(`[TextsToChatGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
+        }
+        catch
+        {
+            throw new Error(`Invalid JSON in [Prompt] field: ${prompt}`);
+        }
+        if (llm_functions === null || llm_functions === undefined || llm_functions.length == 0) throw new Error("No valid functions specified in [prompt] field");
+        if (!Array.isArray(llm_functions)) 
+        {
+            llm_functions = [llm_functions];
+            console_log(`[TextsToChatGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
+        }
+
+        const response = await loop_llm_component(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
+
+        response_cdn = response.cdn;
+        answer = response.answer;
+    }
+    else
+    {
+        throw new Error(`Unknown usage: ${usage}`);
+    }
+
+    console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+    return {response_cdn, answer}
+}
+
+export { TextsToChatGPTComponent, texts_to_chatGPT_component};

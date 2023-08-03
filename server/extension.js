@@ -1,9 +1,9 @@
 // extension.js
 
-import {ChunkFilesComponent} from "./ChunkFilesComponent.js";
-import {LoadPDFComponent} from "./LoadPDFComponent.js";
-import {LoopLLMComponent} from "./LoopLLMComponent.js";
-import {QueryChunksComponent} from "./QueryChunksComponent.js";
+import { ChunkFilesComponent } from "./ChunkFilesComponent.js";
+import { LoadPDFComponent } from "./LoadPDFComponent.js";
+import { LoopLLMComponent } from "./LoopLLMComponent.js";
+import { QueryChunksComponent } from "./QueryChunksComponent.js";
 import { CollateChaptersComponent } from "./CollateChaptersComponent.js";
 import { ReadTextFileComponent } from  "./ReadTextFilesComponent.js";
 import { AdvancedLLMComponent } from  "./AdvancedLLMComponent.js";
