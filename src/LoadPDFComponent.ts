@@ -1,4 +1,7 @@
 // LoadPDFComponent.js
+import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+const NS_ONMI = 'document_processing';
 
 import PDFParser from 'pdf2json';
 import { initialize_hasher } from './hashers.js'

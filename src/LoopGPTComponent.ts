@@ -1,151 +1,82 @@
 
 // LoopLLMComponent.js
+import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, get_chunks_from_cdn } from './cdn.js';
 import { is_valid, sanitizeJSON, console_log, combineStringsWithoutOverlap } from './utils.js';
 import { query_advanced_chatgpt, get_model_max_size, adjust_model, DEFAULT_GPT_MODEL } from './llm.js';
 import { count_tokens_in_text } from './tiktoken.js';
 
-var LoopLLMComponent = {
-  schema:
-  {
-    "tags": ['default'],
-    "componentKey": "loopLLM",
-    "category": "Document Processing",
-    "operation": {
-      "schema": {
-        "title": "Loop documents through a LLM",
-        "type": "object",
-        "required": [],
-        "properties": {
-          "documents": {
-            "title": "Chunk Documents",
-            "type": "array",
-            "x-type": "documentArray",
-            "description": `Chunk files`,
-          },
-          "instruction": {
-            "title": "Instruction",
-            "type": "string",
-            'x-type': 'text',
-            'description': 'instruction executed on each chunk',
-            "default": `write a summary of the provided text, making sure to indicate the characters involved and the locations where the action is taking place`,
-          },
-          "llm_functions": {
-            "title": "Functions",
-            "type": "array",
-            'x-type': 'objectArray',
-            'description': 'functions to constrain the LLM output',
-            "default": []
-          },
-          "temperature": {
-            "title": "Temperature",
-            "type": "number",
-            "default": 0,
-            "minimum": 0,
-            "maximum": 2
-          },
-          "top_p": {
-            "title": "top_p",
-            "type": "number",
-            "default": 1,
-            "minimum": 0,
-            "maximum": 1
-          },
-          "model": {
-            "title": "LLM Model",
-            "type": "string",
-            "enum": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4", "gpt-4-32k"],
-            "default": "gpt-3.5-turbo-16k"
-          },
-        },
-      },
-      "responseTypes": {
-        "200": {
-          "schema": {
-            "title": "JSON",
-            "required": [],
-            "type": "object",
-            "properties": {
-              "answer": {
-                "title": "Answer",
-                "type": "string",
-                "x-type": "text",
-                "description": "The answer to the query or prompt"
-              },
-              "files": {
-                "title": "Result Files",
-                "type": "array",
-                "x-type": "cdnObjectArray",
-                "description": "The files containing the results"
-              },
-              "documents": {
-                "title": "Result Documents",
-                "type": "array",
-                "x-type": "documentArray",
-                "description": "The files containing the results"
-              },
+
+let loop_gpt_component = OAIBaseComponent
+    .create(NS_ONMI, "chunk_files")
+    .fromScratch()
+    .set('title', 'Chunk text files')
+    .set('category', 'Text Manipulation')
+    .set('description', 'Chunk text files and save the chunks to the CDN')
+    .setMethod('X-CUSTOM')
+    .setMeta({
+        source: {
+            summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+            links: {
+                "Langchainjs Website": "https://docs.langchain.com/docs/",
+                "Documentation": "https://js.langchain.com/docs/",
+                "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
+                "Faiss": "https://faiss.ai/"
             },
-          },
-          "contentType": "application/json"
-        },
-      },
-      "method": "X-CUSTOM"
-    },
-    patch:
-    {
-      "title": "Loop LLM",
-      "category": "Text Manipulation",
-      "summary": "Loop a LLM over chunked documents",
-      "meta": {
-        "source": {
-          "summary": "Loop a LLM (chatGPT) over chunked files",
-          links: {
-            "Langchainjs Website": "https://docs.langchain.com/docs/",
-            "Documentation": "https://js.langchain.com/docs/",
-            "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-            "Faiss": "https://faiss.ai/"
-          }
         }
-      },
-      "inputs": {
-        "llm_functions": {
-          "control": {
-            "type": "AlpineCodeMirrorComponent"
-          }
-        },
-      },
-    }
-  },
-  functions: {
-    _exec: async (payload, ctx) =>
-    {
+    });
+    
+// Adding input(s)
+const inputs = [
+  { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
+  { name: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
+  { name: 'llm_functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
+  { name: 'temperature', type: 'number', defaultValue: 0 },
+  { name: 'top_p', type: 'number', defaultValue: 1 },
+  { name: 'model', type: 'string', enum: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
+];
+loop_gpt_component = setComponentInputs(loop_gpt_component, inputs);
 
-      const llm_functions = payload.llm_functions;
-      const documents = payload.documents;
-      const instruction = payload.instruction;
-      const temperature = payload.temperature;
-      const top_p = payload.top_p;
-      const model = payload.model;
+// Adding control(s)
+const controls = [
+    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" },
+];
+loop_gpt_component = setComponentControls(loop_gpt_component, controls);
 
-      const response = await loop_llm_component(ctx, documents, instruction, llm_functions, model, temperature, top_p);
-      const response_cdn = response.cdn;
-      let answer = "";
-      if (llm_functions !== null && llm_functions !== undefined && llm_functions.length > 0)
-      {
-        answer = response.function_string;
-      }
-      else
-      {
-        answer = response.answer;
-      }
-      return { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
+// Adding outpu(t)
+const outputs = [
+    { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
+    { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
+];
+loop_gpt_component = setComponentOutputs(loop_gpt_component, outputs);
 
-    }
-  }
-};
 
-async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1, chunk_size = 2000)
+// Adding _exec function
+loop_gpt_component.setMacro(OmniComponentMacroTypes.EXEC, loop_gpt_parse);
+
+
+async function loop_gpt_parse(ctx: any, payload: any) {
+
+  const llm_functions = payload.llm_functions;
+  const documents = payload.documents;
+  const instruction = payload.instruction;
+  const temperature = payload.temperature;
+  const top_p = payload.top_p;
+  const model = payload.model;
+
+  const response = await loop_gpt_function(ctx, documents, instruction, llm_functions, model, temperature, top_p);
+  const response_cdn = response.cdn;
+  const answer = response.answer;
+  
+  return { result: { "ok": true }, answer: answer, documents: [response_cdn], files: [response_cdn] };
+
+}
+
+async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1, chunk_size = 2000)
 {
     console_log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
 
@@ -233,7 +164,7 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
     }
 
     let combined_answer = "";
-    let combined_function_argumnets = [];
+    let combined_function_arguments = [];
     console_log(`chunks_results.length = ${chunks_results.length}`);
     for (let i = 0; i < chunks_results.length; i++)
     {
@@ -246,13 +177,13 @@ async function loop_llm_component(ctx, chapters_cdns, instruction, llm_functions
 
         combined_answer += result_text + function_string + "\n\n";
         console_log(`[$[i}] combined_answer = ${combined_answer}`);
-        combined_function_argumnets = combined_function_argumnets.concat(function_arguments);
+        combined_function_arguments = combined_function_arguments.concat(function_arguments);
     }
 
     const results_cdn = await save_json_to_cdn(ctx, chunks_results);
-    const response = { cdn: results_cdn, answer: combined_answer, function_arguments: combined_function_argumnets };
+    const response = { cdn: results_cdn, answer: combined_answer, function_arguments: combined_function_arguments };
     console.timeEnd("loop_llm_component_processTime");
     return response;
 }
-
-export { LoopLLMComponent, loop_llm_component };
+const LoopGPTComponent = loop_gpt_component.toJSON();
+export { LoopGPTComponent, loop_gpt_function};
