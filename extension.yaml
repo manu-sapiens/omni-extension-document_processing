@@ -6,4 +6,4 @@ origin: https://github.com/manu-sapiens/omni-extension-document_processing.git
 client:
   addToWorkbench: false
 supports:
-  "blocks:v2"
+  blocks:v2

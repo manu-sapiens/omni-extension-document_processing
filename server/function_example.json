@@ -1,0 +1,36 @@
+[
+  {
+    "name": "summarize_book_chunk",
+    "description": "Summarize and extract structured information from a book chunk",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Summary of the text contained in the chunk"
+        },
+        "characters": {
+          "type": "array",
+          "description": "list of characters involved and important information about them",
+          "items": {
+            "type": "string"
+          }
+        },
+        "plot_points": {
+          "type": "array",
+          "description": "list of plot points",
+          "items": {
+            "type": "string"
+          }
+        },
+        "settings": {
+          "type": "array",
+          "description": "list of settings or locations mentioned",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "omni-extension-document_processing",
+  "type": "module",
+  "packageManager": "yarn@3.3.1",
+  "scripts": {
+    "build": "esbuild --bundle ./extension.ts --outfile=../server/sub-extension.js --format=esm --analyze --color=true --target=es2020 --platform=node --external:mercs_rete"
+  },
+  "devDependencies": {
+    "esbuild": "^0.18.4"
+  },
+  "dependencies": {
+    "@dqbd/tiktoken": "^1.0.7",
+    "pdf2json": "^3.0.4"
+  }
+}
