@@ -1,5 +1,5 @@
 // tiktoken.js
-import { encoding_for_model } from "../src/node_modules/@dqbd/tiktoken/tiktoken.cjs";
+import { encoding_for_model } from "@dqbd/tiktoken";
 
 const GPT_MODEL_TIKTOKEN_GPT3 = "gpt-3.5-turbo";
 
