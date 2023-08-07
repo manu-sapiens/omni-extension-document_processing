@@ -52,7 +52,7 @@ class OmniOpenAIEmbeddings extends Embeddings
     async compute_embedding_via_runblock(ctx, input)
     {
         let args = {};
-        args.user = ctx.user.id;
+        args.user = ctx.userId;
         args.input = input;
 
         let response = null;

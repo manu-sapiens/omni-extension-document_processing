@@ -15,7 +15,7 @@ import { DEFAULT_VECTORSTORE_NAME } from './configs.js';
 import { DEFAULT_EMBEDDER_MODEL } from './embedder.js';
 import { DEFAULT_SPLITTER_MODEL } from './splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './chunking.js';
-import { console_log } from './utils.js';
+import { console_log, printObject } from './utils.js';
 
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")
@@ -60,6 +60,7 @@ chunk_files_component.setMacro(OmniComponentMacroTypes.EXEC, chunk_files_parse);
 
 async function chunk_files_parse(payload, ctx)
 {
+
     // Copy fields from args to payload
     for (let key in payload.args)
     {
@@ -93,6 +94,8 @@ async function chunk_files_parse(payload, ctx)
 async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
 {
     console_log(`--------------------------------`);
+    printObject(ctx, "[chunk_files_component] chunk_files_parse() ctx=");
+
     console.time("chunk_files_component_processTime");
 
     vectorstore_name = clean_vectorstore_name(vectorstore_name);

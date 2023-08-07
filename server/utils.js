@@ -1,6 +1,16 @@
 // utils.js
+import { omnilog } from 'mercs_shared'
 
-let VERBOSE = false;
+let VERBOSE = true;
+
+function printObject(obj, text = "") {
+    if (text != "") console.log(text);
+    for (let key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        console_log(`Key: ${key}, Value: ${obj[key]}`);
+      }
+    }
+  }
 
 function is_valid(value)
 {
@@ -117,9 +127,9 @@ function console_log(...args)
 {
     if (VERBOSE == true)
     {
-        console_log("------ extension: document_processing -------");
-        console_log(...args);
-        console_log("\n");
+        //omnilog.log("------ extension: document_processing -------");
+        omnilog.log(...args);
+        //omnilog.log("\n");
     }
 }
 
@@ -223,4 +233,4 @@ function parse_text_to_array(candidate_text)
 }
 
 
-export {is_valid, clean_string, sanitizeJSON, console_log, combineStringsWithoutOverlap, rebuildToTicketObjectsIfNeeded, parse_text_to_array, pauseForSeconds }
+export {is_valid, clean_string, sanitizeJSON, console_log, combineStringsWithoutOverlap, rebuildToTicketObjectsIfNeeded, parse_text_to_array, pauseForSeconds, printObject }

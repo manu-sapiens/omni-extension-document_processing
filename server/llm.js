@@ -61,7 +61,7 @@ async function fix_with_llm(ctx, json_string_to_fix)
     console_log(`[FIXING] fix_with_llm: Fixing JSON string with LLM: ${json_string_to_fix}`);
     let response = null;
     let args = {};
-    args.user = ctx.user.id;
+    args.user = ctx.userId;
     args.prompt = json_string_to_fix;
     args.instruction = "Fix the JSON string below. Do not output anything else but the carefully fixed JSON string.";;
     args.temperature = 0;
@@ -151,7 +151,7 @@ async function query_advanced_chatgpt(ctx, prompt, instruction, model = GPT3_MOD
 {
 
     let args = {};
-    args.user = ctx.user.id;
+    args.user = ctx.userId;
     args.prompt = prompt;
     args.instruction = instruction;
     args.temperature = temperature;

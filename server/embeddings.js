@@ -52,7 +52,7 @@ class CachedEmbeddings extends Embeddings
         {
             throw new Error(`[embeddings] passed text is invalid ${text}`);
         }
-        console_log(`[embeddings] Requested to embed text: ${text.slice(0, 128)}[...]`);
+        console_log(`[embeddings] embedQuery of: ${text.slice(0, 128)}[...]`);
 
         const embedding_id = compute_chunk_id(this.ctx, text, this.vectorstore_name, this.hasher);
         let embedding = null;
