@@ -10,6 +10,7 @@
     "@tensorflow/tfjs-core": "^4.10.0",
     "gpt-3-encoder": "^1.1.4",
     "langchain": "^0.0.123",
-    "pdf2json": "^3.0.4"
+    "pdf2json": "^3.0.4",
+    "faiss-node": "^0.2.2",
   }
 }
