@@ -1,7 +1,0 @@
-{
-  "name": "omni-extension-document_processing",
-  "packageManager": "yarn@3.3.1",
-  "scripts": {
-    "build": "cd ../server && yarn"
-  }
-}

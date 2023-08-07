@@ -1,6 +1,7 @@
 // embedder.js
 
-import { CachedEmbeddings, OmniOpenAIEmbeddings } from './embeddings.js';
+import { CachedEmbeddings } from './embeddings.js';
+import { OmniOpenAIEmbeddings } from './embeddingsOmniOpenAI.js';
 import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
 import { console_log } from './utils.js';
 import { DEFAULT_VECTORSTORE_NAME } from './configs.js';
@@ -26,8 +27,6 @@ function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hashe
         raw_embedder = new TensorFlowEmbeddings();
     }
     const embedder = new CachedEmbeddings(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
-
-    // TBD: more embeddings here
 
     if (embedder == null || embedder == undefined) throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
     return embedder;
