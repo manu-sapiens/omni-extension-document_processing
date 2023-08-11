@@ -29,10 +29,10 @@ let text_to_gpt_component = OAIBaseComponent
 const inputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', title: 'Text document(s) to process', defaultValue: [] },
     { name: 'url', type: 'string', title: 'or some Texts to process (text or url(s))', customSocket: 'text' },
-    { name: 'usage', type: 'string', enum: ["query_documents", "run_prompt_on_documents", "run_functions_on_documents"], defaultValue: 'query_documents' },
+    { name: 'usage', type: 'string', choices: ["query_documents", "run_prompt_on_documents", "run_functions_on_documents"], defaultValue: 'query_documents' },
     { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
     { name: 'temperature', type: 'number', defaultValue: 0 },
-    { name: 'model', type: 'string', enum: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
+    { name: 'model', type: 'string', choices: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
     { name: 'overwrite', type: 'boolean', defaultValue: false },
 ];
 text_to_gpt_component = setComponentInputs(text_to_gpt_component, inputs);
