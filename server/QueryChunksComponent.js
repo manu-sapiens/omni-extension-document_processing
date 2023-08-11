@@ -33,16 +33,14 @@ let query_chunk_component = OAIBaseComponent
 // Adding input(s)
 const inputs = [
   { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
-  { name: 'query', type: 'string', title: 'The query', customSocket: 'text' },
-  { name: 'model', type: 'string', enum: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
+  { name: 'query', type: 'string', customSocket: 'text' },
+  { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
+    {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
+    {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
+    {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
+    {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
 ];
 query_chunk_component = setComponentInputs(query_chunk_component, inputs);
-
-// Adding control(s)
-const controls = [
-    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" },
-];
-query_chunk_component = setComponentControls(query_chunk_component, controls);
 
 // Adding outpu(t)
 const outputs = [

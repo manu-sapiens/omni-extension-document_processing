@@ -35,9 +35,32 @@ let chunk_files_component = OAIBaseComponent
 
 // Adding input(s)
 const inputs = [
-    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked' },
-    { name: 'embedder_model', type: 'string', enum: ["openai", "tensorflow"], defaultValue: 'tensorflow', title: "Embedder Model" },
-    { name: 'splitter_model', type: 'string', enum: ["RecursiveCharacterTextSplitter", "TokenTextSplitter", "CodeSplitter_cpp", "CodeSplitter_go", "CodeSplitter_java", "CodeSplitter_ruby", "CodeSplitter_js", "CodeSplitter_php", "CodeSplitter_proto", "CodeSplitter_python", "CodeSplitter_rst", "CodeSplitter_rust", "CodeSplitter_scala", "CodeSplitter_swift", "CodeSplitter_markdown", "CodeSplitter_latex", "CodeSplitter_html"], defaultValue: 'RecursiveCharacterTextSplitter', title: "Splitted Model" },
+    { name: 'documents', title: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked' },
+    { name: 'embedder_model', title: 'Embedder Model', type: 'string', defaultValue: 'tensorflow', 
+        choices: [
+            {value:"openai", title: "OpenAI embeddings"}, 
+            {value:"tensorflow", title: "TensorFlow embeddings"}
+        ],},
+    { name: 'splitter_model', type: 'string', defaultValue: 'RecursiveCharacterTextSplitter', title: "Splitted Model" ,
+        choices: [
+            {value: "RecursiveCharacterTextSplitter", title: "RecursiveCharacterTextSplitter"},
+            {value: "TokenTextSplitter", title: "TokenTextSplitter"},
+            {value: "CodeSplitter_cpp", title: "CodeSplitter_cpp"},
+            {value: "CodeSplitter_go", title: "CodeSplitter_go"},
+            {value: "CodeSplitter_java",  title: "CodeSplitter_java"},
+            {value: "CodeSplitter_ruby",  title: "CodeSplitter_ruby"},
+            {value: "CodeSplitter_js",  title: "CodeSplitter_js"},
+            {value: "CodeSplitter_php",  title: "CodeSplitter_php"},
+            {value: "CodeSplitter_proto",  title: "CodeSplitter_proto"},
+            {value: "CodeSplitter_python",  title: "CodeSplitter_python"},
+            {value: "CodeSplitter_rst",  title: "CodeSplitter_rst"},
+            {value: "CodeSplitter_rust",  title: "CodeSplitter_rust"},
+            {value:  "CodeSplitter_scala",  title: "CodeSplitter_scala"},
+            {value: "CodeSplitter_swift",  title: "CodeSplitter_swift"},
+            {value: "CodeSplitter_markdown",  title: "CodeSplitter_markdown"},
+            {value: "CodeSplitter_latex",  title: "CodeSplitter_latex"},
+            {value: "CodeSplitter_html", title: "CodeSplitter_html"},
+        ]},
     { name: 'chunk_size', type: 'number', defaultValue: 512 },
     { name: 'chunk_overlap', type: 'number', defaultValue: 64 },
     { name: 'overwrite', type: 'boolean', defaultValue: false },

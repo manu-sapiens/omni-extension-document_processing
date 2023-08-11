@@ -36,7 +36,11 @@ const inputs = [
   { name: 'llm_functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
   { name: 'temperature', type: 'number', defaultValue: 0 },
   { name: 'top_p', type: 'number', defaultValue: 1 },
-  { name: 'model', type: 'string', enum: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
+  { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
+    {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
+    {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
+    {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
+    {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
 ];
 loop_gpt_component = setComponentInputs(loop_gpt_component, inputs);
 

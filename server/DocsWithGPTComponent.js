@@ -11,7 +11,7 @@ import { console_log } from "./utils.js";
 
 
 let docs_with_gpt_component = OAIBaseComponent
-    .create(NS_ONMI, "text_to_gpt")
+    .create(NS_ONMI, "docs_with_gpt")
     .fromScratch()
     .set('title', 'Docs with GPT')
     .set('category', 'Text Manipulation')
@@ -34,13 +34,13 @@ const inputs = [
         {value:"run_prompt_on_documents", title:"Run a prompt on docs", description:"Run a prompt on your doc(s) broken into as large chunks as fit in the LLM"}, 
         {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
     { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
-    { name: 'temperature', type: 'number', title:"temperature", defaultValue: 0 },
+    { name: 'temperature', type: 'number', defaultValue: 0 },
     { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
         {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
         {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
         {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
         {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
-    { name: 'overwrite', title:"overwrite", description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
+    { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
 ];
 docs_with_gpt_component = setComponentInputs(docs_with_gpt_component, inputs);
 
