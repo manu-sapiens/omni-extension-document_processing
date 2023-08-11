@@ -5,9 +5,9 @@ import { GptIXPComponent } from "./GptIXPComponent.js";
 import { LoopGPTComponent } from "./LoopGPTComponent.js";
 import { QueryChunksComponent } from "./QueryChunksComponent.js";
 import { ReadTextFilesComponent } from "./ReadTextFilesComponent.js";
-import { TextsToGPTComponent } from "./TextsToGPTComponent.js";
+import { DocsWithGPTComponent } from "./DocsWithGPTComponent.js";
 
-let components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, LoadPDFComponent, QueryChunksComponent, ReadTextFilesComponent, TextsToGPTComponent];
+let components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, LoadPDFComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
 
 function CreateComponents ()
 {

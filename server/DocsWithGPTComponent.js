@@ -10,10 +10,10 @@ import { loop_gpt_function } from './LoopGPTComponent.js';
 import { console_log } from "./utils.js";
 
 
-let text_to_gpt_component = OAIBaseComponent
+let docs_with_gpt_component = OAIBaseComponent
     .create(NS_ONMI, "text_to_gpt")
     .fromScratch()
-    .set('title', 'Text to GPT')
+    .set('title', 'Docs with GPT')
     .set('category', 'Text Manipulation')
     .setMethod('X-CUSTOM')
     .setMeta({
@@ -29,19 +29,26 @@ let text_to_gpt_component = OAIBaseComponent
 const inputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', title: 'Text document(s) to process', defaultValue: [] },
     { name: 'url', type: 'string', title: 'or some Texts to process (text or url(s))', customSocket: 'text' },
-    { name: 'usage', type: 'string', choices: ["query_documents", "run_prompt_on_documents", "run_functions_on_documents"], defaultValue: 'query_documents' },
+    { name: 'usage', type: 'string', defaultValue: 'query_documents', choices: [
+        {value:"query_documents", title:"Query Docs", desccription:"Ask a question about your document(s)"}, 
+        {value:"run_prompt_on_documents", title:"Run a prompt on docs", description:"Run a prompt on your doc(s) broken into as large chunks as fit in the LLM"}, 
+        {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
     { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
-    { name: 'temperature', type: 'number', defaultValue: 0 },
-    { name: 'model', type: 'string', choices: ['gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k'], defaultValue: 'gpt-3.5-turbo-16k' },
-    { name: 'overwrite', type: 'boolean', defaultValue: false },
+    { name: 'temperature', type: 'number', title:"temperature", defaultValue: 0 },
+    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
+        {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
+        {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
+        {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
+        {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
+    { name: 'overwrite', title:"overwrite", description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
 ];
-text_to_gpt_component = setComponentInputs(text_to_gpt_component, inputs);
+docs_with_gpt_component = setComponentInputs(docs_with_gpt_component, inputs);
 
 // Adding control(s)
 const controls = [
     { name: "documents", placeholder: "AlpineCodeMirrorComponent" },
 ];
-text_to_gpt_component = setComponentControls(text_to_gpt_component, controls);
+docs_with_gpt_component = setComponentControls(docs_with_gpt_component, controls);
 
 // Adding outpu(t)
 const outputs = [
@@ -49,11 +56,11 @@ const outputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
     { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
 ];
-text_to_gpt_component = setComponentOutputs(text_to_gpt_component, outputs);
+docs_with_gpt_component = setComponentOutputs(docs_with_gpt_component, outputs);
 
 
 // Adding _exec function
-text_to_gpt_component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files_parse);
+docs_with_gpt_component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files_parse);
 
 
 async function read_text_files_parse(payload, ctx) {
@@ -68,7 +75,7 @@ async function read_text_files_parse(payload, ctx) {
     const model = payload.model;
     const overwrite = payload.overwrite;
 
-    const response = await texts_to_gpt_function(ctx, documents, url, usage, prompt, temperature, model, overwrite)
+    const response = await docs_with_gpt_function(ctx, documents, url, usage, prompt, temperature, model, overwrite)
     const response_cdn = response.response_cdn;
     const response_answer = response.answer;
 
@@ -79,7 +86,7 @@ async function read_text_files_parse(payload, ctx) {
 }
 
 
-    async function texts_to_gpt_function(ctx, passed_documents_cdns, url, usage, prompt, temperature, model, overwrite) {
+    async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt, temperature, model, overwrite) {
         let passed_documents_are_valid = (passed_documents_cdns != null && passed_documents_cdns != undefined && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0);
         if (passed_documents_are_valid) {
             console_log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -169,5 +176,5 @@ async function read_text_files_parse(payload, ctx) {
         return { response_cdn, answer }
     }
 
-    const TextsToGPTComponent = text_to_gpt_component.toJSON();
-    export { TextsToGPTComponent, texts_to_gpt_function };
+    const DocsWithGPTComponent = docs_with_gpt_component.toJSON();
+    export { DocsWithGPTComponent, docs_with_gpt_function };

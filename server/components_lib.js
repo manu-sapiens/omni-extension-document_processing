@@ -1,10 +1,11 @@
 function setComponentInputs(component, inputs) {
     inputs.forEach(function (input) {
-        var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title;
+        var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
         component.addInput(
             component.createInput(name, type, customSocket)
             .set('title', title || '')
             .set('description', description || '')
+            .set('choices', choices || null)
             .setDefault(defaultValue)
             .toOmniIO()
         );
