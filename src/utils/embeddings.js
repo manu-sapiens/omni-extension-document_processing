@@ -2,7 +2,7 @@
 
 import { Embeddings } from "langchain/embeddings/base";
 import { is_valid, console_log } from './utils.js';
-import { DEFAULT_VECTORSTORE_NAME } from "./configs.js";
+import { DEFAULT_VECTORSTORE_NAME } from "./vectorstore.js";
 import { compute_chunk_id } from "./hashers.js";
 import { user_db_put, user_db_get, user_db_delete } from "./database.js"
 

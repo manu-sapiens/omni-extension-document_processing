@@ -1,9 +1,9 @@
 // ReadTextFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { is_valid, console_log, rebuildToTicketObjectsIfNeeded, parse_text_to_array } from './utils.js';
+import { is_valid, console_log, rebuildToTicketObjectsIfNeeded, parse_text_to_array } from './utils/utils.js';
 
 function printKeyValuePairs(obj) {
   for (let key in obj) {

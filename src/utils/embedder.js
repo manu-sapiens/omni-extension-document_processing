@@ -1,16 +1,17 @@
 // embedder.js
 
+import { error } from 'console';
 import { CachedEmbeddings } from './embeddings.js';
 import { OmniOpenAIEmbeddings } from './embeddingsOmniOpenAI.js';
-import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
+//!!//import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
 import { console_log } from './utils.js';
-import { DEFAULT_VECTORSTORE_NAME } from './configs.js';
-import "@tensorflow/tfjs-backend-cpu";
+import { DEFAULT_VECTORSTORE_NAME } from './vectorstore.js';
+//import "@tensorflow/tfjs-backend-cpu";
 
 //const EMBEDINGS_ADA_2 = "text-embedding-ada-002";
 const EMBEDDER_MODEL_OPENAI = "openai";
 const EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
-const DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_TENSORFLOW;
+const DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI//EMBEDDER_MODEL_TENSORFLOW;
 
 function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false)
 {
@@ -23,8 +24,9 @@ function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hashe
     }
     else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) 
     {
-        console_log("Using embedder: EMBEDDER_MODEL_TENSORFLOW <------------------");
-        raw_embedder = new TensorFlowEmbeddings();
+     //   console_log("Using embedder: EMBEDDER_MODEL_TENSORFLOW <------------------");
+     //   raw_embedder = new TensorFlowEmbeddings();
+     throw new error ("tensorflow embedding not supported at the moment")
     }
     const embedder = new CachedEmbeddings(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
 

@@ -1,13 +1,13 @@
 // AdvancedLLMComponent.ts
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { save_json_to_cdn, } from './cdn.js';
-import { is_valid, console_log, parse_text_to_array } from './utils.js';
-import { count_tokens_in_text } from './tiktoken.js';
-import { query_advanced_chatgpt, adjust_model } from './llm.js';
-import { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './llm.js';
+import { save_json_to_cdn, } from './utils/cdn.js';
+import { is_valid, console_log, parse_text_to_array } from './utils/utils.js';
+import { count_tokens_in_text } from './utils/tiktoken.js';
+import { query_advanced_chatgpt, adjust_model } from './utils/llm.js';
+import { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
 
 let gpt_IxP_component = OAIBaseComponent
     .create(NS_ONMI, "gpt_ixp")

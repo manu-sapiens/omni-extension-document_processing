@@ -1,0 +1,17 @@
+{
+  "name": "omni-extension-document_processing",
+  "packageManager": "yarn@3.3.1",
+  "scripts": {
+    "build": "esbuild ./extension.js --bundle --outdir=../server --format=esm --platform=node --target=es2020 --external:mercs_rete --analyze --color=true"
+  },
+  "dependencies": {
+    "faiss-node": "^0.3.0",
+    "gpt-3-encoder": "^1.1.4",
+    "gpt-tokenizer": "^2.1.1",
+    "langchain": "^0.0.123",
+    "tiktoken-node": "^0.0.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.2"
+  }
+}

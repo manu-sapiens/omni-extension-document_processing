@@ -1,21 +1,19 @@
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { initialize_hasher, compute_document_id } from './hashers.js';
-import { save_json_to_cdn_as_buffer } from './cdn.js';
-import { gather_all_texts_from_documents } from './cdn.js';
-import { initialize_splitter } from './splitter.js';
-import { initialize_embedder } from './embedder.js';
-import { process_chapter } from './chunking.js';
-import { clean_vectorstore_name } from './vectorstore.js';
-import { DEFAULT_HASHER_MODEL } from './hashers.js';
-import { DEFAULT_VECTORSTORE_NAME } from './configs.js';
-import { DEFAULT_EMBEDDER_MODEL } from './embedder.js';
-import { DEFAULT_SPLITTER_MODEL } from './splitter.js';
-import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './chunking.js';
-import { console_log, printObject } from './utils.js';
+import { initialize_hasher, compute_document_id } from './utils/hashers.js';
+import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from './utils/cdn.js';
+import { initialize_splitter } from './utils/splitter.js';
+import { initialize_embedder } from './utils/embedder.js';
+import { process_chapter } from './utils/chunking.js';
+import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from './utils/vectorstore.js';
+import { DEFAULT_HASHER_MODEL } from './utils/hashers.js';
+import { DEFAULT_EMBEDDER_MODEL } from './utils/embedder.js';
+import { DEFAULT_SPLITTER_MODEL } from './utils/splitter.js';
+import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './utils/chunking.js';
+import { console_log, printObject } from './utils/utils.js';
 
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")
@@ -39,7 +37,6 @@ const inputs = [
     { name: 'embedder_model', title: 'Embedder Model', type: 'string', defaultValue: 'tensorflow', 
         choices: [
             {value:"openai", title: "OpenAI embeddings"}, 
-            {value:"tensorflow", title: "TensorFlow embeddings"}
         ],},
     { name: 'splitter_model', type: 'string', defaultValue: 'RecursiveCharacterTextSplitter', title: "Splitted Model" ,
         choices: [

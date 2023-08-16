@@ -1,13 +1,13 @@
 // TextsToChatGPTComponent
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
 import { read_text_files_function } from "./ReadTextFilesComponent.js";
 import { chunk_files_function } from './ChunkFilesComponent.js';
 import { query_chunks_function } from './QueryChunksComponent.js';
 import { loop_gpt_function } from './LoopGPTComponent.js';
-import { console_log } from "./utils.js";
+import { console_log } from "./utils/utils.js";
 
 
 let docs_with_gpt_component = OAIBaseComponent

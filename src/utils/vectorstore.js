@@ -1,12 +1,29 @@
 // vectorstore.js
-
-import { FaissStore } from "langchain/vectorstores/faiss";
+//import { faiss_from_texts } from "./vectorstoreFaiss.js";
+import { memory_from_texts } from "./vectorstoreMemory.js";
 import { console_log,   is_valid } from "./utils.js";
 
-async function create_vectorstore_from_texts(texts, text_ids, embedder)
-{
+const FAISS_VECTORSTORE = "FAISS";
+const MEMORY_VECTORSTORE = "MEMORY"
+const DEFAULT_VECTORSTORE_NAME = 'omnitool';
+const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
+
+async function create_vectorstore_from_texts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
     console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
-    let vectorstore = await FaissStore.fromTexts(texts, text_ids, embedder);
+
+    let vectorstore;
+
+    switch (vectorstore_type) {
+        //case FAISS_VECTORSTORE:
+        //    vectorstore = await faiss_from_texts(texts, text_ids, embedder);
+        //    break;
+        case MEMORY_VECTORSTORE:
+            vectorstore = await memory_from_texts(texts, text_ids, embedder);
+            break;
+        default:
+            throw new Error(`Vectorstore type ${vectorstore_type} not recognized`);
+    }
+
     return vectorstore;
 }
 
@@ -63,4 +80,4 @@ function clean_vectorstore_name(vectorstore_name)
     return clean_name;
 }
 
-export { query_vectorstore, compute_vectorstore, clean_vectorstore_name }
+export { query_vectorstore, compute_vectorstore, clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME }

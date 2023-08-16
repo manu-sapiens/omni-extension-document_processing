@@ -1,13 +1,13 @@
 
 // LoopGPTComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { save_json_to_cdn, get_chunks_from_cdn } from './cdn.js';
-import { is_valid, sanitizeJSON, console_log, combineStringsWithoutOverlap } from './utils.js';
-import { query_advanced_chatgpt, get_model_max_size, adjust_model, DEFAULT_GPT_MODEL } from './llm.js';
-import { count_tokens_in_text } from './tiktoken.js';
+import { save_json_to_cdn, get_chunks_from_cdn } from './utils/cdn.js';
+import { is_valid, sanitizeJSON, console_log, combineStringsWithoutOverlap } from './utils/utils.js';
+import { query_advanced_chatgpt, get_model_max_size, adjust_model, DEFAULT_GPT_MODEL } from './utils/llm.js';
+import { count_tokens_in_text } from './utils/tiktoken.js';
 
 
 let loop_gpt_component = OAIBaseComponent

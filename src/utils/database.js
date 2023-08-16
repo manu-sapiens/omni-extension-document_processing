@@ -1,7 +1,7 @@
 // database.js
-
 import { console_log } from './utils.js';
-import { OMNITOOL_DOCUMENT_TYPES_USERDOC } from './configs.js';
+
+const OMNITOOL_DOCUMENT_TYPES_USERDOC = 'udoc';
 
 function get_effective_key(ctx, key)
 {

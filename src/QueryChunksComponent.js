@@ -1,14 +1,14 @@
 // QueryChunksComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { initialize_hasher } from './hashers.js'
-import { save_json_to_cdn, get_json_from_cdn } from './cdn.js';
-import { is_valid, console_log } from './utils.js';
-import { compute_vectorstore } from './vectorstore.js';
-import { initialize_embedder } from './embedder.js';
-import { smartquery_from_vectorstore } from './smartquery.js';
+import { initialize_hasher } from './utils/hashers.js'
+import { save_json_to_cdn, get_json_from_cdn } from './utils/cdn.js';
+import { is_valid, console_log } from './utils/utils.js';
+import { compute_vectorstore } from './utils/vectorstore.js';
+import { initialize_embedder } from './utils/embedder.js';
+import { smartquery_from_vectorstore } from './utils/smartquery.js';
 
 
 let query_chunk_component = OAIBaseComponent
