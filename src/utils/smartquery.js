@@ -1,7 +1,7 @@
 // smartquery.js
 
 import { query_vectorstore } from './vectorstore.js';
-import { query_advanced_chatgpt, get_model_max_size } from './llm.js';
+import { query_llm, get_model_max_size } from './llm.js';
 import { console_log, is_valid } from './utils.js';
 import { count_tokens_in_text } from './tiktoken.js';
 
@@ -38,7 +38,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
         combined_text += text;
     }
 
-    const query_answer_json = await query_advanced_chatgpt(ctx, combined_text, instruction, model);
+    const query_answer_json = await query_llm(ctx, combined_text, instruction, model);
     const query_answer = query_answer_json?.text || null;
     if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 

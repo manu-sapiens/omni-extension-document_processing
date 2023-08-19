@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "module": "es2022", // or "esnext", "system", "node16", "nodenext"
+    "target": "es2017" // or higher, like "es2020", "es2022", "esnext"
+  }
+}
+

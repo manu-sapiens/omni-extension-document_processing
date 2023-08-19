@@ -3,7 +3,7 @@
 import { memory_from_texts } from "./vectorstoreMemory.js";
 import { console_log,   is_valid } from "./utils.js";
 
-const FAISS_VECTORSTORE = "FAISS";
+//const FAISS_VECTORSTORE = "FAISS";
 const MEMORY_VECTORSTORE = "MEMORY"
 const DEFAULT_VECTORSTORE_NAME = 'omnitool';
 const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;

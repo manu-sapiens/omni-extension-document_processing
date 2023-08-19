@@ -6,55 +6,58 @@ const NS_ONMI = 'document_processing';
 import { save_json_to_cdn, } from './utils/cdn.js';
 import { is_valid, console_log, parse_text_to_array } from './utils/utils.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
-import { query_advanced_chatgpt, adjust_model } from './utils/llm.js';
-import { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
-
-let gpt_IxP_component = OAIBaseComponent
-    .create(NS_ONMI, "gpt_ixp")
-    .fromScratch()
-    .set('title', 'GPT IxP')
-    .set('category', 'Text Manipulation')
-    .set('description', 'Run GPT on every combination of instruction(s) and prompt(s)')
-    .setMethod('X-CUSTOM')
-    .setMeta({
-        source: {
-            summary: "Run GPT on every combination of instruction(s) and prompt(s)",
-            links: {
-            },
-        }
-    });
-    
-// Adding input(s)
-const inputs = [
-    { name: 'instruction', title: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
-    { name: 'prompt', title: 'prompt', type: 'string', customSocket: 'text', description: 'Prompt(s)' },
-    { name: 'llm_functions', title: 'functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
-    { name: 'temperature', title: 'temperature', type: 'number', defaultValue: 0 },
-    { name: 'top_p', title: 'top_p', type: 'number', defaultValue: 1 },
-    { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
-        {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
-        {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
-        {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
-        {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
-];
-gpt_IxP_component = setComponentInputs(gpt_IxP_component, inputs);
-
-// Adding control(s)
-const controls = [
-    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" },
-];
-gpt_IxP_component = setComponentControls(gpt_IxP_component, controls);
-
-// Adding outpu(t)
-const outputs = [
-    { name: 'text', type: 'string', customSocket: 'text', description: 'Result Text', title: 'Result Text' },
-    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'documents containing the answers' },
-    { name: 'answers', type: 'object', customSocket: 'object', description: 'Answers JSON' },];
-gpt_IxP_component = setComponentOutputs(gpt_IxP_component, outputs);
+import { query_llm, adjust_model, get_llm_choices , DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
 
 
-// Adding _exec function
-gpt_IxP_component.setMacro(OmniComponentMacroTypes.EXEC, gpt_IxP_parse);
+async function async_get_gpt_IxP_component()
+{
+    let component = OAIBaseComponent
+        .create(NS_ONMI, "gpt_ixp")
+        .fromScratch()
+        .set('title', 'GPT IxP')
+        .set('category', 'Text Manipulation')
+        .set('description', 'Run GPT on every combination of instruction(s) and prompt(s)')
+        .setMethod('X-CUSTOM')
+        .setMeta({
+            source: {
+                summary: "Run GPT on every combination of instruction(s) and prompt(s)",
+                links: {
+                },
+            }
+        });
+        
+    // Adding input(s)
+    const llm_choices  = await get_llm_choices();
+    const inputs = [
+        { name: 'instruction', title: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
+        { name: 'prompt', title: 'prompt', type: 'string', customSocket: 'text', description: 'Prompt(s)' },
+        { name: 'llm_functions', title: 'functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
+        { name: 'temperature', title: 'temperature', type: 'number', defaultValue: 0 },
+        { name: 'top_p', title: 'top_p', type: 'number', defaultValue: 1 },
+        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+    ];
+    component = setComponentInputs(component, inputs);
+
+    // Adding control(s)
+    const controls = [
+        { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" },
+    ];
+    component = setComponentControls(component, controls);
+
+    // Adding outpu(t)
+    const outputs = [
+        { name: 'text', type: 'string', customSocket: 'text', description: 'Result Text', title: 'Result Text' },
+        { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'documents containing the answers' },
+        { name: 'answers', type: 'object', customSocket: 'object', description: 'Answers JSON' },];
+    component = setComponentOutputs(component, outputs);
+
+
+    // Adding _exec function
+    component.setMacro(OmniComponentMacroTypes.EXEC, gpt_IxP_parse);
+
+    return component.toJSON();
+}
+
 
 async function gpt_IxP_parse(payload, ctx) {
     console_log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
@@ -101,7 +104,7 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
             let model = adjust_model(token_cost, llm_model);
 
             if (token_cost > GPT4_SIZE_MAX) { console_log('WARNING: token cost > GPT4_SIZE_MAX'); }
-            const answer_object = await query_advanced_chatgpt(ctx, prompt, instruction, model, llm_functions, temperature, top_p);
+            const answer_object = await query_llm(ctx, prompt, instruction, model, llm_functions, temperature, top_p);
             if (is_valid(answer_object) == false) continue;
 
             const answer_text = answer_object.text;
@@ -131,5 +134,4 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
     return answers;
 }
 
-const GptIXPComponent = gpt_IxP_component.toJSON();
-export { GptIXPComponent, gpt_IxP_function };
+export { async_get_gpt_IxP_component, gpt_IxP_function };

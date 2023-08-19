@@ -1,14 +1,23 @@
+
+await(async()=>{let{dirname:e}=await import("path"),{fileURLToPath:i}=await import("url");if(typeof globalThis.__filename>"u"&&(globalThis.__filename=i(import.meta.url)),typeof globalThis.__dirname>"u"&&(globalThis.__dirname=e(globalThis.__filename)),typeof globalThis.require>"u"){let{default:a}=await import("module");globalThis.require=a.createRequire(import.meta.url)}})();
+
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b2) => (typeof require !== "undefined" ? require : a)[b2]
+}) : x)(function(x) {
+  if (typeof require !== "undefined")
+    return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
-var __commonJS = (cb, mod) => function __require() {
+var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
@@ -31,10 +40,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
 
 // ../../../../../node_modules/consola/dist/core.mjs
 function isObject(value) {
@@ -449,8 +454,8 @@ var init_core = __esm({
 });
 
 // ../../../../../node_modules/consola/dist/shared/consola.06ad8a64.mjs
-import { formatWithOptions } from "util";
-import { sep } from "path";
+import { formatWithOptions } from "node:util";
+import { sep } from "node:path";
 function parseStack(stack) {
   const cwd = process.cwd() + sep;
   const lines = stack.split("\n").splice(1).map((l2) => l2.trim().replace("file://", "").replace(cwd, ""));
@@ -513,7 +518,7 @@ var init_consola_06ad8a64 = __esm({
 });
 
 // ../../../../../node_modules/consola/dist/utils.mjs
-import * as tty from "tty";
+import * as tty from "node:tty";
 function replaceClose(index, string, close, replace, head = string.slice(0, Math.max(0, index)) + replace, tail = string.slice(Math.max(0, index + close.length)), next = tail.indexOf(close)) {
   return head + (next < 0 ? tail : replaceClose(next, tail, close, replace));
 }
@@ -754,9 +759,9 @@ var prompt_exports = {};
 __export(prompt_exports, {
   prompt: () => prompt
 });
-import { stdin, stdout } from "process";
-import f from "readline";
-import { WriteStream } from "tty";
+import { stdin, stdout } from "node:process";
+import f from "node:readline";
+import { WriteStream } from "node:tty";
 import require$$0 from "tty";
 function z({ onlyFirst: t = false } = {}) {
   const u = ["[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)", "(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))"].join("|");
@@ -1535,7 +1540,7 @@ ${colors.cyan(S_BAR_END)}
 });
 
 // ../../../../../node_modules/consola/dist/shared/consola.36c0034f.mjs
-import process$1 from "process";
+import process$1 from "node:process";
 function detectProvider(env3) {
   for (const provider of providers) {
     const envName = provider[1] || provider[0];
@@ -3296,7 +3301,7 @@ var require_dist = __commonJS({
     var timeoutError = new p_timeout_1.TimeoutError();
     var PQueue = class extends EventEmitter {
       constructor(options2) {
-        var _a2, _b, _c, _d;
+        var _a, _b, _c, _d;
         super();
         this._intervalCount = 0;
         this._intervalEnd = 0;
@@ -3305,7 +3310,7 @@ var require_dist = __commonJS({
         this._resolveIdle = empty;
         options2 = Object.assign({ carryoverConcurrencyCount: false, intervalCap: Infinity, interval: 0, concurrency: Infinity, autoStart: true, queueClass: priority_queue_1.default }, options2);
         if (!(typeof options2.intervalCap === "number" && options2.intervalCap >= 1)) {
-          throw new TypeError(`Expected \`intervalCap\` to be a number from 1 and up, got \`${(_b = (_a2 = options2.intervalCap) === null || _a2 === void 0 ? void 0 : _a2.toString()) !== null && _b !== void 0 ? _b : ""}\` (${typeof options2.intervalCap})`);
+          throw new TypeError(`Expected \`intervalCap\` to be a number from 1 and up, got \`${(_b = (_a = options2.intervalCap) === null || _a === void 0 ? void 0 : _a.toString()) !== null && _b !== void 0 ? _b : ""}\` (${typeof options2.intervalCap})`);
         }
         if (options2.interval === void 0 || !(Number.isFinite(options2.interval) && options2.interval >= 0)) {
           throw new TypeError(`Expected \`interval\` to be a finite number >= 0, got \`${(_d = (_c = options2.interval) === null || _c === void 0 ? void 0 : _c.toString()) !== null && _d !== void 0 ? _d : ""}\` (${typeof options2.interval})`);
@@ -5370,6 +5375,846 @@ var require_lib6 = __commonJS({
   }
 });
 
+// node_modules/node-gyp-build/node-gyp-build.js
+var require_node_gyp_build = __commonJS({
+  "node_modules/node-gyp-build/node-gyp-build.js"(exports, module) {
+    var fs2 = __require("fs");
+    var path3 = __require("path");
+    var os = __require("os");
+    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : __require;
+    var vars = process.config && process.config.variables || {};
+    var prebuildsOnly = !!process.env.PREBUILDS_ONLY;
+    var abi = process.versions.modules;
+    var runtime = isElectron() ? "electron" : isNwjs() ? "node-webkit" : "node";
+    var arch = process.env.npm_config_arch || os.arch();
+    var platform2 = process.env.npm_config_platform || os.platform();
+    var libc = process.env.LIBC || (isAlpine(platform2) ? "musl" : "glibc");
+    var armv = process.env.ARM_VERSION || (arch === "arm64" ? "8" : vars.arm_version) || "";
+    var uv = (process.versions.uv || "").split(".")[0];
+    module.exports = load;
+    function load(dir) {
+      return runtimeRequire(load.resolve(dir));
+    }
+    load.resolve = load.path = function(dir) {
+      dir = path3.resolve(dir || ".");
+      try {
+        var name = runtimeRequire(path3.join(dir, "package.json")).name.toUpperCase().replace(/-/g, "_");
+        if (process.env[name + "_PREBUILD"])
+          dir = process.env[name + "_PREBUILD"];
+      } catch (err) {
+      }
+      if (!prebuildsOnly) {
+        var release = getFirst(path3.join(dir, "build/Release"), matchBuild);
+        if (release)
+          return release;
+        var debug = getFirst(path3.join(dir, "build/Debug"), matchBuild);
+        if (debug)
+          return debug;
+      }
+      var prebuild = resolve(dir);
+      if (prebuild)
+        return prebuild;
+      var nearby = resolve(path3.dirname(process.execPath));
+      if (nearby)
+        return nearby;
+      var target = [
+        "platform=" + platform2,
+        "arch=" + arch,
+        "runtime=" + runtime,
+        "abi=" + abi,
+        "uv=" + uv,
+        armv ? "armv=" + armv : "",
+        "libc=" + libc,
+        "node=" + process.versions.node,
+        process.versions.electron ? "electron=" + process.versions.electron : "",
+        typeof __webpack_require__ === "function" ? "webpack=true" : ""
+        // eslint-disable-line
+      ].filter(Boolean).join(" ");
+      throw new Error("No native build was found for " + target + "\n    loaded from: " + dir + "\n");
+      function resolve(dir2) {
+        var tuples = readdirSync(path3.join(dir2, "prebuilds")).map(parseTuple);
+        var tuple = tuples.filter(matchTuple(platform2, arch)).sort(compareTuples)[0];
+        if (!tuple)
+          return;
+        var prebuilds = path3.join(dir2, "prebuilds", tuple.name);
+        var parsed = readdirSync(prebuilds).map(parseTags);
+        var candidates = parsed.filter(matchTags(runtime, abi));
+        var winner = candidates.sort(compareTags(runtime))[0];
+        if (winner)
+          return path3.join(prebuilds, winner.file);
+      }
+    };
+    function readdirSync(dir) {
+      try {
+        return fs2.readdirSync(dir);
+      } catch (err) {
+        return [];
+      }
+    }
+    function getFirst(dir, filter) {
+      var files = readdirSync(dir).filter(filter);
+      return files[0] && path3.join(dir, files[0]);
+    }
+    function matchBuild(name) {
+      return /\.node$/.test(name);
+    }
+    function parseTuple(name) {
+      var arr = name.split("-");
+      if (arr.length !== 2)
+        return;
+      var platform3 = arr[0];
+      var architectures = arr[1].split("+");
+      if (!platform3)
+        return;
+      if (!architectures.length)
+        return;
+      if (!architectures.every(Boolean))
+        return;
+      return { name, platform: platform3, architectures };
+    }
+    function matchTuple(platform3, arch2) {
+      return function(tuple) {
+        if (tuple == null)
+          return false;
+        if (tuple.platform !== platform3)
+          return false;
+        return tuple.architectures.includes(arch2);
+      };
+    }
+    function compareTuples(a, b2) {
+      return a.architectures.length - b2.architectures.length;
+    }
+    function parseTags(file) {
+      var arr = file.split(".");
+      var extension = arr.pop();
+      var tags = { file, specificity: 0 };
+      if (extension !== "node")
+        return;
+      for (var i = 0; i < arr.length; i++) {
+        var tag = arr[i];
+        if (tag === "node" || tag === "electron" || tag === "node-webkit") {
+          tags.runtime = tag;
+        } else if (tag === "napi") {
+          tags.napi = true;
+        } else if (tag.slice(0, 3) === "abi") {
+          tags.abi = tag.slice(3);
+        } else if (tag.slice(0, 2) === "uv") {
+          tags.uv = tag.slice(2);
+        } else if (tag.slice(0, 4) === "armv") {
+          tags.armv = tag.slice(4);
+        } else if (tag === "glibc" || tag === "musl") {
+          tags.libc = tag;
+        } else {
+          continue;
+        }
+        tags.specificity++;
+      }
+      return tags;
+    }
+    function matchTags(runtime2, abi2) {
+      return function(tags) {
+        if (tags == null)
+          return false;
+        if (tags.runtime !== runtime2 && !runtimeAgnostic(tags))
+          return false;
+        if (tags.abi !== abi2 && !tags.napi)
+          return false;
+        if (tags.uv && tags.uv !== uv)
+          return false;
+        if (tags.armv && tags.armv !== armv)
+          return false;
+        if (tags.libc && tags.libc !== libc)
+          return false;
+        return true;
+      };
+    }
+    function runtimeAgnostic(tags) {
+      return tags.runtime === "node" && tags.napi;
+    }
+    function compareTags(runtime2) {
+      return function(a, b2) {
+        if (a.runtime !== b2.runtime) {
+          return a.runtime === runtime2 ? -1 : 1;
+        } else if (a.abi !== b2.abi) {
+          return a.abi ? -1 : 1;
+        } else if (a.specificity !== b2.specificity) {
+          return a.specificity > b2.specificity ? -1 : 1;
+        } else {
+          return 0;
+        }
+      };
+    }
+    function isNwjs() {
+      return !!(process.versions && process.versions.nw);
+    }
+    function isElectron() {
+      if (process.versions && process.versions.electron)
+        return true;
+      if (process.env.ELECTRON_RUN_AS_NODE)
+        return true;
+      return typeof window !== "undefined" && window.process && window.process.type === "renderer";
+    }
+    function isAlpine(platform3) {
+      return platform3 === "linux" && fs2.existsSync("/etc/alpine-release");
+    }
+    load.parseTags = parseTags;
+    load.matchTags = matchTags;
+    load.compareTags = compareTags;
+    load.parseTuple = parseTuple;
+    load.matchTuple = matchTuple;
+    load.compareTuples = compareTuples;
+  }
+});
+
+// node_modules/node-gyp-build/index.js
+var require_node_gyp_build2 = __commonJS({
+  "node_modules/node-gyp-build/index.js"(exports, module) {
+    if (typeof process.addon === "function") {
+      module.exports = process.addon.bind(process);
+    } else {
+      module.exports = require_node_gyp_build();
+    }
+  }
+});
+
+// node_modules/mkdirp/index.js
+var require_mkdirp = __commonJS({
+  "node_modules/mkdirp/index.js"(exports, module) {
+    var path3 = __require("path");
+    var fs2 = __require("fs");
+    var _0777 = parseInt("0777", 8);
+    module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
+    function mkdirP(p2, opts, f2, made) {
+      if (typeof opts === "function") {
+        f2 = opts;
+        opts = {};
+      } else if (!opts || typeof opts !== "object") {
+        opts = { mode: opts };
+      }
+      var mode = opts.mode;
+      var xfs = opts.fs || fs2;
+      if (mode === void 0) {
+        mode = _0777;
+      }
+      if (!made)
+        made = null;
+      var cb = f2 || /* istanbul ignore next */
+      function() {
+      };
+      p2 = path3.resolve(p2);
+      xfs.mkdir(p2, mode, function(er) {
+        if (!er) {
+          made = made || p2;
+          return cb(null, made);
+        }
+        switch (er.code) {
+          case "ENOENT":
+            if (path3.dirname(p2) === p2)
+              return cb(er);
+            mkdirP(path3.dirname(p2), opts, function(er2, made2) {
+              if (er2)
+                cb(er2, made2);
+              else
+                mkdirP(p2, opts, cb, made2);
+            });
+            break;
+          default:
+            xfs.stat(p2, function(er2, stat) {
+              if (er2 || !stat.isDirectory())
+                cb(er, made);
+              else
+                cb(null, made);
+            });
+            break;
+        }
+      });
+    }
+    mkdirP.sync = function sync(p2, opts, made) {
+      if (!opts || typeof opts !== "object") {
+        opts = { mode: opts };
+      }
+      var mode = opts.mode;
+      var xfs = opts.fs || fs2;
+      if (mode === void 0) {
+        mode = _0777;
+      }
+      if (!made)
+        made = null;
+      p2 = path3.resolve(p2);
+      try {
+        xfs.mkdirSync(p2, mode);
+        made = made || p2;
+      } catch (err0) {
+        switch (err0.code) {
+          case "ENOENT":
+            made = sync(path3.dirname(p2), opts, made);
+            sync(p2, opts, made);
+            break;
+          default:
+            var stat;
+            try {
+              stat = xfs.statSync(p2);
+            } catch (err1) {
+              throw err0;
+            }
+            if (!stat.isDirectory())
+              throw err0;
+            break;
+        }
+      }
+      return made;
+    };
+  }
+});
+
+// node_modules/md5-file/index.js
+var require_md5_file = __commonJS({
+  "node_modules/md5-file/index.js"(exports, module) {
+    var crypto4 = __require("crypto");
+    var fs2 = __require("fs");
+    var BUFFER_SIZE = 8192;
+    function md5FileSync(path3) {
+      const fd = fs2.openSync(path3, "r");
+      const hash = crypto4.createHash("md5");
+      const buffer = Buffer.alloc(BUFFER_SIZE);
+      try {
+        let bytesRead;
+        do {
+          bytesRead = fs2.readSync(fd, buffer, 0, BUFFER_SIZE);
+          hash.update(buffer.slice(0, bytesRead));
+        } while (bytesRead === BUFFER_SIZE);
+      } finally {
+        fs2.closeSync(fd);
+      }
+      return hash.digest("hex");
+    }
+    function md5File(path3) {
+      return new Promise((resolve, reject) => {
+        const output = crypto4.createHash("md5");
+        const input = fs2.createReadStream(path3);
+        input.on("error", (err) => {
+          reject(err);
+        });
+        output.once("readable", () => {
+          resolve(output.read().toString("hex"));
+        });
+        input.pipe(output);
+      });
+    }
+    module.exports = md5File;
+    module.exports.sync = md5FileSync;
+  }
+});
+
+// gpt4all/config.js
+var require_config = __commonJS({
+  "gpt4all/config.js"(exports, module) {
+    var os = __require("node:os");
+    var path3 = __require("node:path");
+    var DEFAULT_DIRECTORY2 = path3.resolve(os.homedir(), ".cache/gpt4all");
+    var librarySearchPaths = [
+      path3.join(DEFAULT_DIRECTORY2, "libraries"),
+      path3.resolve("./libraries"),
+      path3.resolve(
+        __dirname,
+        "..",
+        `runtimes/${process.platform}-${process.arch}/native`
+      ),
+      process.cwd()
+    ];
+    var DEFAULT_LIBRARIES_DIRECTORY2 = librarySearchPaths.join(";");
+    var DEFAULT_MODEL_CONFIG2 = {
+      systemPrompt: "",
+      promptTemplate: "### Human: \n%1\n### Assistant:\n"
+    };
+    var DEFAULT_MODEL_LIST_URL2 = "https://gpt4all.io/models/models.json";
+    var DEFAULT_PROMPT_CONTEXT2 = {
+      temp: 0.7,
+      topK: 40,
+      topP: 0.4,
+      repeatPenalty: 1.18,
+      repeatLastN: 64,
+      nBatch: 8
+    };
+    module.exports = {
+      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
+      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
+      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
+      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2,
+      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2
+    };
+  }
+});
+
+// gpt4all/util.js
+var require_util = __commonJS({
+  "gpt4all/util.js"(exports, module) {
+    var { createWriteStream, existsSync: existsSync2, statSync } = __require("node:fs");
+    var fsp = __require("node:fs/promises");
+    var { performance } = __require("node:perf_hooks");
+    var path3 = __require("node:path");
+    var { mkdirp } = require_mkdirp();
+    var md5File = require_md5_file();
+    var {
+      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
+      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
+      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2
+    } = require_config();
+    async function listModels(options2 = {
+      url: DEFAULT_MODEL_LIST_URL2
+    }) {
+      if (!options2 || !options2.url && !options2.file) {
+        throw new Error(
+          `No model list source specified. Please specify either a url or a file.`
+        );
+      }
+      if (options2.file) {
+        if (!existsSync2(options2.file)) {
+          throw new Error(`Model list file ${options2.file} does not exist.`);
+        }
+        const fileContents = await fsp.readFile(options2.file, "utf-8");
+        const modelList = JSON.parse(fileContents);
+        return modelList;
+      } else if (options2.url) {
+        const res = await fetch(options2.url);
+        if (!res.ok) {
+          throw Error(
+            `Failed to retrieve model list from ${url} - ${res.status} ${res.statusText}`
+          );
+        }
+        const modelList = await res.json();
+        return modelList;
+      }
+    }
+    function appendBinSuffixIfMissing2(name) {
+      if (!name.endsWith(".bin")) {
+        return name + ".bin";
+      }
+      return name;
+    }
+    function readChunks(reader) {
+      return {
+        async *[Symbol.asyncIterator]() {
+          let readResult = await reader.read();
+          while (!readResult.done) {
+            yield readResult.value;
+            readResult = await reader.read();
+          }
+        }
+      };
+    }
+    function warnOnSnakeCaseKeys(promptContext) {
+      const snakeCaseKeys = Object.keys(promptContext).filter(
+        (key) => key.includes("_")
+      );
+      if (snakeCaseKeys.length > 0) {
+        console.warn(
+          "Prompt context keys should be camelCase. Support for snake_case might be removed in the future. Found keys: " + snakeCaseKeys.join(", ")
+        );
+      }
+    }
+    function normalizePromptContext(promptContext) {
+      const normalizedPromptContext = {};
+      for (const key in promptContext) {
+        if (promptContext.hasOwnProperty(key)) {
+          const snakeKey = key.replace(
+            /[A-Z]/g,
+            (match) => `_${match.toLowerCase()}`
+          );
+          normalizedPromptContext[snakeKey] = promptContext[key];
+        }
+      }
+      return normalizedPromptContext;
+    }
+    function downloadModel2(modelName, options2 = {}) {
+      const downloadOptions = {
+        modelPath: DEFAULT_DIRECTORY2,
+        verbose: false,
+        ...options2
+      };
+      const modelFileName = appendBinSuffixIfMissing2(modelName);
+      const partialModelPath = path3.join(
+        downloadOptions.modelPath,
+        modelName + ".part"
+      );
+      const finalModelPath = path3.join(downloadOptions.modelPath, modelFileName);
+      const modelUrl = downloadOptions.url ?? `https://gpt4all.io/models/${modelFileName}`;
+      if (existsSync2(finalModelPath)) {
+        throw Error(`Model already exists at ${finalModelPath}`);
+      }
+      if (downloadOptions.verbose) {
+        console.log(`Downloading ${modelName} from ${modelUrl}`);
+      }
+      const headers = {
+        "Accept-Ranges": "arraybuffer",
+        "Response-Type": "arraybuffer"
+      };
+      const writeStreamOpts = {};
+      if (existsSync2(partialModelPath)) {
+        console.log("Partial model exists, resuming download...");
+        const startRange = statSync(partialModelPath).size;
+        headers["Range"] = `bytes=${startRange}-`;
+        writeStreamOpts.flags = "a";
+      }
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+      const finalizeDownload = async () => {
+        if (options2.md5sum) {
+          const fileHash = await md5File(partialModelPath);
+          if (fileHash !== options2.md5sum) {
+            await fsp.unlink(partialModelPath);
+            const message = `Model "${modelName}" failed verification: Hashes mismatch. Expected ${options2.md5sum}, got ${fileHash}`;
+            throw Error(message);
+          }
+          if (options2.verbose) {
+            console.log(`MD5 hash verified: ${fileHash}`);
+          }
+        }
+        await fsp.rename(partialModelPath, finalModelPath);
+      };
+      const downloadPromise = new Promise((resolve, reject) => {
+        let timestampStart;
+        if (options2.verbose) {
+          console.log(`Downloading @ ${partialModelPath} ...`);
+          timestampStart = performance.now();
+        }
+        const writeStream2 = createWriteStream(
+          partialModelPath,
+          writeStreamOpts
+        );
+        writeStream2.on("error", (e) => {
+          writeStream2.close();
+          reject(e);
+        });
+        writeStream2.on("finish", () => {
+          if (options2.verbose) {
+            const elapsed2 = performance.now() - timestampStart;
+            console.log(`Finished. Download took ${elapsed2.toFixed(2)} ms`);
+          }
+          finalizeDownload().then(() => {
+            resolve(finalModelPath);
+          }).catch(reject);
+        });
+        fetch(modelUrl, {
+          signal,
+          headers
+        }).then((res) => {
+          if (!res.ok) {
+            const message = `Failed to download model from ${modelUrl} - ${res.status} ${res.statusText}`;
+            reject(Error(message));
+          }
+          return res.body.getReader();
+        }).then(async (reader) => {
+          for await (const chunk of readChunks(reader)) {
+            writeStream2.write(chunk);
+          }
+          writeStream2.end();
+        }).catch(reject);
+      });
+      return {
+        cancel: () => abortController.abort(),
+        promise: downloadPromise
+      };
+    }
+    async function retrieveModel2(modelName, options2 = {}) {
+      const retrieveOptions = {
+        modelPath: DEFAULT_DIRECTORY2,
+        allowDownload: true,
+        verbose: true,
+        ...options2
+      };
+      await mkdirp(retrieveOptions.modelPath);
+      const modelFileName = appendBinSuffixIfMissing2(modelName);
+      const fullModelPath = path3.join(retrieveOptions.modelPath, modelFileName);
+      const modelExists = existsSync2(fullModelPath);
+      let config = { ...DEFAULT_MODEL_CONFIG2 };
+      const availableModels = await listModels({
+        file: retrieveOptions.modelConfigFile,
+        url: retrieveOptions.allowDownload && "https://gpt4all.io/models/models.json"
+      });
+      const loadedModelConfig = availableModels.find(
+        (model) => model.filename === modelFileName
+      );
+      if (loadedModelConfig) {
+        config = {
+          ...config,
+          ...loadedModelConfig
+        };
+      } else {
+        console.warn(
+          `Failed to load model config for ${modelName}. Using defaults.`
+        );
+      }
+      config.systemPrompt = config.systemPrompt.trim();
+      if (modelExists) {
+        config.path = fullModelPath;
+        if (retrieveOptions.verbose) {
+          console.log(`Found ${modelName} at ${fullModelPath}`);
+        }
+      } else if (retrieveOptions.allowDownload) {
+        const downloadController = downloadModel2(modelName, {
+          modelPath: retrieveOptions.modelPath,
+          verbose: retrieveOptions.verbose,
+          filesize: config.filesize,
+          url: config.url,
+          md5sum: config.md5sum
+        });
+        const downloadPath = await downloadController.promise;
+        config.path = downloadPath;
+        if (retrieveOptions.verbose) {
+          console.log(`Model downloaded to ${downloadPath}`);
+        }
+      } else {
+        throw Error("Failed to retrieve model.");
+      }
+      return config;
+    }
+    module.exports = {
+      appendBinSuffixIfMissing: appendBinSuffixIfMissing2,
+      downloadModel: downloadModel2,
+      retrieveModel: retrieveModel2,
+      listModels,
+      normalizePromptContext,
+      warnOnSnakeCaseKeys
+    };
+  }
+});
+
+// gpt4all/models.js
+var require_models = __commonJS({
+  "gpt4all/models.js"(exports, module) {
+    var { normalizePromptContext, warnOnSnakeCaseKeys } = require_util();
+    var InferenceModel2 = class {
+      llm;
+      config;
+      constructor(llmodel, config) {
+        this.llm = llmodel;
+        this.config = config;
+      }
+      async generate(prompt2, promptContext) {
+        warnOnSnakeCaseKeys(promptContext);
+        const normalizedPromptContext = normalizePromptContext(promptContext);
+        const result = this.llm.raw_prompt(prompt2, normalizedPromptContext, () => {
+        });
+        return result;
+      }
+    };
+    var EmbeddingModel2 = class {
+      llm;
+      config;
+      constructor(llmodel, config) {
+        this.llm = llmodel;
+        this.config = config;
+      }
+      embed(text2) {
+        return this.llm.embed(text2);
+      }
+    };
+    module.exports = {
+      InferenceModel: InferenceModel2,
+      EmbeddingModel: EmbeddingModel2
+    };
+  }
+});
+
+// gpt4all/gpt4all.js
+var require_gpt4all = __commonJS({
+  "gpt4all/gpt4all.js"(exports, module) {
+    "use strict";
+    var { existsSync: existsSync2 } = __require("fs");
+    var path3 = __require("node:path");
+    var { LLModel: LLModel2 } = require_node_gyp_build2()(path3.resolve(__dirname, ".."));
+    var {
+      retrieveModel: retrieveModel2,
+      downloadModel: downloadModel2,
+      appendBinSuffixIfMissing: appendBinSuffixIfMissing2
+    } = require_util();
+    var {
+      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
+      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
+      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2,
+      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
+      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2
+    } = require_config();
+    var { InferenceModel: InferenceModel2, EmbeddingModel: EmbeddingModel2 } = require_models();
+    async function loadModel2(modelName, options2 = {}) {
+      const loadOptions = {
+        modelPath: DEFAULT_DIRECTORY2,
+        librariesPath: DEFAULT_LIBRARIES_DIRECTORY2,
+        type: "inference",
+        allowDownload: true,
+        verbose: true,
+        ...options2
+      };
+      const modelConfig = await retrieveModel2(modelName, {
+        modelPath: loadOptions.modelPath,
+        modelConfigFile: loadOptions.modelConfigFile,
+        allowDownload: loadOptions.allowDownload,
+        verbose: loadOptions.verbose
+      });
+      const libSearchPaths = loadOptions.librariesPath.split(";");
+      let libPath = null;
+      for (const searchPath of libSearchPaths) {
+        if (existsSync2(searchPath)) {
+          libPath = searchPath;
+          break;
+        }
+      }
+      if (!libPath) {
+        throw Error("Could not find a valid path from " + libSearchPaths);
+      }
+      const llmOptions = {
+        model_name: appendBinSuffixIfMissing2(modelName),
+        model_path: loadOptions.modelPath,
+        library_path: libPath
+      };
+      if (loadOptions.verbose) {
+        console.debug("Creating LLModel with options:", llmOptions);
+      }
+      const llmodel = new LLModel2(llmOptions);
+      if (loadOptions.type === "embedding") {
+        return new EmbeddingModel2(llmodel, modelConfig);
+      } else if (loadOptions.type === "inference") {
+        return new InferenceModel2(llmodel, modelConfig);
+      } else {
+        throw Error("Invalid model type: " + loadOptions.type);
+      }
+    }
+    function formatChatPrompt(messages, {
+      systemPromptTemplate,
+      defaultSystemPrompt,
+      promptTemplate,
+      promptFooter,
+      promptHeader
+    }) {
+      const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
+      let fullPrompt = "";
+      if (promptHeader) {
+        fullPrompt += promptHeader + "\n\n";
+      }
+      if (systemPromptTemplate) {
+        let systemPrompt = "";
+        if (systemMessages.length > 0) {
+          systemPrompt += systemMessages.join("\n");
+        }
+        if (systemPrompt) {
+          fullPrompt += systemPromptTemplate.replace("%1", systemPrompt) + "\n";
+        }
+      } else if (defaultSystemPrompt) {
+        fullPrompt += defaultSystemPrompt + "\n\n";
+      }
+      if (systemMessages.length > 0 && !systemPromptTemplate) {
+        console.warn(
+          "System messages were provided, but no systemPromptTemplate was specified. System messages will be ignored."
+        );
+      }
+      for (const message of messages) {
+        if (message.role === "user") {
+          const userMessage = promptTemplate.replace(
+            "%1",
+            message["content"]
+          );
+          fullPrompt += userMessage;
+        }
+        if (message["role"] == "assistant") {
+          const assistantMessage = message["content"] + "\n";
+          fullPrompt += assistantMessage;
+        }
+      }
+      if (promptFooter) {
+        fullPrompt += "\n\n" + promptFooter;
+      }
+      return fullPrompt;
+    }
+    function createEmbedding(model, text2) {
+      return model.embed(text2);
+    }
+    var defaultCompletionOptions = {
+      verbose: false,
+      ...DEFAULT_PROMPT_CONTEXT2
+    };
+    async function createCompletion2(model, messages, options2 = defaultCompletionOptions) {
+      if (options2.hasDefaultHeader !== void 0) {
+        console.warn(
+          "hasDefaultHeader (bool) is deprecated and has no effect, use promptHeader (string) instead"
+        );
+      }
+      if (options2.hasDefaultFooter !== void 0) {
+        console.warn(
+          "hasDefaultFooter (bool) is deprecated and has no effect, use promptFooter (string) instead"
+        );
+      }
+      const optionsWithDefaults = {
+        ...defaultCompletionOptions,
+        ...options2
+      };
+      const {
+        verbose,
+        systemPromptTemplate,
+        promptTemplate,
+        promptHeader,
+        promptFooter,
+        ...promptContext
+      } = optionsWithDefaults;
+      const prompt2 = formatChatPrompt(messages, {
+        systemPromptTemplate,
+        defaultSystemPrompt: model.config.systemPrompt,
+        promptTemplate: promptTemplate || model.config.promptTemplate || "%1",
+        promptHeader: promptHeader || "",
+        promptFooter: promptFooter || ""
+        // These were the default header/footer prompts used for non-chat single turn completions.
+        // both seem to be working well still with some models, so keeping them here for reference.
+        // promptHeader: '### Instruction: The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response.',
+        // promptFooter: '### Response:',
+      });
+      if (verbose) {
+        console.debug("Sending Prompt:\n" + prompt2);
+      }
+      const response = await model.generate(prompt2, promptContext);
+      if (verbose) {
+        console.debug("Received Response:\n" + response);
+      }
+      return {
+        llmodel: model.llm.name(),
+        usage: {
+          prompt_tokens: prompt2.length,
+          completion_tokens: response.length,
+          //TODO
+          total_tokens: prompt2.length + response.length
+          //TODO
+        },
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: response
+            }
+          }
+        ]
+      };
+    }
+    function createTokenStream() {
+      throw Error("This API has not been completed yet!");
+    }
+    module.exports = {
+      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
+      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
+      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2,
+      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
+      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2,
+      LLModel: LLModel2,
+      InferenceModel: InferenceModel2,
+      EmbeddingModel: EmbeddingModel2,
+      createCompletion: createCompletion2,
+      createEmbedding,
+      downloadModel: downloadModel2,
+      retrieveModel: retrieveModel2,
+      loadModel: loadModel2,
+      createTokenStream
+    };
+  }
+});
+
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 
@@ -5378,8 +6223,8 @@ function generateTitle(name) {
   const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
-function setComponentInputs(component, inputs7) {
-  inputs7.forEach(function(input) {
+function setComponentInputs(component, inputs4) {
+  inputs4.forEach(function(input) {
     var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
     if (!title || title == "")
       title = generateTitle(name);
@@ -5389,8 +6234,8 @@ function setComponentInputs(component, inputs7) {
   });
   return component;
 }
-function setComponentOutputs(component, outputs7) {
-  outputs7.forEach(function(output) {
+function setComponentOutputs(component, outputs4) {
+  outputs4.forEach(function(output) {
     var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
     if (!title || title == "")
       title = generateTitle(name);
@@ -5400,8 +6245,8 @@ function setComponentOutputs(component, outputs7) {
   });
   return component;
 }
-function setComponentControls(component, controls4) {
-  controls4.forEach(function(control) {
+function setComponentControls(component, controls) {
+  controls.forEach(function(control) {
     var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
     if (!title || title == "")
       title = generateTitle(name);
@@ -5940,6 +6785,9 @@ var _OmniLog = class _OmniLog2 {
   get log() {
     return this._log;
   }
+  get assert() {
+    return console.assert;
+  }
   status_start(msg) {
     this._status_priority.start(msg);
   }
@@ -5994,11 +6842,7 @@ var Manager = class {
   async start() {
     for (const [id, child] of this.children) {
       omnilog.log(`child ${id} start`);
-      try {
-        await child.start?.();
-      } catch (e) {
-        omnilog.warn(`child ${id} failed to start with error: ${e}`);
-      }
+      await child.start?.();
     }
     omnilog.log("All children started");
     return true;
@@ -6403,10 +7247,10 @@ var BaseWorkflow = class _BaseWorkflow {
     this.langchain = null;
   }
   setMeta(meta) {
-    var _a2, _b;
+    var _a, _b;
     this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png" };
     this.meta.updated = Date.now();
-    (_a2 = this.meta).created ?? (_a2.created = Date.now());
+    (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
     this.meta.updated = Date.now();
     this.meta.name = (0, import_insane.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
@@ -6685,11 +7529,11 @@ function rebuildToTicketObjectsIfNeeded(data) {
   }
   if (Array.isArray(data) && data.every((item) => typeof item === "string")) {
     for (let i = 0; i < data.length; i++) {
-      const url = data[i];
+      const url2 = data[i];
       const fidRegex = /\/fid\/(.+)/;
-      const match = url.match(fidRegex);
+      const match = url2.match(fidRegex);
       if (match) {
-        const baseurl = url.substring(0, match.index);
+        const baseurl = url2.substring(0, match.index);
         const fid = match[1];
         const filename = `${fid}.txt`;
         const rebuilt_cdn = {
@@ -6701,7 +7545,7 @@ function rebuildToTicketObjectsIfNeeded(data) {
           },
           fileName: filename,
           size: 0,
-          url,
+          url: url2,
           furl: `fid://${filename}`,
           mimeType: "text/plain; charset=utf-8",
           expires: 0,
@@ -6710,7 +7554,7 @@ function rebuildToTicketObjectsIfNeeded(data) {
           }
         };
         documents.push(rebuilt_cdn);
-        console_log(`rebuild url = ${url} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
+        console_log(`rebuild url = ${url2} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
       }
     }
   }
@@ -6951,9 +7795,9 @@ var Document = class {
 
 // node_modules/js-tiktoken/dist/chunk-XXPGZHWZ.js
 var __defProp2 = Object.defineProperty;
-var __defNormalProp2 = (obj, key, value) => key in obj ? __defProp2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField2 = (obj, key, value) => {
-  __defNormalProp2(obj, typeof key !== "symbol" ? key + "" : key, value);
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
 
@@ -6994,21 +7838,21 @@ function escapeRegex(str) {
   return str.replace(/[\\^$*+?.()|[\]{}]/g, "\\$&");
 }
 var _Tiktoken = class {
+  /** @internal */
+  specialTokens;
+  /** @internal */
+  inverseSpecialTokens;
+  /** @internal */
+  patStr;
+  /** @internal */
+  textEncoder = new TextEncoder();
+  /** @internal */
+  textDecoder = new TextDecoder("utf-8");
+  /** @internal */
+  rankMap = /* @__PURE__ */ new Map();
+  /** @internal */
+  textMap = /* @__PURE__ */ new Map();
   constructor(ranks, extendedSpecialTokens) {
-    /** @internal */
-    __publicField(this, "specialTokens");
-    /** @internal */
-    __publicField(this, "inverseSpecialTokens");
-    /** @internal */
-    __publicField(this, "patStr");
-    /** @internal */
-    __publicField(this, "textEncoder", new TextEncoder());
-    /** @internal */
-    __publicField(this, "textDecoder", new TextDecoder("utf-8"));
-    /** @internal */
-    __publicField(this, "rankMap", /* @__PURE__ */ new Map());
-    /** @internal */
-    __publicField(this, "textMap", /* @__PURE__ */ new Map());
     this.patStr = ranks.pat_str;
     const uncompressed = ranks.bpe_ranks.split("\n").filter(Boolean).reduce((memo, x) => {
       const [_2, offsetStr, ...tokens] = x.split(" ");
@@ -7102,7 +7946,7 @@ var _Tiktoken = class {
   }
 };
 var Tiktoken = _Tiktoken;
-__publicField2(Tiktoken, "specialTokenRegex", (tokens) => {
+__publicField(Tiktoken, "specialTokenRegex", (tokens) => {
   return new RegExp(tokens.map((i) => escapeRegex(i)).join("|"), "g");
 });
 
@@ -7282,8 +8126,8 @@ function shallowCopy(obj) {
 }
 function replaceSecrets(root, secretsMap) {
   const result = shallowCopy(root);
-  for (const [path, secretId] of Object.entries(secretsMap)) {
-    const [last, ...partsReverse] = path.split(".").reverse();
+  for (const [path3, secretId] of Object.entries(secretsMap)) {
+    const [last, ...partsReverse] = path3.split(".").reverse();
     let current = result;
     for (const part of partsReverse.reverse()) {
       if (current[part] === void 0) {
@@ -7610,7 +8454,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMError?.(run);
     await this._endTrace(run);
   }
-  async handleChainStart(chain, inputs7, runId, parentRunId, tags, metadata, runType) {
+  async handleChainStart(chain, inputs4, runId, parentRunId, tags, metadata, runType) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const run = {
@@ -7625,7 +8469,7 @@ var BaseTracer = class extends BaseCallbackHandler {
           time: start_time
         }
       ],
-      inputs: inputs7,
+      inputs: inputs4,
       execution_order,
       child_execution_order: execution_order,
       run_type: runType ?? "chain",
@@ -7636,13 +8480,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs7, runId) {
+  async handleChainEnd(outputs4, runId) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = outputs7;
+    run.outputs = outputs4;
     run.events.push({
       name: "end",
       time: run.end_time
@@ -7897,8 +8741,8 @@ var ConsoleCallbackHandler = class extends BaseTracer {
   }
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
-    const inputs7 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
-    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs7, "[inputs]")}`);
+    const inputs4 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
+    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs4, "[inputs]")}`);
   }
   onLLMEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
@@ -8071,8 +8915,8 @@ function getEnvironmentVariable(name) {
 }
 
 // node_modules/langsmith/dist/client.js
-var isLocalhost = (url) => {
-  const strippedUrl = url.replace("http://", "").replace("https://", "");
+var isLocalhost = (url2) => {
+  const strippedUrl = url2.replace("http://", "").replace("https://", "");
   const hostname = strippedUrl.split("/")[0].split(":")[0];
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 };
@@ -8158,33 +9002,33 @@ var Client = class _Client {
     }
     return headers;
   }
-  async _get(path, queryParams) {
+  async _get(path3, queryParams) {
     const paramsString = queryParams?.toString() ?? "";
-    const url = `${this.apiUrl}${path}?${paramsString}`;
-    const response = await this.caller.call(fetch, url, {
+    const url2 = `${this.apiUrl}${path3}?${paramsString}`;
+    const response = await this.caller.call(fetch, url2, {
       method: "GET",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
     }
     return response.json();
   }
-  async *_getPaginated(path, queryParams = new URLSearchParams()) {
+  async *_getPaginated(path3, queryParams = new URLSearchParams()) {
     let offset = Number(queryParams.get("offset")) || 0;
     const limit = Number(queryParams.get("limit")) || 100;
     while (true) {
       queryParams.set("offset", String(offset));
       queryParams.set("limit", String(limit));
-      const url = `${this.apiUrl}${path}?${queryParams}`;
-      const response = await this.caller.call(fetch, url, {
+      const url2 = `${this.apiUrl}${path3}?${queryParams}`;
+      const response = await this.caller.call(fetch, url2, {
         method: "GET",
         headers: this.headers,
         signal: AbortSignal.timeout(this.timeout_ms)
       });
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
       }
       const items = await response.json();
       if (items.length === 0) {
@@ -8397,18 +9241,18 @@ var Client = class _Client {
     return result;
   }
   async readProject({ projectId, projectName }) {
-    let path = "/sessions";
+    let path3 = "/sessions";
     const params = new URLSearchParams();
     if (projectId !== void 0 && projectName !== void 0) {
       throw new Error("Must provide either projectName or projectId, not both");
     } else if (projectId !== void 0) {
-      path += `/${projectId}`;
+      path3 += `/${projectId}`;
     } else if (projectName !== void 0) {
       params.append("name", projectName);
     } else {
       throw new Error("Must provide projectName or projectId");
     }
-    const response = await this._get(path, params);
+    const response = await this._get(path3, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -8444,7 +9288,7 @@ var Client = class _Client {
     await raiseForStatus(response, `delete session ${projectId_} (${projectName})`);
   }
   async uploadCsv({ csvFile, fileName, inputKeys, outputKeys, description, dataType, name }) {
-    const url = `${this.apiUrl}/datasets/upload`;
+    const url2 = `${this.apiUrl}/datasets/upload`;
     const formData = new FormData();
     formData.append("file", csvFile, fileName);
     inputKeys.forEach((key) => {
@@ -8462,7 +9306,7 @@ var Client = class _Client {
     if (name) {
       formData.append("name", name);
     }
-    const response = await this.caller.call(fetch, url, {
+    const response = await this.caller.call(fetch, url2, {
       method: "POST",
       headers: this.headers,
       body: formData,
@@ -8503,18 +9347,18 @@ var Client = class _Client {
     return result;
   }
   async readDataset({ datasetId, datasetName }) {
-    let path = "/datasets";
+    let path3 = "/datasets";
     const params = new URLSearchParams({ limit: "1" });
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
     } else if (datasetId !== void 0) {
-      path += `/${datasetId}`;
+      path3 += `/${datasetId}`;
     } else if (datasetName !== void 0) {
       params.append("name", datasetName);
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this._get(path, params);
+    const response = await this._get(path3, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -8527,7 +9371,7 @@ var Client = class _Client {
     return result;
   }
   async *listDatasets({ limit = 100, offset = 0, datasetIds, datasetName, datasetNameContains } = {}) {
-    const path = "/datasets";
+    const path3 = "/datasets";
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString()
@@ -8543,12 +9387,12 @@ var Client = class _Client {
     if (datasetNameContains !== void 0) {
       params.append("name_contains", datasetNameContains);
     }
-    for await (const datasets of this._getPaginated(path, params)) {
+    for await (const datasets of this._getPaginated(path3, params)) {
       yield* datasets;
     }
   }
   async deleteDataset({ datasetId, datasetName }) {
-    let path = "/datasets";
+    let path3 = "/datasets";
     let datasetId_ = datasetId;
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
@@ -8557,21 +9401,21 @@ var Client = class _Client {
       datasetId_ = dataset.id;
     }
     if (datasetId_ !== void 0) {
-      path += `/${datasetId_}`;
+      path3 += `/${datasetId_}`;
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this.caller.call(fetch, this.apiUrl + path, {
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
-  async createExample(inputs7, outputs7, { datasetId, datasetName, createdAt }) {
+  async createExample(inputs4, outputs4, { datasetId, datasetName, createdAt }) {
     let datasetId_ = datasetId;
     if (datasetId_ === void 0 && datasetName === void 0) {
       throw new Error("Must provide either datasetName or datasetId");
@@ -8584,8 +9428,8 @@ var Client = class _Client {
     const createdAt_ = createdAt || /* @__PURE__ */ new Date();
     const data = {
       dataset_id: datasetId_,
-      inputs: inputs7,
-      outputs: outputs7,
+      inputs: inputs4,
+      outputs: outputs4,
       created_at: createdAt_.toISOString()
     };
     const response = await this.caller.call(fetch, `${this.apiUrl}/examples`, {
@@ -8601,8 +9445,8 @@ var Client = class _Client {
     return result;
   }
   async readExample(exampleId) {
-    const path = `/examples/${exampleId}`;
-    return await this._get(path);
+    const path3 = `/examples/${exampleId}`;
+    return await this._get(path3);
   }
   async *listExamples({ datasetId, datasetName } = {}) {
     let datasetId_;
@@ -8622,14 +9466,14 @@ var Client = class _Client {
     }
   }
   async deleteExample(exampleId) {
-    const path = `/examples/${exampleId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path, {
+    const path3 = `/examples/${exampleId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -8727,19 +9571,19 @@ var Client = class _Client {
     return response.json();
   }
   async readFeedback(feedbackId) {
-    const path = `/feedback/${feedbackId}`;
-    const response = await this._get(path);
+    const path3 = `/feedback/${feedbackId}`;
+    const response = await this._get(path3);
     return response;
   }
   async deleteFeedback(feedbackId) {
-    const path = `/feedback/${feedbackId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path, {
+    const path3 = `/feedback/${feedbackId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -9467,11 +10311,11 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChainStart(chain, inputs7, runId = v4_default(), runType = void 0) {
+  async handleChainStart(chain, inputs4, runId = v4_default(), runType = void 0) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainStart?.(chain, inputs7, runId, this._parentRunId, this.tags, this.metadata, runType);
+          await handler.handleChainStart?.(chain, inputs4, runId, this._parentRunId, this.tags, this.metadata, runType);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainStart: ${err}`);
         }
@@ -9716,12 +10560,12 @@ var Runnable = class extends Serializable {
     }
     return Array.from({ length }, () => options2);
   }
-  async batch(inputs7, options2, batchOptions) {
-    const configList = this._getOptionsList(options2 ?? {}, inputs7.length);
-    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs7.length;
+  async batch(inputs4, options2, batchOptions) {
+    const configList = this._getOptionsList(options2 ?? {}, inputs4.length);
+    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs4.length;
     const batchResults = [];
-    for (let i = 0; i < inputs7.length; i += batchSize) {
-      const batchPromises = inputs7.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
+    for (let i = 0; i < inputs4.length; i += batchSize) {
+      const batchPromises = inputs4.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
@@ -9856,11 +10700,11 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
     await runManager?.handleChainEnd(_coerceToDict(finalOutput, "output"));
     return finalOutput;
   }
-  async batch(inputs7, options2, batchOptions) {
-    const configList = this._getOptionsList(options2 ?? {}, inputs7.length);
+  async batch(inputs4, options2, batchOptions) {
+    const configList = this._getOptionsList(options2 ?? {}, inputs4.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs7[i], "input"))));
-    let nextStepInputs = inputs7;
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs4[i], "input"))));
+    let nextStepInputs = inputs4;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
@@ -10069,12 +10913,12 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
   async invoke(input, options2) {
     return this.bound.invoke(input, { ...options2, ...this.kwargs });
   }
-  async batch(inputs7, options2, batchOptions) {
+  async batch(inputs4, options2, batchOptions) {
     const mergedOptions = Array.isArray(options2) ? options2.map((individualOption) => ({
       ...individualOption,
       ...this.kwargs
     })) : { ...options2, ...this.kwargs };
-    return this.bound.batch(inputs7, mergedOptions, batchOptions);
+    return this.bound.batch(inputs4, mergedOptions, batchOptions);
   }
   async stream(input, options2) {
     return this.bound.stream(input, { ...options2, ...this.kwargs });
@@ -10727,11 +11571,10 @@ var base64url = import_index.default.base64url;
 var codec = import_index.default.codec;
 
 // node_modules/gpt-tokenizer/esm/EncoderMap.js
-var _a;
 var EncoderMap = class {
+  [Symbol.toStringTag] = `[object EncoderMap]`;
+  encoder;
   constructor(encoder2) {
-    __publicField(this, _a, `[object EncoderMap]`);
-    __publicField(this, "encoder");
     this.encoder = new Map(encoder2 ? (
       // eslint-disable-next-line unicorn/prefer-spread
       Array.from(encoder2, ([key, value]) => [key.toString(), value])
@@ -10781,7 +11624,7 @@ var EncoderMap = class {
   values() {
     return this.encoder.values();
   }
-  [(_a = Symbol.toStringTag, Symbol.iterator)]() {
+  [Symbol.iterator]() {
     return this.entries();
   }
 };
@@ -10807,14 +11650,14 @@ function escapeRegExp(string) {
 
 // node_modules/gpt-tokenizer/esm/BytePairEncodingCore.js
 var BytePairEncodingCore = class {
+  encoder;
+  decoder;
+  tokenSplitRegex;
+  specialTokensEncoder;
+  specialTokensDecoder;
+  specialTokenPatternRegex;
+  textEncoder = new TextEncoder();
   constructor({ bytePairEncoder, specialTokenEncoder, tokenSplitRegex: tokenSplitRegex2 }) {
-    __publicField(this, "encoder");
-    __publicField(this, "decoder");
-    __publicField(this, "tokenSplitRegex");
-    __publicField(this, "specialTokensEncoder");
-    __publicField(this, "specialTokensDecoder");
-    __publicField(this, "specialTokenPatternRegex");
-    __publicField(this, "textEncoder", new TextEncoder());
     this.encoder = bytePairEncoder ?? new EncoderMap();
     this.decoder = bytePairEncoder ? new Map([...bytePairEncoder].map(([key, value]) => [value, key])) : /* @__PURE__ */ new Map();
     this.specialTokensEncoder = specialTokenEncoder ?? /* @__PURE__ */ new Map();
@@ -11136,12 +11979,17 @@ function getSpecialTokenRegex(tokens) {
 
 // node_modules/gpt-tokenizer/esm/GptEncoding.js
 var ALL_SPECIAL_TOKENS = "all";
-var _GptEncoding = class _GptEncoding {
+var GptEncoding = class _GptEncoding {
+  static EndOfPrompt = EndOfPrompt;
+  static EndOfText = EndOfText;
+  static FimMiddle = FimMiddle;
+  static FimPrefix = FimPrefix;
+  static FimSuffix = FimSuffix;
+  decoder = new TextDecoder("utf8");
+  modelName;
+  bytePairEncodingCoreProcessor;
+  specialTokenMapping;
   constructor({ tokenSplitRegex: tokenSplitRegex2, mergeableBytePairRanks, specialTokenMapping, expectedVocabularySize, modelName }) {
-    __publicField(this, "decoder", new TextDecoder("utf8"));
-    __publicField(this, "modelName");
-    __publicField(this, "bytePairEncodingCoreProcessor");
-    __publicField(this, "specialTokenMapping");
     const maxTokenValue = Math.max(getMaxValueFromMap(mergeableBytePairRanks), getMaxValueFromMap(specialTokenMapping));
     this.specialTokenMapping = specialTokenMapping;
     if (expectedVocabularySize !== void 0) {
@@ -11308,12 +12156,6 @@ var _GptEncoding = class _GptEncoding {
     return [...this.decodeGenerator(inputTokensToDecode)].join("");
   }
 };
-__publicField(_GptEncoding, "EndOfPrompt", EndOfPrompt);
-__publicField(_GptEncoding, "EndOfText", EndOfText);
-__publicField(_GptEncoding, "FimMiddle", FimMiddle);
-__publicField(_GptEncoding, "FimPrefix", FimPrefix);
-__publicField(_GptEncoding, "FimSuffix", FimSuffix);
-var GptEncoding = _GptEncoding;
 
 // node_modules/gpt-tokenizer/esm/encoding/cl100k_base.js
 var api = GptEncoding.getEncodingApi("cl100k_base", () => convertTokenBytePairEncodingFromTuples(cl100k_base_default));
@@ -11852,7 +12694,7 @@ var CachedEmbeddings = class extends Embeddings {
 };
 
 // utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs7 = {}) {
+async function runBlock(ctx, block_name, args, outputs4 = {}) {
   try {
     const app = ctx.app;
     if (!app) {
@@ -11862,7 +12704,7 @@ async function runBlock(ctx, block_name, args, outputs7 = {}) {
     if (!blocks) {
       throw new Error(`[runBlock] blocks not found in app`);
     }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs7);
+    const result = await blocks.runBlock(ctx, block_name, args, outputs4);
     return result;
   } catch (err) {
     throw new Error(`Error running block ${block_name}: ${err}`);
@@ -12065,6 +12907,51 @@ var ChunkFilesComponent = chunk_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
 
 // utils/llm.js
+var import_gpt4all = __toESM(require_gpt4all());
+import path2 from "path";
+
+// utils/files.js
+import fs from "fs/promises";
+import path from "path";
+async function walkDirForExtension(filePaths, directory_path, substring, extension) {
+  substring = substring.toLowerCase();
+  const files = await fs.readdir(directory_path);
+  omnilog.warn(`reading dir: ${directory_path}`);
+  for (const file of files) {
+    const filepath = path.join(directory_path, file);
+    const stats = await fs.stat(filepath);
+    if (stats.isDirectory()) {
+      omnilog.warn(`Found directory: ${filepath}`);
+      filePaths = await walkDirForExtension(filepath, directory_path, substring, extension);
+    } else {
+      omnilog.warn(`Found file: ${filepath} with ext: ${path.extname(filepath)},  comparing to ${extension}`);
+      if (path.extname(filepath) === extension) {
+        const filename = file.toLowerCase();
+        if (filename.includes(substring)) {
+          omnilog.warn(`Adding ${filepath} to the list`);
+          filePaths.push(filepath);
+        } else {
+          omnilog.warn(`${filename} does not contain ${substring}`);
+        }
+      }
+    }
+  }
+  return filePaths;
+}
+async function read_json_file(jsonPath) {
+  const jsonContent = JSON.parse(await fs.readFile(jsonPath, "utf8"));
+  return jsonContent;
+}
+async function validateFileExists(path3) {
+  try {
+    const stats = await fs.stat(path3);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
+// utils/llm.js
 var GPT_SIZE_MARGIN = 500;
 var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
 var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
@@ -12075,6 +12962,7 @@ var GPT4_MODEL_SMALL = "gpt-4";
 var GPT4_MODEL_LARGE = "gpt-4-32k";
 var GPT4_SIZE_CUTOFF = 8192 - GPT_SIZE_MARGIN;
 var GPT4_SIZE_MAX = 32768 - GPT_SIZE_MARGIN;
+var LLM_MODELS_DIRECTORY = "models";
 function adjust_model(text_size, current_model) {
   if (typeof text_size !== "number") {
     throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
@@ -12097,16 +12985,18 @@ function adjust_model(text_size, current_model) {
   }
   throw new Error(`pick_model: Unknown model: ${current_model}`);
 }
-function get_model_max_size(model) {
-  if (model == GPT3_MODEL_SMALL)
+function get_model_max_size(model_name) {
+  if (model_name == GPT3_MODEL_SMALL)
     return GPT3_SIZE_CUTOFF;
-  if (model == GPT3_MODEL_LARGE)
+  if (model_name == GPT3_MODEL_LARGE)
     return GPT3_SIZE_MAX;
-  if (model == GPT4_MODEL_SMALL)
+  if (model_name == GPT4_MODEL_SMALL)
     return GPT4_SIZE_CUTOFF;
-  if (model == GPT4_MODEL_LARGE)
+  if (model_name == GPT4_MODEL_LARGE)
     return GPT4_SIZE_MAX;
-  throw new Error(`get_model_max_size: Unknown model: ${model}`);
+  if (is_llm_of_type(model_name, "llama"))
+    return GPT3_SIZE_CUTOFF;
+  throw new Error(`get_model_max_size: Unknown model: ${model_name}`);
 }
 async function fix_with_llm(ctx, json_string_to_fix) {
   console_log(`[FIXING] fix_with_llm: Fixing JSON string with LLM: ${json_string_to_fix}`);
@@ -12170,6 +13060,21 @@ cleanedString: ${cleanedString})`);
   }
   return "{}";
 }
+function is_llm_of_type(model_name, model_type) {
+  const modelLower = model_name.toLowerCase();
+  return modelLower.includes(model_type);
+}
+async function query_llm(ctx, prompt2, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
+  let response = null;
+  if (is_llm_of_type(model_name, "llama")) {
+    response = await query_llama_llm(prompt2, instruction, model_name, llm_functions, temperature, top_p);
+  } else if (is_llm_of_type(model_name, "gpt")) {
+    response = await query_advanced_chatgpt(ctx, prompt2, instruction, model_name, llm_functions, temperature, top_p);
+  } else {
+    throw new Error(`Model ${model_name} is not supported`);
+  }
+  return response;
+}
 async function query_advanced_chatgpt(ctx, prompt2, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
   let args = {};
   args.user = ctx.userId;
@@ -12218,40 +13123,181 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
+function get_local_model_directory() {
+  const model_dir = path2.join(process.cwd(), ".", LLM_MODELS_DIRECTORY);
+  return model_dir;
+}
+var models = {};
+async function query_llama_llm(prompt2, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128) {
+  omnilog.warn(`Using model_name = ${model_name}`);
+  model_name = "llama-2-7b-chat.ggmlv3.q4_K_S";
+  let model = null;
+  if (model_name in models)
+    model = models[model_name];
+  else {
+    process.env.GPT4ALL_NODE_LIBRARY_PATH = path2.join("extensions", "omni-extension-document_processing", "src", "gpt4all");
+    omnilog.warn(`LOADING NEW  MODEL: ${model_name}`);
+    model = await loadModel(model_name, { verbose: true });
+    models[model_name] = model;
+  }
+  const response = await (0, import_gpt4all.createCompletion)(model, [
+    { role: "system", content: instruction },
+    { role: "user", content: prompt2 }
+  ]);
+  omnilog.warn(`response = ${JSON.stringify(response)}`);
+  const choices = response?.choices;
+  let result = { text: "" };
+  if (choices && Array.isArray(choices) && choices.length > 0) {
+    const choice = choices[0];
+    const message = choice?.message;
+    const content = message?.content;
+    const usage = response?.usage;
+    const total_tokens = usage.total_tokens;
+    result.text = content;
+    omnilog.warn(`result = ${JSON.stringify(result)}`);
+  }
+  return result;
+}
+async function get_local_llm_choices(choices) {
+  omnilog.warn(`BEFORE: choices = ${JSON.stringify(choices)}`);
+  let filePaths = [];
+  const model_dir = get_local_model_directory();
+  omnilog.warn(`model_dir = ${model_dir}`);
+  filePaths = await walkDirForExtension(filePaths, model_dir, "llama", ".bin");
+  for (const filepath of filePaths) {
+    const file = path2.basename(filepath);
+    const jsonPath = filepath.replace(".bin", ".json");
+    let title, description;
+    if (await validateFileExists(jsonPath)) {
+      const jsonContent = await read_json_file(jsonPath);
+      title = jsonContent.title ?? deduce_llm_title(file);
+      ;
+      description = jsonContent.description ?? deduce_llm_description(file);
+    } else {
+      title = deduce_llm_title(file);
+      description = deduce_llm_description(file);
+    }
+    choices.push({ value: file, title, description });
+  }
+  omnilog.warn(`AFTER choices = ${JSON.stringify(choices)}`);
+  return choices;
+}
+function deduce_llm_title(file) {
+  const title = file.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
+  return title;
+}
+function deduce_llm_description(file) {
+  const description = file.substring(0, file.length - 4);
+  return description;
+}
+async function get_llm_choices() {
+  let llm_choices = [
+    { value: GPT3_MODEL_SMALL, title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
+    { value: GPT3_MODEL_LARGE, title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
+    { value: GPT4_MODEL_SMALL, title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
+    { value: GPT4_MODEL_LARGE, title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
+  ];
+  llm_choices = await get_local_llm_choices(llm_choices);
+  omnilog.warn(`FINAL llm_choices = ${JSON.stringify(llm_choices)}`);
+  return llm_choices;
+}
+var { existsSync } = __require("fs");
+var { LLModel } = require_node_gyp_build2()(path2.resolve(__dirname, ".."));
+var {
+  retrieveModel,
+  downloadModel,
+  appendBinSuffixIfMissing
+} = require_util();
+var {
+  DEFAULT_DIRECTORY,
+  DEFAULT_LIBRARIES_DIRECTORY,
+  DEFAULT_PROMPT_CONTEXT,
+  DEFAULT_MODEL_CONFIG,
+  DEFAULT_MODEL_LIST_URL
+} = require_config();
+var { InferenceModel, EmbeddingModel } = require_models();
+async function loadModel(modelName, options2 = {}) {
+  const loadOptions = {
+    modelPath: DEFAULT_DIRECTORY,
+    librariesPath: DEFAULT_LIBRARIES_DIRECTORY,
+    type: "inference",
+    allowDownload: true,
+    verbose: true,
+    ...options2
+  };
+  console.warn(`librariesPath = ${DEFAULT_LIBRARIES_DIRECTORY}`);
+  const modelConfig = await retrieveModel(modelName, {
+    modelPath: loadOptions.modelPath,
+    modelConfigFile: loadOptions.modelConfigFile,
+    allowDownload: loadOptions.allowDownload,
+    verbose: loadOptions.verbose
+  });
+  const libSearchPaths = loadOptions.librariesPath.split(";");
+  console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`);
+  let libPath = null;
+  for (const searchPath of libSearchPaths) {
+    if (existsSync(searchPath)) {
+      libPath = searchPath;
+      console.warn(`found libPath = ${libPath}`);
+      break;
+    } else {
+      console.warn(`Rejecting: ${searchPath} as it does not exist`);
+    }
+  }
+  console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`);
+  if (!libPath) {
+    throw Error("Could not find a valid path from " + libSearchPaths);
+  }
+  const llmOptions = {
+    model_name: appendBinSuffixIfMissing(modelName),
+    model_path: loadOptions.modelPath,
+    library_path: libPath
+  };
+  if (loadOptions.verbose) {
+    console.debug("Creating LLModel with options:", llmOptions);
+  }
+  const llmodel = new LLModel(llmOptions);
+  if (loadOptions.type === "embedding") {
+    return new EmbeddingModel(llmodel, modelConfig);
+  } else if (loadOptions.type === "inference") {
+    return new InferenceModel(llmodel, modelConfig);
+  } else {
+    throw Error("Invalid model type: " + loadOptions.type);
+  }
+}
 
 // GptIXPComponent.js
 var NS_ONMI2 = "document_processing";
-var gpt_IxP_component = OAIBaseComponent2.create(NS_ONMI2, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Run GPT on every combination of instruction(s) and prompt(s)",
-    links: {}
-  }
-});
-var inputs2 = [
-  { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
-  { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
-  { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
-  { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
-  { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
-  { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: [
-    { value: "gpt-3.5-turbo", title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-    { value: "gpt-3.5-turbo-16k", title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-    { value: "gpt-4", title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-    { value: "gpt-4-32k", title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
-  ] }
-];
-gpt_IxP_component = setComponentInputs(gpt_IxP_component, inputs2);
-var controls = [
-  { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
-];
-gpt_IxP_component = setComponentControls(gpt_IxP_component, controls);
-var outputs2 = [
-  { name: "text", type: "string", customSocket: "text", description: "Result Text", title: "Result Text" },
-  { name: "documents", type: "array", customSocket: "documentArray", description: "documents containing the answers" },
-  { name: "answers", type: "object", customSocket: "object", description: "Answers JSON" }
-];
-gpt_IxP_component = setComponentOutputs(gpt_IxP_component, outputs2);
-gpt_IxP_component.setMacro(OmniComponentMacroTypes2.EXEC, gpt_IxP_parse);
+async function async_get_gpt_IxP_component() {
+  let component = OAIBaseComponent2.create(NS_ONMI2, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
+    source: {
+      summary: "Run GPT on every combination of instruction(s) and prompt(s)",
+      links: {}
+    }
+  });
+  const llm_choices = await get_llm_choices();
+  const inputs4 = [
+    { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
+    { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
+    { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
+    { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
+    { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+  ];
+  component = setComponentInputs(component, inputs4);
+  const controls = [
+    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
+  ];
+  component = setComponentControls(component, controls);
+  const outputs4 = [
+    { name: "text", type: "string", customSocket: "text", description: "Result Text", title: "Result Text" },
+    { name: "documents", type: "array", customSocket: "documentArray", description: "documents containing the answers" },
+    { name: "answers", type: "object", customSocket: "object", description: "Answers JSON" }
+  ];
+  component = setComponentOutputs(component, outputs4);
+  component.setMacro(OmniComponentMacroTypes2.EXEC, gpt_IxP_parse);
+  return component.toJSON();
+}
 async function gpt_IxP_parse(payload, ctx) {
   console_log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
   const instruction = payload.instruction;
@@ -12289,7 +13335,7 @@ async function gpt_IxP_function(ctx, instruction, prompt2, llm_functions = null,
       if (token_cost > GPT4_SIZE_MAX) {
         console_log("WARNING: token cost > GPT4_SIZE_MAX");
       }
-      const answer_object = await query_advanced_chatgpt(ctx, prompt3, instruction2, model, llm_functions, temperature, top_p);
+      const answer_object = await query_llm(ctx, prompt3, instruction2, model, llm_functions, temperature, top_p);
       if (is_valid(answer_object) == false)
         continue;
       const answer_text = answer_object.text;
@@ -12312,47 +13358,45 @@ async function gpt_IxP_function(ctx, instruction, prompt2, llm_functions = null,
   console.timeEnd("advanced_llm_component_processTime");
   return answers;
 }
-var GptIXPComponent = gpt_IxP_component.toJSON();
 
 // LoopGPTComponent.js
 import { OAIBaseComponent as OAIBaseComponent3, WorkerContext as WorkerContext3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "mercs_rete";
 var NS_ONMI3 = "document_processing";
-var loop_gpt_component = OAIBaseComponent3.create(NS_ONMI3, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
-    links: {
-      "Langchainjs Website": "https://docs.langchain.com/docs/",
-      "Documentation": "https://js.langchain.com/docs/",
-      "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-      "Faiss": "https://faiss.ai/"
+async function async_get_loop_gpt_component() {
+  let component = OAIBaseComponent3.create(NS_ONMI3, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
+    source: {
+      summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+      links: {
+        "Langchainjs Website": "https://docs.langchain.com/docs/",
+        "Documentation": "https://js.langchain.com/docs/",
+        "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
+        "Faiss": "https://faiss.ai/"
+      }
     }
-  }
-});
-var inputs3 = [
-  { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
-  { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
-  { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
-  { name: "temperature", type: "number", defaultValue: 0 },
-  { name: "top_p", type: "number", defaultValue: 1 },
-  { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: [
-    { value: "gpt-3.5-turbo", title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-    { value: "gpt-3.5-turbo-16k", title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-    { value: "gpt-4", title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-    { value: "gpt-4-32k", title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
-  ] }
-];
-loop_gpt_component = setComponentInputs(loop_gpt_component, inputs3);
-var controls2 = [
-  { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
-];
-loop_gpt_component = setComponentControls(loop_gpt_component, controls2);
-var outputs3 = [
-  { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-  { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
-  { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
-];
-loop_gpt_component = setComponentOutputs(loop_gpt_component, outputs3);
-loop_gpt_component.setMacro(OmniComponentMacroTypes3.EXEC, loop_gpt_parse);
+  });
+  const llm_choices = await get_llm_choices();
+  const inputs4 = [
+    { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
+    { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
+    { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
+    { name: "temperature", type: "number", defaultValue: 0 },
+    { name: "top_p", type: "number", defaultValue: 1 },
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+  ];
+  component = setComponentInputs(component, inputs4);
+  const controls = [
+    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
+  ];
+  component = setComponentControls(component, controls);
+  const outputs4 = [
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
+    { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
+    { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
+  ];
+  component = setComponentOutputs(component, outputs4);
+  component.setMacro(OmniComponentMacroTypes3.EXEC, loop_gpt_parse);
+  return component.toJSON();
+}
 async function loop_gpt_parse(payload, ctx) {
   const llm_functions = payload.llm_functions;
   const documents = payload.documents;
@@ -12402,7 +13446,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
           }
           if (!can_fit || is_last_index) {
             const model = adjust_model(total_token_cost, llm_model);
-            const gpt_results = await query_advanced_chatgpt(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
+            const gpt_results = await query_llm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
             const sanetized_results = sanitizeJSON(gpt_results);
             console_log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
             chunks_results.push(sanetized_results);
@@ -12411,7 +13455,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
           }
         } else {
           const model = adjust_model(token_cost, llm_model);
-          const gpt_results = await query_advanced_chatgpt(ctx, text2, instruction, model, llm_functions, temperature, top_p);
+          const gpt_results = await query_llm(ctx, text2, instruction, model, llm_functions, temperature, top_p);
           const sanetized_results = sanitizeJSON(gpt_results);
           console_log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
           chunks_results.push(sanetized_results);
@@ -12439,7 +13483,6 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
   console.timeEnd("loop_llm_component_processTime");
   return response;
 }
-var LoopGPTComponent = loop_gpt_component.toJSON();
 
 // QueryChunksComponent.js
 import { OAIBaseComponent as OAIBaseComponent4, WorkerContext as WorkerContext4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
@@ -12470,7 +13513,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     total_tokens += token_cost;
     combined_text += text2;
   }
-  const query_answer_json = await query_advanced_chatgpt(ctx, combined_text, instruction, model);
+  const query_answer_json = await query_llm(ctx, combined_text, instruction, model);
   const query_answer = query_answer_json?.text || null;
   if (is_valid(query_answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
@@ -12490,7 +13533,7 @@ var query_chunk_component = OAIBaseComponent4.create(NS_ONMI4, "query_chunks").f
     }
   }
 });
-var inputs4 = [
+var inputs2 = [
   { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
   { name: "query", type: "string", customSocket: "text" },
   { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: [
@@ -12500,13 +13543,13 @@ var inputs4 = [
     { value: "gpt-4-32k", title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
   ] }
 ];
-query_chunk_component = setComponentInputs(query_chunk_component, inputs4);
-var outputs4 = [
+query_chunk_component = setComponentInputs(query_chunk_component, inputs2);
+var outputs2 = [
   { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
   { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
   { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
 ];
-query_chunk_component = setComponentOutputs(query_chunk_component, outputs4);
+query_chunk_component = setComponentOutputs(query_chunk_component, outputs2);
 query_chunk_component.setMacro(OmniComponentMacroTypes4.EXEC, query_chunk_parse);
 async function query_chunk_parse(payload, ctx) {
   let return_value = { result: { "ok": false }, files: [], documents: [], answer: "" };
@@ -12565,15 +13608,15 @@ var read_text_files_component = OAIBaseComponent5.create(NS_ONMI5, "read_text_fi
     summary: "Read text files"
   }
 });
-var inputs5 = [
+var inputs3 = [
   { name: "text_or_url", type: "string", title: "Text or URL(s)", customSocket: "text", description: "text or url(s) of text files" }
 ];
-read_text_files_component = setComponentInputs(read_text_files_component, inputs5);
-var outputs5 = [
+read_text_files_component = setComponentInputs(read_text_files_component, inputs3);
+var outputs3 = [
   { name: "documents", type: "array", customSocket: "documentArray", description: "The read documents" },
   { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The read files" }
 ];
-read_text_files_component = setComponentOutputs(read_text_files_component, outputs5);
+read_text_files_component = setComponentOutputs(read_text_files_component, outputs3);
 read_text_files_component.setMacro(OmniComponentMacroTypes5.EXEC, read_text_files_parse);
 async function read_text_files_parse(payload, ctx) {
   console.log(`[read_text_file_component] CTX`);
@@ -12624,61 +13667,61 @@ var ReadTextFilesComponent = read_text_files_component.toJSON();
 // DocsWithGPTComponent.js
 import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 var NS_ONMI6 = "document_processing";
-var docs_with_gpt_component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    "summary": "Feed text document(s) to chatGPT",
-    links: {
-      "OpenAI Chat GPT function calling": "https://platform.openai.com/docs/guides/gpt/function-calling"
+async function async_get_docs_with_gpt_component() {
+  let component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
+    source: {
+      "summary": "Feed text document(s) to chatGPT",
+      links: {
+        "OpenAI Chat GPT function calling": "https://platform.openai.com/docs/guides/gpt/function-calling"
+      }
     }
-  }
-});
-var inputs6 = [
-  { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
-  { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
-  { name: "usage", type: "string", defaultValue: "query_documents", choices: [
-    { value: "query_documents", title: "Query Docs", desccription: "Ask a question about your document(s)" },
-    { value: "run_prompt_on_documents", title: "Run a prompt on docs", description: "Run a prompt on your doc(s) broken into as large chunks as fit in the LLM" },
-    { value: "run_functions_on_documents", title: "Run Functions on docs", description: "Force the LLM to return a structured output (aka function)" }
-  ] },
-  { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
-  { name: "temperature", type: "number", defaultValue: 0 },
-  { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: [
-    { value: "gpt-3.5-turbo", title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-    { value: "gpt-3.5-turbo-16k", title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-    { value: "gpt-4", title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-    { value: "gpt-4-32k", title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
-  ] },
-  { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
-];
-docs_with_gpt_component = setComponentInputs(docs_with_gpt_component, inputs6);
-var controls3 = [
-  { name: "documents", placeholder: "AlpineCodeMirrorComponent" }
-];
-docs_with_gpt_component = setComponentControls(docs_with_gpt_component, controls3);
-var outputs6 = [
-  { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-  { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
-  { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
-];
-docs_with_gpt_component = setComponentOutputs(docs_with_gpt_component, outputs6);
-docs_with_gpt_component.setMacro(OmniComponentMacroTypes6.EXEC, read_text_files_parse2);
+  });
+  const llm_choices = await get_llm_choices();
+  omnilog.warn(`LLM choices = ${JSON.stringify(llm_choices)}`);
+  const inputs4 = [
+    { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
+    { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
+    { name: "usage", type: "string", defaultValue: "query_documents", choices: [
+      { value: "query_documents", title: "Query Docs", desccription: "Ask a question about your document(s)" },
+      { value: "run_prompt_on_documents", title: "Run a prompt on docs", description: "Run a prompt on your doc(s) broken into as large chunks as fit in the LLM" },
+      { value: "run_functions_on_documents", title: "Run Functions on docs", description: "Force the LLM to return a structured output (aka function)" }
+    ] },
+    { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
+    { name: "temperature", type: "number", defaultValue: 0 },
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices },
+    { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
+  ];
+  component = setComponentInputs(component, inputs4);
+  const controls = [
+    { name: "documents", placeholder: "AlpineCodeMirrorComponent" }
+  ];
+  component = setComponentControls(component, controls);
+  const outputs4 = [
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
+    { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
+    { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
+  ];
+  component = setComponentOutputs(component, outputs4);
+  component.setMacro(OmniComponentMacroTypes6.EXEC, read_text_files_parse2);
+  return component.toJSON();
+}
 async function read_text_files_parse2(payload, ctx) {
   console_log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
   const documents = payload.documents;
-  const url = payload.url;
+  const url2 = payload.url;
   const usage = payload.usage;
   const prompt2 = payload.prompt;
   const temperature = payload.temperature;
   const model = payload.model;
   const overwrite = payload.overwrite;
-  const response = await docs_with_gpt_function(ctx, documents, url, usage, prompt2, temperature, model, overwrite);
+  const response = await docs_with_gpt_function(ctx, documents, url2, usage, prompt2, temperature, model, overwrite);
   const response_cdn = response.response_cdn;
   const response_answer = response.answer;
   const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
   console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
-async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt2, temperature, model, overwrite) {
+async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, prompt2, temperature, model, overwrite) {
   let passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
   if (passed_documents_are_valid) {
     console_log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -12690,7 +13733,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
       console_log(`RECOVERED  #${passed_documents_cdns.lentgh} from "documents" input, RECOVERED passed_documents = ${JSON.stringify(passed_documents_cdns)}`);
     }
   }
-  let read_documents_cdns = await read_text_files_function(ctx, url);
+  let read_documents_cdns = await read_text_files_function(ctx, url2);
   const read_documents_are_valid = read_documents_cdns != null && read_documents_cdns != void 0 && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0;
   if (read_documents_are_valid) {
     console_log(`type of read_documents_cdns = ${typeof read_documents_cdns}, read #${read_documents_cdns.length} from "read_documents_cdns", read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
@@ -12751,11 +13794,13 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
   console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return { response_cdn, answer };
 }
-var DocsWithGPTComponent = docs_with_gpt_component.toJSON();
 
 // extension.js
-var components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
-function CreateComponents() {
+async function CreateComponents() {
+  const GptIXPComponent = await async_get_gpt_IxP_component();
+  const LoopGPTComponent = await async_get_loop_gpt_component();
+  const DocsWithGPTComponent = await async_get_docs_with_gpt_component();
+  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
   return {
     blocks: components,
     patches: []

@@ -8,60 +8,63 @@ import { chunk_files_function } from './ChunkFilesComponent.js';
 import { query_chunks_function } from './QueryChunksComponent.js';
 import { loop_gpt_function } from './LoopGPTComponent.js';
 import { console_log } from "./utils/utils.js";
+import { get_llm_choices } from "./utils/llm.js"
+import { omnilog } from 'mercs_shared';
+
+async function async_get_docs_with_gpt_component()
+{
+    let component = OAIBaseComponent
+        .create(NS_ONMI, "docs_with_gpt")
+        .fromScratch()
+        .set('title', 'Docs with GPT')
+        .set('category', 'Text Manipulation')
+        .setMethod('X-CUSTOM')
+        .setMeta({
+            source: {
+                "summary": "Feed text document(s) to chatGPT",
+                links: {
+                    "OpenAI Chat GPT function calling": "https://platform.openai.com/docs/guides/gpt/function-calling",
+                },
+            }
+        });
+
+    // Adding input(s)
+    const llm_choices  = await get_llm_choices();
+    omnilog.warn(`LLM choices = ${JSON.stringify(llm_choices)}`);
+    const inputs = [
+        { name: 'documents', type: 'array', customSocket: 'documentArray', title: 'Text document(s) to process', defaultValue: [] },
+        { name: 'url', type: 'string', title: 'or some Texts to process (text or url(s))', customSocket: 'text' },
+        { name: 'usage', type: 'string', defaultValue: 'query_documents', choices: [
+            {value:"query_documents", title:"Query Docs", desccription:"Ask a question about your document(s)"}, 
+            {value:"run_prompt_on_documents", title:"Run a prompt on docs", description:"Run a prompt on your doc(s) broken into as large chunks as fit in the LLM"}, 
+            {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
+        { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
+        { name: 'temperature', type: 'number', defaultValue: 0 },
+        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+        { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
+    ];
+    component = setComponentInputs(component, inputs);
+
+    // Adding control(s)
+    const controls = [
+        { name: "documents", placeholder: "AlpineCodeMirrorComponent" },
+    ];
+    component = setComponentControls(component, controls);
+
+    // Adding outpu(t)
+    const outputs = [
+        { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+        { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
+        { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
+    ];
+    component = setComponentOutputs(component, outputs);
 
 
-let docs_with_gpt_component = OAIBaseComponent
-    .create(NS_ONMI, "docs_with_gpt")
-    .fromScratch()
-    .set('title', 'Docs with GPT')
-    .set('category', 'Text Manipulation')
-    .setMethod('X-CUSTOM')
-    .setMeta({
-        source: {
-            "summary": "Feed text document(s) to chatGPT",
-            links: {
-                "OpenAI Chat GPT function calling": "https://platform.openai.com/docs/guides/gpt/function-calling",
-            },
-        }
-    });
+    // Adding _exec function
+    component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files_parse);
 
-// Adding input(s)
-const inputs = [
-    { name: 'documents', type: 'array', customSocket: 'documentArray', title: 'Text document(s) to process', defaultValue: [] },
-    { name: 'url', type: 'string', title: 'or some Texts to process (text or url(s))', customSocket: 'text' },
-    { name: 'usage', type: 'string', defaultValue: 'query_documents', choices: [
-        {value:"query_documents", title:"Query Docs", desccription:"Ask a question about your document(s)"}, 
-        {value:"run_prompt_on_documents", title:"Run a prompt on docs", description:"Run a prompt on your doc(s) broken into as large chunks as fit in the LLM"}, 
-        {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
-    { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
-    { name: 'temperature', type: 'number', defaultValue: 0 },
-    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
-        {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
-        {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
-        {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
-        {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
-    { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
-];
-docs_with_gpt_component = setComponentInputs(docs_with_gpt_component, inputs);
-
-// Adding control(s)
-const controls = [
-    { name: "documents", placeholder: "AlpineCodeMirrorComponent" },
-];
-docs_with_gpt_component = setComponentControls(docs_with_gpt_component, controls);
-
-// Adding outpu(t)
-const outputs = [
-    { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
-    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
-    { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
-];
-docs_with_gpt_component = setComponentOutputs(docs_with_gpt_component, outputs);
-
-
-// Adding _exec function
-docs_with_gpt_component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files_parse);
-
+    return component.toJSON();
+}
 
 async function read_text_files_parse(payload, ctx) {
     console_log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
@@ -176,5 +179,4 @@ async function read_text_files_parse(payload, ctx) {
         return { response_cdn, answer }
     }
 
-    const DocsWithGPTComponent = docs_with_gpt_component.toJSON();
-    export { DocsWithGPTComponent, docs_with_gpt_function };
+    export { async_get_docs_with_gpt_component, docs_with_gpt_function };
