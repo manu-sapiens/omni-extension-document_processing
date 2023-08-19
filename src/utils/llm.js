@@ -2,33 +2,191 @@
 import { is_valid, console_log, clean_string, pauseForSeconds } from './utils.js';
 import { runBlock } from './blocks.js';
 import { count_tokens_in_text } from './tiktoken.js';
-import { createCompletion } from '../gpt4all/gpt4all.js';
+import { createCompletion, loadModel } from '../gpt4all/gpt4all.js';
 // --------------------
 
 import path from "path";
+import os from "os";
 import { omnilog } from 'mercs_shared';
 import { walkDirForExtension, validateFileExists, read_json_file } from './files.js';
 
 
-const GPT_SIZE_MARGIN = 500;
+const LLM_CONTEXT_SIZE_MARGIN = 500;
 const GPT3_MODEL_SMALL = "gpt-3.5-turbo";
 const GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
-const GPT3_SIZE_CUTOFF = 4096 - GPT_SIZE_MARGIN;
-const GPT3_SIZE_MAX = 16384 - GPT_SIZE_MARGIN;
+const GPT3_SIZE_CUTOFF = 4096 - LLM_CONTEXT_SIZE_MARGIN;
 const DEFAULT_GPT_MODEL = GPT3_MODEL_LARGE;
 
 const GPT4_MODEL_SMALL = "gpt-4";
 const GPT4_MODEL_LARGE = "gpt-4-32k";
-const GPT4_SIZE_CUTOFF = 8192 - GPT_SIZE_MARGIN;
-const GPT4_SIZE_MAX = 32768 - GPT_SIZE_MARGIN;
+const GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
+const GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
+
+const MODEL_TYPE_OPENAI = "openai";
+const MODEL_TYPE_OTHER = "other";
+const DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
+const DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
+
+const LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
+const LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
+import { DEFAULT_DIRECTORY as LLM_GPT4ALL_CACHE_DIRECTORY } from '../gpt4all/config.js';
+
+const LLM_LOCATION_OPENAI_SERVER = "openai_server"
+const LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache"
+const LLM_LOCATION_LM_STUDIO_CACHE = "lm_studio_cache"
+const LLM_LOCATION_USER_PROVIDED = "user_provided"
+const LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server"
 
 
-const LLM_MODELS_DIRECTORY = "models";
+//const {
+//    DEFAULT_DIRECTORY,
+//    DEFAULT_LIBRARIES_DIRECTORY,
+//    DEFAULT_PROMPT_CONTEXT,
+//    DEFAULT_MODEL_CONFIG,
+//    DEFAULT_MODEL_LIST_URL,
+//} = require("../gpt4all/config.js");
 
 
+const llm_remote_models = [
+    { model_name: "gpt-3.5-turbo", model_type: "openai", memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location:LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
+    { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location:LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-gpt4all-j.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-gpt4all-l13b-snoozy.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-vicuna-7b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-vicuna-13b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
+    { model_name: "ggml-wizardLM-7B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-stable-vicuna-13B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-nous-gpt4-vicuna-13b.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-v3-13b-hermes-q5_1.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-mpt-7b-base.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-mpt-7b-chat.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-mpt-7b-instruct.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+];
+// TBD: read that info from online source
+const llm_model_types = {};
+const llm_context_sizes = {};
+const llm_memory_needs = {};
+const llm_location = {};
+const llm_local_choices = {};
+const loaded_models = {};
+
+async function get_llm_choices()
+{
+    await add_local_llm_choices(LLM_GPT4ALL_CACHE_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
+    await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
+    await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
+
+    const choices = [];
+    const directory_path = LLM_GPT4ALL_CACHE_DIRECTORY;
+
+    const remote_models = Object.values(llm_remote_models);
+    for (const model of remote_models)
+    {
+        
+        let name = model.model_name;
+
+        if (name in llm_local_choices == false)
+        {
+            let title, description;
+            title = deduce_llm_title(name);
+            description = deduce_llm_description(name, model.context_size);
+
+            if (model.location === LLM_LOCATION_GPT4ALL_SERVER)
+            {
+                const filename = path.join(directory_path, model.model_name);
+                const fileExist = await validateFileExists(filename);   
+                if (!fileExist)
+                {
+                    title = '\u2B07' + title;
+                }
+            }
+
+            if (name in llm_model_types == false) llm_model_types[name] = model.model_type;
+            if (name in llm_context_sizes == false) llm_context_sizes[name] = model.context_size;
+            if (name in llm_memory_needs == false) llm_memory_needs[name] = model.memory_need;
+            if (name in llm_location == false) llm_location[name] = model.location;
+            // we do NOT add name to llm_local_choices on purpose to distinguish between local and remote models
+        
+            choices.push({ value: name, title: title, description: description });
+
+        }
+
+    };
+
+    const local_choices =  Object.values(llm_local_choices);
+    for (const choice of local_choices)
+    {
+        choices.push(choice);
+    }
+
+    return choices;
+}
+
+async function add_local_llm_choices(model_dir, location) 
+{
+    // adding externally downloaded llms
+    let filePaths = [];
+    omnilog.warn(`external model_dir = ${model_dir}`);
+    
+    filePaths = await walkDirForExtension(filePaths, model_dir, '.bin');
+    omnilog.warn(`external filePaths # = ${filePaths.length}`);
+    
+    for (const filepath of filePaths)
+    {
+        const name = path.basename(filepath);
+        omnilog.warn(`name = ${name}`);
+        const jsonPath = filepath.replace('.bin', '.json');
+        let title, description, model_type, context_size, memory_need;
+
+        if (name in llm_model_types == false) 
+        {
+            omnilog.warn(`not known yet: ${name}`);
+            if (await validateFileExists(jsonPath)) 
+            {
+                
+                const jsonContent = await read_json_file(jsonPath);
+                title = jsonContent.title ?? deduce_llm_title(name);;
+                description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
+                model_type = jsonContent.model_type ?? MODEL_TYPE_OTHER;
+                context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
+                memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
+
+            }
+            else 
+            {
+
+                title = deduce_llm_title(name);
+                description = deduce_llm_description(name);
+                model_type = MODEL_TYPE_OTHER;
+                context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+                memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
+
+            }
+
+            llm_model_types[name] = model_type;
+            llm_context_sizes[name] = context_size;
+            llm_memory_needs[name] = memory_need;
+            llm_location[name] = location;
+            const choice = { value: name, title: title, description: description };
+            llm_local_choices[name] = choice;
+
+            omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
+        }
+    }
+
+}
 
 function adjust_model(text_size, current_model)
 {
+    if (current_model in llm_model_types == false) return current_models;
+    if (llm_model_types[current_model] != MODEL_TYPE_OPENAI) return current_model;
+
     if (typeof text_size !== 'number')
     {
         throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
@@ -51,21 +209,16 @@ function adjust_model(text_size, current_model)
     throw new Error(`pick_model: Unknown model: ${current_model}`);
 }
 
-function get_model_max_size(model_name)
+function get_model_max_size(model_name, use_a_margin = true)
 {
-    if (model_name == GPT3_MODEL_SMALL) return GPT3_SIZE_CUTOFF;
-    if (model_name == GPT3_MODEL_LARGE) return GPT3_SIZE_MAX;
-    if (model_name == GPT4_MODEL_SMALL) return GPT4_SIZE_CUTOFF;
-    if (model_name == GPT4_MODEL_LARGE) return GPT4_SIZE_MAX;
-
-    if (is_llm_of_type(model_name, 'llama')) return GPT3_SIZE_CUTOFF;
-
-    throw new Error(`get_model_max_size: Unknown model: ${model_name}`);
-
+    if (use_a_margin == false) return get_model_context_size(model_name);
+    const safe_size = Math.floor(get_model_context_size(model_name)*0.9);
+    return safe_size;
 }
 
 async function fix_with_llm(ctx, json_string_to_fix)
 {
+    // TBD use 'selected LLM' here instead of chatGPT
     console_log(`[FIXING] fix_with_llm: Fixing JSON string with LLM: ${json_string_to_fix}`);
     let response = null;
     let args = {};
@@ -153,34 +306,38 @@ async function fix_json_string(ctx, passed_string)
     return "{}";
 }
 
-function is_llm_of_type(model_name, model_type)
+function get_llm_type(model_name)
 {
-    const modelLower = model_name.toLowerCase();
+    if (model_name in llm_model_types == false) return MODEL_TYPE_OTHER;
+    const model_type = llm_model_types[model_name];
+    return model_type;
+}
 
-    return modelLower.includes(model_type);
+function get_model_context_size(model_name)
+{
+    if (model_name in llm_context_sizes == false) return DEFAULT_UNKNOWN_CONTEXT_SIZE;
+    const context_size = llm_context_sizes[model_name];
+    return context_size;
 }
 
 async function query_llm(ctx, prompt, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
 {
+    omnilog.warn(`query_llm: model_name = ${model_name}, prompt = ${prompt}, instruction = ${instruction}, llm_functions = ${JSON.stringify(llm_functions)}, temperature = ${temperature}, top_p = ${top_p}`);
     let response = null;
 
-    if (is_llm_of_type(model_name, 'llama')) 
+    if (get_llm_type(model_name) == MODEL_TYPE_OPENAI)
     {
-        response = await query_llama_llm(prompt, instruction, model_name, llm_functions, temperature, top_p);
-    }
-    else if (is_llm_of_type(model_name, 'gpt'))
-    {
-        response = await query_advanced_chatgpt(ctx, prompt, instruction, model_name, llm_functions, temperature, top_p);
+        response = await query_openai_llm(ctx, prompt, instruction, model_name, llm_functions, temperature, top_p);
     }
     else
     {
-        throw new Error(`Model ${model_name} is not supported`);
+        response = await query_gpt4all_llm(prompt, instruction, model_name, llm_functions, temperature, top_p);
     }
 
     return response;
 }
 
-async function query_advanced_chatgpt(ctx, prompt, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
+async function query_openai_llm(ctx, prompt, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
 {
 
     let args = {};
@@ -241,38 +398,30 @@ async function runChatGPTBlock(ctx, args)
     return response;
 }
 
-function get_local_model_directory()
-{
-    const model_dir = path.join(process.cwd(), ".", LLM_MODELS_DIRECTORY);
-    return model_dir;
-}
-
-const models = {};
-async function query_llama_llm(prompt, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128)
+async function query_gpt4all_llm(prompt, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128)
 {
 
-    omnilog.warn(`Using model_name = ${model_name}`);
-    //hack
-    model_name = 'llama-2-7b-chat.ggmlv3.q4_K_S'; //TBD use passed model_name
-    //hack
+    omnilog.log(`Using model_name = ${model_name}`);
+
     let model = null;
 
-
-    if (model_name in models) model = models[model_name];
+    if (model_name in loaded_models) model = loaded_models[model_name];
     else
     {
+        if (model_name in llm_model_types == false) throw new Error(`Unknown model: ${model_name}.`);
+
         process.env.GPT4ALL_NODE_LIBRARY_PATH = path.join('extensions', 'omni-extension-document_processing', 'src', 'gpt4all');
 
-        omnilog.warn(`LOADING NEW  MODEL: ${model_name}`);
+        omnilog.log(`LOADING NEW MODEL: ${model_name}`);
         model = await loadModel(model_name, { verbose: true });
-        models[model_name] = model;
+        loaded_models[model_name] = model;
     }
 
-    const response = await createCompletion(model, [
-        { role: 'system', content: instruction },
-        { role: 'user', content: prompt }
-    ]);
-    omnilog.warn(`response = ${JSON.stringify(response)}`);
+    const dialog = [{ role : 'system', content : instruction}, {role : 'user', content : prompt} ];
+    omnilog.warn(`dialog = ${JSON.stringify(dialog)}`);
+    const response = await createCompletion(model, dialog);
+
+    omnilog.log(`response = ${JSON.stringify(response)}`);
     const choices = response?.choices;
 
     let result = { text: "" };
@@ -285,180 +434,25 @@ async function query_llama_llm(prompt, instruction, model_name, llm_functions = 
         const total_tokens = usage.total_tokens;
 
         result.text = content;
-        omnilog.warn(`result = ${JSON.stringify(result)}`);
+        omnilog.log(`result = ${JSON.stringify(result)}`);
     }
     return result;
 
 }
 
-
-async function get_local_llm_choices(choices) 
+function deduce_llm_title(name)
 {
-
-    omnilog.warn(`BEFORE: choices = ${JSON.stringify(choices)}`);
-
-    let filePaths = [];
-    const model_dir = get_local_model_directory();
-    omnilog.warn(`model_dir = ${model_dir}`);
-    // adding llama-based local llms
-    filePaths = await walkDirForExtension(filePaths, model_dir, 'llama', '.bin');
-
-    for (const filepath of filePaths)
-    {
-        const file = path.basename(filepath);
-        const jsonPath = filepath.replace('.bin', '.json');
-        let title, description;
-
-        if (await validateFileExists(jsonPath)) 
-        {
-            const jsonContent = await read_json_file(jsonPath);
-            title = jsonContent.title ?? deduce_llm_title(file);;
-            description = jsonContent.description ?? deduce_llm_description(file);
-        }
-        else 
-        {
-            title = deduce_llm_title(file);
-            description = deduce_llm_description(file);
-        }
-
-        choices.push({ value: file, title: title, description: description });
-    }
-
-    omnilog.warn(`AFTER choices = ${JSON.stringify(choices)}`);
-
-    return choices;
-}
-
-function deduce_llm_title(file)
-{
-    const title = file.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    const title = name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     return title;
 }
 
-function deduce_llm_description(file)
+function deduce_llm_description(name, context_size = 0)
 {
-    const description = file.substring(0, file.length - 4); // remove ".bin"
+    let description = name.substring(0, name.length - 4); // remove ".bin"
+    if (context_size > 0) description += ` (${Math.floor(context_size/1024)}k)`;
     return description;
 }
 
-async function get_llm_choices()
-{
-    let llm_choices = [
-        { value: GPT3_MODEL_SMALL, title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-        { value: GPT3_MODEL_LARGE, title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-        { value: GPT4_MODEL_SMALL, title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-        { value: GPT4_MODEL_LARGE, title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" },
-    ];
-
-
-    llm_choices = await get_local_llm_choices(llm_choices);
-
-    omnilog.warn(`FINAL llm_choices = ${JSON.stringify(llm_choices)}`);
-
-    return llm_choices;
-}
-
-const { existsSync } = require("fs");
-const { LLModel } = require("node-gyp-build")(path.resolve(__dirname, ".."));
-const {
-    retrieveModel,
-    downloadModel,
-    appendBinSuffixIfMissing,
-} = require("../gpt4all/util.js");
-
-const {
-    DEFAULT_DIRECTORY,
-    DEFAULT_LIBRARIES_DIRECTORY,
-    DEFAULT_PROMPT_CONTEXT,
-    DEFAULT_MODEL_CONFIG,
-    DEFAULT_MODEL_LIST_URL,
-} = require("../gpt4all/config.js");
-const { InferenceModel, EmbeddingModel } = require("../gpt4all/models.js");
-
-/**
- * Loads a machine learning model with the specified name. The defacto way to create a model.
- * By default this will download a model from the official GPT4ALL website, if a model is not present at given path.
- *
- * @param {string} modelName - The name of the model to load.
- * @param {LoadModelOptions|undefined} [options] - (Optional) Additional options for loading the model.
- * @returns {Promise<InferenceModel | EmbeddingModel>} A promise that resolves to an instance of the loaded LLModel.
- */
-async function loadModel(modelName, options = {})
-{
-    const loadOptions = {
-        modelPath: DEFAULT_DIRECTORY,
-        librariesPath: DEFAULT_LIBRARIES_DIRECTORY,
-        type: "inference",
-        allowDownload: true,
-        verbose: true,
-        ...options,
-    };
-
-    console.warn(`librariesPath = ${DEFAULT_LIBRARIES_DIRECTORY}`)
-    const modelConfig = await retrieveModel(modelName, {
-        modelPath: loadOptions.modelPath,
-        modelConfigFile: loadOptions.modelConfigFile,
-        allowDownload: loadOptions.allowDownload,
-        verbose: loadOptions.verbose,
-    });
-
-    const libSearchPaths = loadOptions.librariesPath.split(";");
-    console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`)
-
-    let libPath = null;
-
-    for (const searchPath of libSearchPaths)
-    {
-        if (existsSync(searchPath))
-        {
-            libPath = searchPath;
-            console.warn(`found libPath = ${libPath}`)
-            break;
-        }
-        else
-        {
-            console.warn(`Rejecting: ${searchPath} as it does not exist`);
-        }
-    }
-
-    console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`)
-
-    /*
-    // HACK
-    const binDir = path.resolve(process.cwd(), 'extensions', 'omni-extension-document_processing', 'src', 'gpt4all');
-    libPath = binDir;
-    console.warn(`HACKING to ${binDir}`)
-    */
-    
-    if (!libPath)
-    {
-        throw Error("Could not find a valid path from " + libSearchPaths);
-    }
-    const llmOptions = {
-        model_name: appendBinSuffixIfMissing(modelName),
-        model_path: loadOptions.modelPath,
-        library_path: libPath,
-    };
-
-    if (loadOptions.verbose)
-    {
-        console.debug("Creating LLModel with options:", llmOptions);
-    }
-    const llmodel = new LLModel(llmOptions);
-
-    if (loadOptions.type === "embedding")
-    {
-        return new EmbeddingModel(llmodel, modelConfig);
-    } else if (loadOptions.type === "inference")
-    {
-        return new InferenceModel(llmodel, modelConfig);
-    } else
-    {
-        throw Error("Invalid model type: " + loadOptions.type);
-    }
-}
-
-
 export { query_llm, runChatGPTBlock, get_model_max_size, adjust_model, get_llm_choices };
 export { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX }
-//export { DEFAULT_TEMPERATURE , DEFAULT_TOP_P }
+

@@ -1,10 +1,11 @@
 // AdvancedLLMComponent.ts
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, } from './utils/cdn.js';
-import { is_valid, console_log, parse_text_to_array } from './utils/utils.js';
+import { is_valid, parse_text_to_array } from './utils/utils.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
 import { query_llm, adjust_model, get_llm_choices , DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
 
@@ -60,7 +61,7 @@ async function async_get_gpt_IxP_component()
 
 
 async function gpt_IxP_parse(payload, ctx) {
-    console_log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
+    omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
 
     const instruction = payload.instruction;
     const prompt = payload.prompt;
@@ -70,7 +71,7 @@ async function gpt_IxP_parse(payload, ctx) {
     const model = payload.model;
 
     const answers = await gpt_IxP_function(ctx, instruction, prompt, llm_functions, model, temperature, top_p);
-    console_log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
+    omnilog.log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
 
     const return_value = { result: { "ok": true }, answers: answers, text: answers["text"], documents: [answers["document"]] };
     return return_value;
@@ -79,12 +80,12 @@ async function gpt_IxP_parse(payload, ctx) {
 async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1) {
     console.time("advanced_llm_component_processTime");
 
-    console_log(`--------------------------------`);
+    omnilog.log(`--------------------------------`);
     const instructions = parse_text_to_array(instruction);
     const prompts = parse_text_to_array(prompt);
 
 
-    console_log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
+    omnilog.log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
 
     let actual_token_cost = 0;
     const answers = {};
@@ -98,12 +99,12 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
 
             const prompt = prompts[p];
 
-            console_log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
+            omnilog.log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
             const token_cost = count_tokens_in_text(prompt);
             let model = adjust_model(token_cost, llm_model);
 
-            if (token_cost > GPT4_SIZE_MAX) { console_log('WARNING: token cost > GPT4_SIZE_MAX'); }
+            if (token_cost > GPT4_SIZE_MAX) { omnilog.log('WARNING: token cost > GPT4_SIZE_MAX'); }
             const answer_object = await query_llm(ctx, prompt, instruction, model, llm_functions, temperature, top_p);
             if (is_valid(answer_object) == false) continue;
 

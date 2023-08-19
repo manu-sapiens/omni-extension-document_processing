@@ -1,5 +1,6 @@
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
@@ -13,7 +14,7 @@ import { DEFAULT_HASHER_MODEL } from './utils/hashers.js';
 import { DEFAULT_EMBEDDER_MODEL } from './utils/embedder.js';
 import { DEFAULT_SPLITTER_MODEL } from './utils/splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './utils/chunking.js';
-import { console_log, printObject } from './utils/utils.js';
+import { printObject } from './utils/utils.js';
 
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")
@@ -113,7 +114,7 @@ async function chunk_files_parse(payload, ctx)
 
 async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
 {
-    console_log(`--------------------------------`);
+    omnilog.log(`--------------------------------`);
     printObject(ctx, "[chunk_files_component] chunk_files_parse() ctx=");
 
     console.time("chunk_files_component_processTime");
@@ -124,7 +125,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
     const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
     const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name, overwrite);
 
-    console_log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
+    omnilog.log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
 
 
     const chapters = await gather_all_texts_from_documents(ctx, documents);
@@ -148,7 +149,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
 
     }
 
-    console_log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
+    omnilog.log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
     const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
     const collated_json = { id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: all_chunks, chapters: chapters };
     const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);

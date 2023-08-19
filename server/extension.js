@@ -5380,14 +5380,14 @@ var require_node_gyp_build = __commonJS({
   "node_modules/node-gyp-build/node-gyp-build.js"(exports, module) {
     var fs2 = __require("fs");
     var path3 = __require("path");
-    var os = __require("os");
+    var os2 = __require("os");
     var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : __require;
     var vars = process.config && process.config.variables || {};
     var prebuildsOnly = !!process.env.PREBUILDS_ONLY;
     var abi = process.versions.modules;
     var runtime = isElectron() ? "electron" : isNwjs() ? "node-webkit" : "node";
-    var arch = process.env.npm_config_arch || os.arch();
-    var platform2 = process.env.npm_config_platform || os.platform();
+    var arch = process.env.npm_config_arch || os2.arch();
+    var platform2 = process.env.npm_config_platform || os2.platform();
     var libc = process.env.LIBC || (isAlpine(platform2) ? "musl" : "glibc");
     var armv = process.env.ARM_VERSION || (arch === "arm64" ? "8" : vars.arm_version) || "";
     var uv = (process.versions.uv || "").split(".")[0];
@@ -5709,11 +5709,11 @@ var require_md5_file = __commonJS({
 // gpt4all/config.js
 var require_config = __commonJS({
   "gpt4all/config.js"(exports, module) {
-    var os = __require("node:os");
+    var os2 = __require("node:os");
     var path3 = __require("node:path");
-    var DEFAULT_DIRECTORY2 = path3.resolve(os.homedir(), ".cache/gpt4all");
+    var DEFAULT_DIRECTORY = path3.resolve(os2.homedir(), ".cache/gpt4all");
     var librarySearchPaths = [
-      path3.join(DEFAULT_DIRECTORY2, "libraries"),
+      path3.join(DEFAULT_DIRECTORY, "libraries"),
       path3.resolve("./libraries"),
       path3.resolve(
         __dirname,
@@ -5722,13 +5722,13 @@ var require_config = __commonJS({
       ),
       process.cwd()
     ];
-    var DEFAULT_LIBRARIES_DIRECTORY2 = librarySearchPaths.join(";");
-    var DEFAULT_MODEL_CONFIG2 = {
+    var DEFAULT_LIBRARIES_DIRECTORY = librarySearchPaths.join(";");
+    var DEFAULT_MODEL_CONFIG = {
       systemPrompt: "",
       promptTemplate: "### Human: \n%1\n### Assistant:\n"
     };
-    var DEFAULT_MODEL_LIST_URL2 = "https://gpt4all.io/models/models.json";
-    var DEFAULT_PROMPT_CONTEXT2 = {
+    var DEFAULT_MODEL_LIST_URL = "https://gpt4all.io/models/models.json";
+    var DEFAULT_PROMPT_CONTEXT = {
       temp: 0.7,
       topK: 40,
       topP: 0.4,
@@ -5737,11 +5737,11 @@ var require_config = __commonJS({
       nBatch: 8
     };
     module.exports = {
-      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
-      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
-      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
-      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2,
-      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2
+      DEFAULT_DIRECTORY,
+      DEFAULT_LIBRARIES_DIRECTORY,
+      DEFAULT_MODEL_CONFIG,
+      DEFAULT_MODEL_LIST_URL,
+      DEFAULT_PROMPT_CONTEXT
     };
   }
 });
@@ -5749,19 +5749,19 @@ var require_config = __commonJS({
 // gpt4all/util.js
 var require_util = __commonJS({
   "gpt4all/util.js"(exports, module) {
-    var { createWriteStream, existsSync: existsSync2, statSync } = __require("node:fs");
+    var { createWriteStream, existsSync, statSync } = __require("node:fs");
     var fsp = __require("node:fs/promises");
     var { performance } = __require("node:perf_hooks");
     var path3 = __require("node:path");
     var { mkdirp } = require_mkdirp();
     var md5File = require_md5_file();
     var {
-      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
-      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
-      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2
+      DEFAULT_DIRECTORY,
+      DEFAULT_MODEL_CONFIG,
+      DEFAULT_MODEL_LIST_URL
     } = require_config();
     async function listModels(options2 = {
-      url: DEFAULT_MODEL_LIST_URL2
+      url: DEFAULT_MODEL_LIST_URL
     }) {
       if (!options2 || !options2.url && !options2.file) {
         throw new Error(
@@ -5769,7 +5769,7 @@ var require_util = __commonJS({
         );
       }
       if (options2.file) {
-        if (!existsSync2(options2.file)) {
+        if (!existsSync(options2.file)) {
           throw new Error(`Model list file ${options2.file} does not exist.`);
         }
         const fileContents = await fsp.readFile(options2.file, "utf-8");
@@ -5786,7 +5786,7 @@ var require_util = __commonJS({
         return modelList;
       }
     }
-    function appendBinSuffixIfMissing2(name) {
+    function appendBinSuffixIfMissing(name) {
       if (!name.endsWith(".bin")) {
         return name + ".bin";
       }
@@ -5826,20 +5826,20 @@ var require_util = __commonJS({
       }
       return normalizedPromptContext;
     }
-    function downloadModel2(modelName, options2 = {}) {
+    function downloadModel(modelName, options2 = {}) {
       const downloadOptions = {
-        modelPath: DEFAULT_DIRECTORY2,
+        modelPath: DEFAULT_DIRECTORY,
         verbose: false,
         ...options2
       };
-      const modelFileName = appendBinSuffixIfMissing2(modelName);
+      const modelFileName = appendBinSuffixIfMissing(modelName);
       const partialModelPath = path3.join(
         downloadOptions.modelPath,
         modelName + ".part"
       );
       const finalModelPath = path3.join(downloadOptions.modelPath, modelFileName);
       const modelUrl = downloadOptions.url ?? `https://gpt4all.io/models/${modelFileName}`;
-      if (existsSync2(finalModelPath)) {
+      if (existsSync(finalModelPath)) {
         throw Error(`Model already exists at ${finalModelPath}`);
       }
       if (downloadOptions.verbose) {
@@ -5850,7 +5850,7 @@ var require_util = __commonJS({
         "Response-Type": "arraybuffer"
       };
       const writeStreamOpts = {};
-      if (existsSync2(partialModelPath)) {
+      if (existsSync(partialModelPath)) {
         console.log("Partial model exists, resuming download...");
         const startRange = statSync(partialModelPath).size;
         headers["Range"] = `bytes=${startRange}-`;
@@ -5916,18 +5916,18 @@ var require_util = __commonJS({
         promise: downloadPromise
       };
     }
-    async function retrieveModel2(modelName, options2 = {}) {
+    async function retrieveModel(modelName, options2 = {}) {
       const retrieveOptions = {
-        modelPath: DEFAULT_DIRECTORY2,
+        modelPath: DEFAULT_DIRECTORY,
         allowDownload: true,
         verbose: true,
         ...options2
       };
       await mkdirp(retrieveOptions.modelPath);
-      const modelFileName = appendBinSuffixIfMissing2(modelName);
+      const modelFileName = appendBinSuffixIfMissing(modelName);
       const fullModelPath = path3.join(retrieveOptions.modelPath, modelFileName);
-      const modelExists = existsSync2(fullModelPath);
-      let config = { ...DEFAULT_MODEL_CONFIG2 };
+      const modelExists = existsSync(fullModelPath);
+      let config = { ...DEFAULT_MODEL_CONFIG };
       const availableModels = await listModels({
         file: retrieveOptions.modelConfigFile,
         url: retrieveOptions.allowDownload && "https://gpt4all.io/models/models.json"
@@ -5952,7 +5952,7 @@ var require_util = __commonJS({
           console.log(`Found ${modelName} at ${fullModelPath}`);
         }
       } else if (retrieveOptions.allowDownload) {
-        const downloadController = downloadModel2(modelName, {
+        const downloadController = downloadModel(modelName, {
           modelPath: retrieveOptions.modelPath,
           verbose: retrieveOptions.verbose,
           filesize: config.filesize,
@@ -5970,9 +5970,9 @@ var require_util = __commonJS({
       return config;
     }
     module.exports = {
-      appendBinSuffixIfMissing: appendBinSuffixIfMissing2,
-      downloadModel: downloadModel2,
-      retrieveModel: retrieveModel2,
+      appendBinSuffixIfMissing,
+      downloadModel,
+      retrieveModel,
       listModels,
       normalizePromptContext,
       warnOnSnakeCaseKeys
@@ -5984,7 +5984,7 @@ var require_util = __commonJS({
 var require_models = __commonJS({
   "gpt4all/models.js"(exports, module) {
     var { normalizePromptContext, warnOnSnakeCaseKeys } = require_util();
-    var InferenceModel2 = class {
+    var InferenceModel = class {
       llm;
       config;
       constructor(llmodel, config) {
@@ -5999,7 +5999,7 @@ var require_models = __commonJS({
         return result;
       }
     };
-    var EmbeddingModel2 = class {
+    var EmbeddingModel = class {
       llm;
       config;
       constructor(llmodel, config) {
@@ -6011,8 +6011,8 @@ var require_models = __commonJS({
       }
     };
     module.exports = {
-      InferenceModel: InferenceModel2,
-      EmbeddingModel: EmbeddingModel2
+      InferenceModel,
+      EmbeddingModel
     };
   }
 });
@@ -6021,32 +6021,32 @@ var require_models = __commonJS({
 var require_gpt4all = __commonJS({
   "gpt4all/gpt4all.js"(exports, module) {
     "use strict";
-    var { existsSync: existsSync2 } = __require("fs");
+    var { existsSync } = __require("fs");
     var path3 = __require("node:path");
-    var { LLModel: LLModel2 } = require_node_gyp_build2()(path3.resolve(__dirname, ".."));
+    var { LLModel } = require_node_gyp_build2()(path3.resolve(__dirname, ".."));
     var {
-      retrieveModel: retrieveModel2,
-      downloadModel: downloadModel2,
-      appendBinSuffixIfMissing: appendBinSuffixIfMissing2
+      retrieveModel,
+      downloadModel,
+      appendBinSuffixIfMissing
     } = require_util();
     var {
-      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
-      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
-      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2,
-      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
-      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2
+      DEFAULT_DIRECTORY,
+      DEFAULT_LIBRARIES_DIRECTORY,
+      DEFAULT_PROMPT_CONTEXT,
+      DEFAULT_MODEL_CONFIG,
+      DEFAULT_MODEL_LIST_URL
     } = require_config();
-    var { InferenceModel: InferenceModel2, EmbeddingModel: EmbeddingModel2 } = require_models();
+    var { InferenceModel, EmbeddingModel } = require_models();
     async function loadModel2(modelName, options2 = {}) {
       const loadOptions = {
-        modelPath: DEFAULT_DIRECTORY2,
-        librariesPath: DEFAULT_LIBRARIES_DIRECTORY2,
+        modelPath: DEFAULT_DIRECTORY,
+        librariesPath: DEFAULT_LIBRARIES_DIRECTORY,
         type: "inference",
         allowDownload: true,
         verbose: true,
         ...options2
       };
-      const modelConfig = await retrieveModel2(modelName, {
+      const modelConfig = await retrieveModel(modelName, {
         modelPath: loadOptions.modelPath,
         modelConfigFile: loadOptions.modelConfigFile,
         allowDownload: loadOptions.allowDownload,
@@ -6055,7 +6055,7 @@ var require_gpt4all = __commonJS({
       const libSearchPaths = loadOptions.librariesPath.split(";");
       let libPath = null;
       for (const searchPath of libSearchPaths) {
-        if (existsSync2(searchPath)) {
+        if (existsSync(searchPath)) {
           libPath = searchPath;
           break;
         }
@@ -6064,18 +6064,18 @@ var require_gpt4all = __commonJS({
         throw Error("Could not find a valid path from " + libSearchPaths);
       }
       const llmOptions = {
-        model_name: appendBinSuffixIfMissing2(modelName),
+        model_name: appendBinSuffixIfMissing(modelName),
         model_path: loadOptions.modelPath,
         library_path: libPath
       };
       if (loadOptions.verbose) {
         console.debug("Creating LLModel with options:", llmOptions);
       }
-      const llmodel = new LLModel2(llmOptions);
+      const llmodel = new LLModel(llmOptions);
       if (loadOptions.type === "embedding") {
-        return new EmbeddingModel2(llmodel, modelConfig);
+        return new EmbeddingModel(llmodel, modelConfig);
       } else if (loadOptions.type === "inference") {
-        return new InferenceModel2(llmodel, modelConfig);
+        return new InferenceModel(llmodel, modelConfig);
       } else {
         throw Error("Invalid model type: " + loadOptions.type);
       }
@@ -6131,7 +6131,7 @@ var require_gpt4all = __commonJS({
     }
     var defaultCompletionOptions = {
       verbose: false,
-      ...DEFAULT_PROMPT_CONTEXT2
+      ...DEFAULT_PROMPT_CONTEXT
     };
     async function createCompletion2(model, messages, options2 = defaultCompletionOptions) {
       if (options2.hasDefaultHeader !== void 0) {
@@ -6197,18 +6197,18 @@ var require_gpt4all = __commonJS({
       throw Error("This API has not been completed yet!");
     }
     module.exports = {
-      DEFAULT_LIBRARIES_DIRECTORY: DEFAULT_LIBRARIES_DIRECTORY2,
-      DEFAULT_DIRECTORY: DEFAULT_DIRECTORY2,
-      DEFAULT_PROMPT_CONTEXT: DEFAULT_PROMPT_CONTEXT2,
-      DEFAULT_MODEL_CONFIG: DEFAULT_MODEL_CONFIG2,
-      DEFAULT_MODEL_LIST_URL: DEFAULT_MODEL_LIST_URL2,
-      LLModel: LLModel2,
-      InferenceModel: InferenceModel2,
-      EmbeddingModel: EmbeddingModel2,
+      DEFAULT_LIBRARIES_DIRECTORY,
+      DEFAULT_DIRECTORY,
+      DEFAULT_PROMPT_CONTEXT,
+      DEFAULT_MODEL_CONFIG,
+      DEFAULT_MODEL_LIST_URL,
+      LLModel,
+      InferenceModel,
+      EmbeddingModel,
       createCompletion: createCompletion2,
       createEmbedding,
-      downloadModel: downloadModel2,
-      retrieveModel: retrieveModel2,
+      downloadModel,
+      retrieveModel,
       loadModel: loadModel2,
       createTokenStream
     };
@@ -6217,82 +6217,6 @@ var require_gpt4all = __commonJS({
 
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
-
-// utils/components_lib.js
-function generateTitle(name) {
-  const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
-  return title;
-}
-function setComponentInputs(component, inputs4) {
-  inputs4.forEach(function(input) {
-    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addInput(
-      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).setDefault(defaultValue).toOmniIO()
-    );
-  });
-  return component;
-}
-function setComponentOutputs(component, outputs4) {
-  outputs4.forEach(function(output) {
-    var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addOutput(
-      component.createOutput(name, type, customSocket).set("title", title || "").set("description", description || "").toOmniIO()
-    );
-  });
-  return component;
-}
-function setComponentControls(component, controls) {
-  controls.forEach(function(control) {
-    var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addControl(
-      component.createControl(name).set("title", title || "").set("placeholder", placeholder || "").set("description", description || "").toOmniControl()
-    );
-  });
-  return component;
-}
-
-// utils/hasher.js
-var Hasher = class {
-  hash(text2) {
-    throw new Error("You have to implement the method hash!");
-  }
-};
-
-// utils/hashersSHA256.js
-import { createHash } from "crypto";
-var SHA256Hasher = class extends Hasher {
-  constructor() {
-    super();
-  }
-  hash(text2) {
-    if (typeof text2 === "string") {
-      const hasher = createHash("sha256");
-      hasher.update(text2);
-      return hasher.digest("hex");
-    }
-    throw new Error("hash() only accepts a string as input");
-  }
-  hash_list(texts) {
-    if (typeof texts === "string") {
-      return this.hash(texts);
-    }
-    if (Array.isArray(texts)) {
-      let sum_of_hashes = "";
-      for (let i = 0; i < texts.length; i++) {
-        const text2 = texts[i];
-        sum_of_hashes += this.hash(text2);
-      }
-      return this.hash(sum_of_hashes);
-    }
-    throw new Error("hash_list only accepts a string and a list of strings as input");
-  }
-};
 
 // ../../../../../node_modules/consola/dist/index.mjs
 init_consola_36c0034f();
@@ -7244,7 +7168,7 @@ var BaseWorkflow = class _BaseWorkflow {
     this.setMeta(meta || null);
     this.setRete(null);
     this.setAPI(null);
-    this.langchain = null;
+    this.ui = {};
   }
   setMeta(meta) {
     var _a, _b;
@@ -7267,6 +7191,11 @@ var BaseWorkflow = class _BaseWorkflow {
     this.meta.updated = Date.now();
     return this;
   }
+  setUI(ui) {
+    this.ui = ui ?? {};
+    this.meta.updated = Date.now();
+    return this;
+  }
   toJSON() {
     return {
       id: this.id,
@@ -7274,15 +7203,15 @@ var BaseWorkflow = class _BaseWorkflow {
       meta: this.meta,
       rete: this.rete,
       api: this.api,
-      langchain: this.langchain
+      ui: this.ui
     };
   }
   static fromJSON(json) {
     const result = new _BaseWorkflow(json.id, json.version);
-    result.langchain = json.langchain;
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
+    result.setUI(json.ui);
     return result;
   }
 };
@@ -7304,11 +7233,11 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
       id = json.id;
     }
     const result = new _Workflow2(id, json.version ?? "draft", { owner: json.owner || json.meta.owner, org: json.org });
-    result.langchain = json.langchain;
     result.publishedTo = json.publishedTo;
     result.setMeta(json.meta);
     result.setRete(json.rete);
     result.setAPI(json.api);
+    result.setUI(json.ui);
     if (json._rev) {
       result._rev = json._rev;
     }
@@ -7428,6 +7357,82 @@ for (let i = 0; i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
 }
 var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+
+// utils/components_lib.js
+function generateTitle(name) {
+  const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
+  return title;
+}
+function setComponentInputs(component, inputs4) {
+  inputs4.forEach(function(input) {
+    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
+    if (!title || title == "")
+      title = generateTitle(name);
+    component.addInput(
+      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).setDefault(defaultValue).toOmniIO()
+    );
+  });
+  return component;
+}
+function setComponentOutputs(component, outputs4) {
+  outputs4.forEach(function(output) {
+    var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
+    if (!title || title == "")
+      title = generateTitle(name);
+    component.addOutput(
+      component.createOutput(name, type, customSocket).set("title", title || "").set("description", description || "").toOmniIO()
+    );
+  });
+  return component;
+}
+function setComponentControls(component, controls) {
+  controls.forEach(function(control) {
+    var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
+    if (!title || title == "")
+      title = generateTitle(name);
+    component.addControl(
+      component.createControl(name).set("title", title || "").set("placeholder", placeholder || "").set("description", description || "").toOmniControl()
+    );
+  });
+  return component;
+}
+
+// utils/hasher.js
+var Hasher = class {
+  hash(text2) {
+    throw new Error("You have to implement the method hash!");
+  }
+};
+
+// utils/hashersSHA256.js
+import { createHash } from "crypto";
+var SHA256Hasher = class extends Hasher {
+  constructor() {
+    super();
+  }
+  hash(text2) {
+    if (typeof text2 === "string") {
+      const hasher = createHash("sha256");
+      hasher.update(text2);
+      return hasher.digest("hex");
+    }
+    throw new Error("hash() only accepts a string as input");
+  }
+  hash_list(texts) {
+    if (typeof texts === "string") {
+      return this.hash(texts);
+    }
+    if (Array.isArray(texts)) {
+      let sum_of_hashes = "";
+      for (let i = 0; i < texts.length; i++) {
+        const text2 = texts[i];
+        sum_of_hashes += this.hash(text2);
+      }
+      return this.hash(sum_of_hashes);
+    }
+    throw new Error("hash_list only accepts a string and a list of strings as input");
+  }
+};
 
 // utils/utils.js
 var VERBOSE = true;
@@ -12872,7 +12877,7 @@ async function chunk_files_parse(payload, ctx) {
   return return_value;
 }
 async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
-  console_log(`--------------------------------`);
+  omnilog.log(`--------------------------------`);
   printObject(ctx, "[chunk_files_component] chunk_files_parse() ctx=");
   console.time("chunk_files_component_processTime");
   vectorstore_name = clean_vectorstore_name(vectorstore_name);
@@ -12880,7 +12885,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
   const hasher = initialize_hasher(hasher_model);
   const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
   const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name, overwrite);
-  console_log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
+  omnilog.log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
   const chapters = await gather_all_texts_from_documents(ctx, documents);
   let cdns = [];
   let all_texts = "";
@@ -12893,7 +12898,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
     all_texts += text2 + "\n\n";
     all_chunks = all_chunks.concat(document_json.chunks);
   }
-  console_log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
+  omnilog.log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
   const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
   const collated_json = { id: collated_document_id, hasher_model, embedder_model, splitter_model, vectorstore_name, chunks: all_chunks, chapters };
   const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);
@@ -12909,30 +12914,21 @@ import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2,
 // utils/llm.js
 var import_gpt4all = __toESM(require_gpt4all());
 import path2 from "path";
+import os from "os";
 
 // utils/files.js
 import fs from "fs/promises";
 import path from "path";
-async function walkDirForExtension(filePaths, directory_path, substring, extension) {
-  substring = substring.toLowerCase();
+async function walkDirForExtension(filePaths, directory_path, extension) {
   const files = await fs.readdir(directory_path);
-  omnilog.warn(`reading dir: ${directory_path}`);
   for (const file of files) {
     const filepath = path.join(directory_path, file);
     const stats = await fs.stat(filepath);
     if (stats.isDirectory()) {
-      omnilog.warn(`Found directory: ${filepath}`);
-      filePaths = await walkDirForExtension(filepath, directory_path, substring, extension);
+      filePaths = await walkDirForExtension(filePaths, filepath, extension);
     } else {
-      omnilog.warn(`Found file: ${filepath} with ext: ${path.extname(filepath)},  comparing to ${extension}`);
       if (path.extname(filepath) === extension) {
-        const filename = file.toLowerCase();
-        if (filename.includes(substring)) {
-          omnilog.warn(`Adding ${filepath} to the list`);
-          filePaths.push(filepath);
-        } else {
-          omnilog.warn(`${filename} does not contain ${substring}`);
-        }
+        filePaths.push(filepath);
       }
     }
   }
@@ -12952,18 +12948,134 @@ async function validateFileExists(path3) {
 }
 
 // utils/llm.js
-var GPT_SIZE_MARGIN = 500;
+var import_config = __toESM(require_config());
+var LLM_CONTEXT_SIZE_MARGIN = 500;
 var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
 var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
-var GPT3_SIZE_CUTOFF = 4096 - GPT_SIZE_MARGIN;
-var GPT3_SIZE_MAX = 16384 - GPT_SIZE_MARGIN;
+var GPT3_SIZE_CUTOFF = 4096 - LLM_CONTEXT_SIZE_MARGIN;
 var DEFAULT_GPT_MODEL = GPT3_MODEL_LARGE;
 var GPT4_MODEL_SMALL = "gpt-4";
 var GPT4_MODEL_LARGE = "gpt-4-32k";
-var GPT4_SIZE_CUTOFF = 8192 - GPT_SIZE_MARGIN;
-var GPT4_SIZE_MAX = 32768 - GPT_SIZE_MARGIN;
-var LLM_MODELS_DIRECTORY = "models";
+var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
+var GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
+var MODEL_TYPE_OPENAI = "openai";
+var MODEL_TYPE_OTHER = "other";
+var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
+var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
+var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
+var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
+var LLM_LOCATION_OPENAI_SERVER = "openai_server";
+var LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache";
+var LLM_LOCATION_LM_STUDIO_CACHE = "lm_studio_cache";
+var LLM_LOCATION_USER_PROVIDED = "user_provided";
+var LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server";
+var llm_remote_models = [
+  { model_name: "gpt-3.5-turbo", model_type: "openai", memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-gpt4all-j.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-gpt4all-l13b-snoozy.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-vicuna-7b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-vicuna-13b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-wizardLM-7B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-stable-vicuna-13B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-nous-gpt4-vicuna-13b.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-v3-13b-hermes-q5_1.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-mpt-7b-base.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-mpt-7b-chat.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-mpt-7b-instruct.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER }
+];
+var llm_model_types = {};
+var llm_context_sizes = {};
+var llm_memory_needs = {};
+var llm_location = {};
+var llm_local_choices = {};
+var loaded_models = {};
+async function get_llm_choices() {
+  await add_local_llm_choices(import_config.DEFAULT_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
+  await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
+  await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
+  const choices = [];
+  const directory_path = import_config.DEFAULT_DIRECTORY;
+  const remote_models = Object.values(llm_remote_models);
+  for (const model of remote_models) {
+    let name = model.model_name;
+    if (name in llm_local_choices == false) {
+      let title, description;
+      title = deduce_llm_title(name);
+      description = deduce_llm_description(name, model.context_size);
+      if (model.location === LLM_LOCATION_GPT4ALL_SERVER) {
+        const filename = path2.join(directory_path, model.model_name);
+        const fileExist = await validateFileExists(filename);
+        if (!fileExist) {
+          title = "\u2B07" + title;
+        }
+      }
+      if (name in llm_model_types == false)
+        llm_model_types[name] = model.model_type;
+      if (name in llm_context_sizes == false)
+        llm_context_sizes[name] = model.context_size;
+      if (name in llm_memory_needs == false)
+        llm_memory_needs[name] = model.memory_need;
+      if (name in llm_location == false)
+        llm_location[name] = model.location;
+      choices.push({ value: name, title, description });
+    }
+  }
+  ;
+  const local_choices = Object.values(llm_local_choices);
+  for (const choice of local_choices) {
+    choices.push(choice);
+  }
+  return choices;
+}
+async function add_local_llm_choices(model_dir, location) {
+  let filePaths = [];
+  omnilog.warn(`external model_dir = ${model_dir}`);
+  filePaths = await walkDirForExtension(filePaths, model_dir, ".bin");
+  omnilog.warn(`external filePaths # = ${filePaths.length}`);
+  for (const filepath of filePaths) {
+    const name = path2.basename(filepath);
+    omnilog.warn(`name = ${name}`);
+    const jsonPath = filepath.replace(".bin", ".json");
+    let title, description, model_type, context_size, memory_need;
+    if (name in llm_model_types == false) {
+      omnilog.warn(`not known yet: ${name}`);
+      if (await validateFileExists(jsonPath)) {
+        const jsonContent = await read_json_file(jsonPath);
+        title = jsonContent.title ?? deduce_llm_title(name);
+        ;
+        description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
+        model_type = jsonContent.model_type ?? MODEL_TYPE_OTHER;
+        context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
+        memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
+      } else {
+        title = deduce_llm_title(name);
+        description = deduce_llm_description(name);
+        model_type = MODEL_TYPE_OTHER;
+        context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+        memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
+      }
+      llm_model_types[name] = model_type;
+      llm_context_sizes[name] = context_size;
+      llm_memory_needs[name] = memory_need;
+      llm_location[name] = location;
+      const choice = { value: name, title, description };
+      llm_local_choices[name] = choice;
+      omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
+    }
+  }
+}
 function adjust_model(text_size, current_model) {
+  if (current_model in llm_model_types == false)
+    return current_models;
+  if (llm_model_types[current_model] != MODEL_TYPE_OPENAI)
+    return current_model;
   if (typeof text_size !== "number") {
     throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
   }
@@ -12985,18 +13097,11 @@ function adjust_model(text_size, current_model) {
   }
   throw new Error(`pick_model: Unknown model: ${current_model}`);
 }
-function get_model_max_size(model_name) {
-  if (model_name == GPT3_MODEL_SMALL)
-    return GPT3_SIZE_CUTOFF;
-  if (model_name == GPT3_MODEL_LARGE)
-    return GPT3_SIZE_MAX;
-  if (model_name == GPT4_MODEL_SMALL)
-    return GPT4_SIZE_CUTOFF;
-  if (model_name == GPT4_MODEL_LARGE)
-    return GPT4_SIZE_MAX;
-  if (is_llm_of_type(model_name, "llama"))
-    return GPT3_SIZE_CUTOFF;
-  throw new Error(`get_model_max_size: Unknown model: ${model_name}`);
+function get_model_max_size(model_name, use_a_margin = true) {
+  if (use_a_margin == false)
+    return get_model_context_size(model_name);
+  const safe_size = Math.floor(get_model_context_size(model_name) * 0.9);
+  return safe_size;
 }
 async function fix_with_llm(ctx, json_string_to_fix) {
   console_log(`[FIXING] fix_with_llm: Fixing JSON string with LLM: ${json_string_to_fix}`);
@@ -13060,22 +13165,29 @@ cleanedString: ${cleanedString})`);
   }
   return "{}";
 }
-function is_llm_of_type(model_name, model_type) {
-  const modelLower = model_name.toLowerCase();
-  return modelLower.includes(model_type);
+function get_llm_type(model_name) {
+  if (model_name in llm_model_types == false)
+    return MODEL_TYPE_OTHER;
+  const model_type = llm_model_types[model_name];
+  return model_type;
+}
+function get_model_context_size(model_name) {
+  if (model_name in llm_context_sizes == false)
+    return DEFAULT_UNKNOWN_CONTEXT_SIZE;
+  const context_size = llm_context_sizes[model_name];
+  return context_size;
 }
 async function query_llm(ctx, prompt2, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
+  omnilog.warn(`query_llm: model_name = ${model_name}, prompt = ${prompt2}, instruction = ${instruction}, llm_functions = ${JSON.stringify(llm_functions)}, temperature = ${temperature}, top_p = ${top_p}`);
   let response = null;
-  if (is_llm_of_type(model_name, "llama")) {
-    response = await query_llama_llm(prompt2, instruction, model_name, llm_functions, temperature, top_p);
-  } else if (is_llm_of_type(model_name, "gpt")) {
-    response = await query_advanced_chatgpt(ctx, prompt2, instruction, model_name, llm_functions, temperature, top_p);
+  if (get_llm_type(model_name) == MODEL_TYPE_OPENAI) {
+    response = await query_openai_llm(ctx, prompt2, instruction, model_name, llm_functions, temperature, top_p);
   } else {
-    throw new Error(`Model ${model_name} is not supported`);
+    response = await query_gpt4all_llm(prompt2, instruction, model_name, llm_functions, temperature, top_p);
   }
   return response;
 }
-async function query_advanced_chatgpt(ctx, prompt2, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
+async function query_openai_llm(ctx, prompt2, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
   let args = {};
   args.user = ctx.userId;
   args.prompt = prompt2;
@@ -13123,28 +13235,23 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
-function get_local_model_directory() {
-  const model_dir = path2.join(process.cwd(), ".", LLM_MODELS_DIRECTORY);
-  return model_dir;
-}
-var models = {};
-async function query_llama_llm(prompt2, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128) {
-  omnilog.warn(`Using model_name = ${model_name}`);
-  model_name = "llama-2-7b-chat.ggmlv3.q4_K_S";
+async function query_gpt4all_llm(prompt2, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128) {
+  omnilog.log(`Using model_name = ${model_name}`);
   let model = null;
-  if (model_name in models)
-    model = models[model_name];
+  if (model_name in loaded_models)
+    model = loaded_models[model_name];
   else {
+    if (model_name in llm_model_types == false)
+      throw new Error(`Unknown model: ${model_name}.`);
     process.env.GPT4ALL_NODE_LIBRARY_PATH = path2.join("extensions", "omni-extension-document_processing", "src", "gpt4all");
-    omnilog.warn(`LOADING NEW  MODEL: ${model_name}`);
-    model = await loadModel(model_name, { verbose: true });
-    models[model_name] = model;
+    omnilog.log(`LOADING NEW MODEL: ${model_name}`);
+    model = await (0, import_gpt4all.loadModel)(model_name, { verbose: true });
+    loaded_models[model_name] = model;
   }
-  const response = await (0, import_gpt4all.createCompletion)(model, [
-    { role: "system", content: instruction },
-    { role: "user", content: prompt2 }
-  ]);
-  omnilog.warn(`response = ${JSON.stringify(response)}`);
+  const dialog = [{ role: "system", content: instruction }, { role: "user", content: prompt2 }];
+  omnilog.warn(`dialog = ${JSON.stringify(dialog)}`);
+  const response = await (0, import_gpt4all.createCompletion)(model, dialog);
+  omnilog.log(`response = ${JSON.stringify(response)}`);
   const choices = response?.choices;
   let result = { text: "" };
   if (choices && Array.isArray(choices) && choices.length > 0) {
@@ -13154,116 +13261,19 @@ async function query_llama_llm(prompt2, instruction, model_name, llm_functions =
     const usage = response?.usage;
     const total_tokens = usage.total_tokens;
     result.text = content;
-    omnilog.warn(`result = ${JSON.stringify(result)}`);
+    omnilog.log(`result = ${JSON.stringify(result)}`);
   }
   return result;
 }
-async function get_local_llm_choices(choices) {
-  omnilog.warn(`BEFORE: choices = ${JSON.stringify(choices)}`);
-  let filePaths = [];
-  const model_dir = get_local_model_directory();
-  omnilog.warn(`model_dir = ${model_dir}`);
-  filePaths = await walkDirForExtension(filePaths, model_dir, "llama", ".bin");
-  for (const filepath of filePaths) {
-    const file = path2.basename(filepath);
-    const jsonPath = filepath.replace(".bin", ".json");
-    let title, description;
-    if (await validateFileExists(jsonPath)) {
-      const jsonContent = await read_json_file(jsonPath);
-      title = jsonContent.title ?? deduce_llm_title(file);
-      ;
-      description = jsonContent.description ?? deduce_llm_description(file);
-    } else {
-      title = deduce_llm_title(file);
-      description = deduce_llm_description(file);
-    }
-    choices.push({ value: file, title, description });
-  }
-  omnilog.warn(`AFTER choices = ${JSON.stringify(choices)}`);
-  return choices;
-}
-function deduce_llm_title(file) {
-  const title = file.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
+function deduce_llm_title(name) {
+  const title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
   return title;
 }
-function deduce_llm_description(file) {
-  const description = file.substring(0, file.length - 4);
+function deduce_llm_description(name, context_size = 0) {
+  let description = name.substring(0, name.length - 4);
+  if (context_size > 0)
+    description += ` (${Math.floor(context_size / 1024)}k)`;
   return description;
-}
-async function get_llm_choices() {
-  let llm_choices = [
-    { value: GPT3_MODEL_SMALL, title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-    { value: GPT3_MODEL_LARGE, title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-    { value: GPT4_MODEL_SMALL, title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-    { value: GPT4_MODEL_LARGE, title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
-  ];
-  llm_choices = await get_local_llm_choices(llm_choices);
-  omnilog.warn(`FINAL llm_choices = ${JSON.stringify(llm_choices)}`);
-  return llm_choices;
-}
-var { existsSync } = __require("fs");
-var { LLModel } = require_node_gyp_build2()(path2.resolve(__dirname, ".."));
-var {
-  retrieveModel,
-  downloadModel,
-  appendBinSuffixIfMissing
-} = require_util();
-var {
-  DEFAULT_DIRECTORY,
-  DEFAULT_LIBRARIES_DIRECTORY,
-  DEFAULT_PROMPT_CONTEXT,
-  DEFAULT_MODEL_CONFIG,
-  DEFAULT_MODEL_LIST_URL
-} = require_config();
-var { InferenceModel, EmbeddingModel } = require_models();
-async function loadModel(modelName, options2 = {}) {
-  const loadOptions = {
-    modelPath: DEFAULT_DIRECTORY,
-    librariesPath: DEFAULT_LIBRARIES_DIRECTORY,
-    type: "inference",
-    allowDownload: true,
-    verbose: true,
-    ...options2
-  };
-  console.warn(`librariesPath = ${DEFAULT_LIBRARIES_DIRECTORY}`);
-  const modelConfig = await retrieveModel(modelName, {
-    modelPath: loadOptions.modelPath,
-    modelConfigFile: loadOptions.modelConfigFile,
-    allowDownload: loadOptions.allowDownload,
-    verbose: loadOptions.verbose
-  });
-  const libSearchPaths = loadOptions.librariesPath.split(";");
-  console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`);
-  let libPath = null;
-  for (const searchPath of libSearchPaths) {
-    if (existsSync(searchPath)) {
-      libPath = searchPath;
-      console.warn(`found libPath = ${libPath}`);
-      break;
-    } else {
-      console.warn(`Rejecting: ${searchPath} as it does not exist`);
-    }
-  }
-  console.warn(`libSearchPaths = ${libSearchPaths}, ${JSON.stringify(libSearchPaths)}`);
-  if (!libPath) {
-    throw Error("Could not find a valid path from " + libSearchPaths);
-  }
-  const llmOptions = {
-    model_name: appendBinSuffixIfMissing(modelName),
-    model_path: loadOptions.modelPath,
-    library_path: libPath
-  };
-  if (loadOptions.verbose) {
-    console.debug("Creating LLModel with options:", llmOptions);
-  }
-  const llmodel = new LLModel(llmOptions);
-  if (loadOptions.type === "embedding") {
-    return new EmbeddingModel(llmodel, modelConfig);
-  } else if (loadOptions.type === "inference") {
-    return new InferenceModel(llmodel, modelConfig);
-  } else {
-    throw Error("Invalid model type: " + loadOptions.type);
-  }
 }
 
 // GptIXPComponent.js
@@ -13299,7 +13309,7 @@ async function async_get_gpt_IxP_component() {
   return component.toJSON();
 }
 async function gpt_IxP_parse(payload, ctx) {
-  console_log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
+  omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
   const instruction = payload.instruction;
   const prompt2 = payload.prompt;
   const llm_functions = payload.llm_functions;
@@ -13307,16 +13317,16 @@ async function gpt_IxP_parse(payload, ctx) {
   const top_p = payload.top_p;
   const model = payload.model;
   const answers = await gpt_IxP_function(ctx, instruction, prompt2, llm_functions, model, temperature, top_p);
-  console_log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
+  omnilog.log(`[AdvancedLLMComponent]: answers = ${JSON.stringify(answers)}`);
   const return_value = { result: { "ok": true }, answers, text: answers["text"], documents: [answers["document"]] };
   return return_value;
 }
 async function gpt_IxP_function(ctx, instruction, prompt2, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1) {
   console.time("advanced_llm_component_processTime");
-  console_log(`--------------------------------`);
+  omnilog.log(`--------------------------------`);
   const instructions = parse_text_to_array(instruction);
   const prompts = parse_text_to_array(prompt2);
-  console_log("[advanced_llm_component] llm_functions = " + JSON.stringify(llm_functions));
+  omnilog.log("[advanced_llm_component] llm_functions = " + JSON.stringify(llm_functions));
   let actual_token_cost = 0;
   const answers = {};
   let answer_string = "";
@@ -13329,11 +13339,11 @@ async function gpt_IxP_function(ctx, instruction, prompt2, llm_functions = null,
       if (prompts.length > 1)
         id += `_p${p2 + 1}`;
       const prompt3 = prompts[p2];
-      console_log(`instruction = ${instruction2}, prompt = ${prompt3}, id = ${id}`);
+      omnilog.log(`instruction = ${instruction2}, prompt = ${prompt3}, id = ${id}`);
       const token_cost = count_tokens_in_text(prompt3);
       let model = adjust_model(token_cost, llm_model);
       if (token_cost > GPT4_SIZE_MAX) {
-        console_log("WARNING: token cost > GPT4_SIZE_MAX");
+        omnilog.log("WARNING: token cost > GPT4_SIZE_MAX");
       }
       const answer_object = await query_llm(ctx, prompt3, instruction2, model, llm_functions, temperature, top_p);
       if (is_valid(answer_object) == false)
@@ -13410,7 +13420,7 @@ async function loop_gpt_parse(payload, ctx) {
   return { result: { "ok": true }, answer, documents: [response_cdn], files: [response_cdn] };
 }
 async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1, chunk_size = 2e3) {
-  console_log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
+  omnilog.log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
   let maximize_chunks = false;
   let max_size = chunk_size;
   if (chunk_size == -1) {
@@ -13422,7 +13432,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
   }
   console.time("loop_llm_component_processTime");
   const chunks_results = [];
-  console_log(`Processing ${chapters_cdns.length} chapter(s)`);
+  omnilog.log(`Processing ${chapters_cdns.length} chapter(s)`);
   for (let chapter_index = 0; chapter_index < chapters_cdns.length; chapter_index++) {
     const chunks_cdn = chapters_cdns[chapter_index];
     const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
@@ -13430,14 +13440,14 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
       throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
     let total_token_cost = 0;
     let combined_text = "";
-    console_log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`);
+    omnilog.log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`);
     for (let chunk_index = 0; chunk_index < chunks.length; chunk_index++) {
       const chunk = chunks[chunk_index];
       if (is_valid(chunk) && is_valid(chunk.text)) {
         const text2 = chunk.text;
         const token_cost = count_tokens_in_text(text2);
         if (maximize_chunks) {
-          console_log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
+          omnilog.log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
           const can_fit = total_token_cost + token_cost <= max_size;
           const is_last_index = chunk_index == chunks.length - 1;
           if (can_fit) {
@@ -13448,7 +13458,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
             const model = adjust_model(total_token_cost, llm_model);
             const gpt_results = await query_llm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
             const sanetized_results = sanitizeJSON(gpt_results);
-            console_log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
+            omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
             chunks_results.push(sanetized_results);
             combined_text = text2;
             total_token_cost = token_cost;
@@ -13457,25 +13467,25 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
           const model = adjust_model(token_cost, llm_model);
           const gpt_results = await query_llm(ctx, text2, instruction, model, llm_functions, temperature, top_p);
           const sanetized_results = sanitizeJSON(gpt_results);
-          console_log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
+          omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
           chunks_results.push(sanetized_results);
         }
       } else {
-        console_log(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
+        omnilog.log(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
       }
     }
   }
   let combined_answer = "";
   let combined_function_arguments = [];
-  console_log(`chunks_results.length = ${chunks_results.length}`);
+  omnilog.log(`chunks_results.length = ${chunks_results.length}`);
   for (let i = 0; i < chunks_results.length; i++) {
     const chunk_result = chunks_results[i];
-    console_log(`chunk_result = ${JSON.stringify(chunk_result)}`);
+    omnilog.log(`chunk_result = ${JSON.stringify(chunk_result)}`);
     const result_text = chunk_result.text || "";
     const function_string = chunk_result.function_arguments_string || "";
     const function_arguments = chunk_result.function_arguments || [];
     combined_answer += result_text + function_string + "\n\n";
-    console_log(`[$[i}] combined_answer = ${combined_answer}`);
+    omnilog.log(`[$[i}] combined_answer = ${combined_answer}`);
     combined_function_arguments = combined_function_arguments.concat(function_arguments);
   }
   const results_cdn = await save_json_to_cdn(ctx, chunks_results);
@@ -13578,7 +13588,7 @@ async function query_chunks_function(ctx, document_cdns, query, model) {
     const chunks = document_json.chunks;
     if (is_valid(chunks) == false)
       throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
-    console_log(`[query_chunks_component] Read from the document:
+    omnilog.log(`[query_chunks_component] Read from the document:
 chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
     const hasher = initialize_hasher(hasher_model);
     const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
@@ -13596,13 +13606,6 @@ var QueryChunksComponent = query_chunk_component.toJSON();
 // ReadTextFilesComponent.js
 import { OAIBaseComponent as OAIBaseComponent5, WorkerContext as WorkerContext5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "mercs_rete";
 var NS_ONMI5 = "document_processing";
-function printKeyValuePairs(obj) {
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      console.log(`Key: ${key}, Value: ${obj[key]}`);
-    }
-  }
-}
 var read_text_files_component = OAIBaseComponent5.create(NS_ONMI5, "read_text_files").fromScratch().set("title", "Read text files").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Read text files"
@@ -13619,25 +13622,16 @@ var outputs3 = [
 read_text_files_component = setComponentOutputs(read_text_files_component, outputs3);
 read_text_files_component.setMacro(OmniComponentMacroTypes5.EXEC, read_text_files_parse);
 async function read_text_files_parse(payload, ctx) {
-  console.log(`[read_text_file_component] CTX`);
-  printKeyValuePairs(ctx);
-  console.log(`[read_text_file_component] payload`);
-  printKeyValuePairs(payload);
   const text_or_url = payload.text_or_url;
-  console.log(`[read_text_file_component] text_or_url = ${text_or_url}`);
   const documents = await read_text_files_function(ctx, text_or_url);
   return { result: { "ok": true }, documents, files: documents };
 }
 async function read_text_files_function(ctx, url_or_text) {
   const returned_documents = [];
-  console_log(`[read_text_file_component] url_or_text = ${url_or_text}`);
   if (is_valid(url_or_text)) {
     console.time("read_text_file_component_processTime");
-    console_log(`--------------------------------`);
     const parsedArray = parse_text_to_array(url_or_text);
-    console_log(`[read_text_file_component] parsedArray #  ${parsedArray.length}`);
     const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
-    console_log(`[read_text_file_component] cdn_tickets #  ${cdn_tickets.length}`);
     if (cdn_tickets.length > 0) {
       for (let i = 0; i < cdn_tickets.length; i++) {
         const cdn_ticket = cdn_tickets[i];
@@ -13656,8 +13650,6 @@ async function read_text_files_function(ctx, url_or_text) {
     }
     if (is_valid(returned_documents) == false)
       throw new Error(`ERROR: could not convert to documents`);
-    console_log(`[read_text_file_component] documents # = ${returned_documents.length}`);
-    console_log(`[read_text_file_component] documents = ${JSON.stringify(returned_documents)}`);
     console.timeEnd("read_text_file_component_processTime");
   }
   return returned_documents;
@@ -13677,7 +13669,6 @@ async function async_get_docs_with_gpt_component() {
     }
   });
   const llm_choices = await get_llm_choices();
-  omnilog.warn(`LLM choices = ${JSON.stringify(llm_choices)}`);
   const inputs4 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
@@ -13706,7 +13697,7 @@ async function async_get_docs_with_gpt_component() {
   return component.toJSON();
 }
 async function read_text_files_parse2(payload, ctx) {
-  console_log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
+  omnilog.log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
   const documents = payload.documents;
   const url2 = payload.url;
   const usage = payload.usage;
@@ -13718,27 +13709,27 @@ async function read_text_files_parse2(payload, ctx) {
   const response_cdn = response.response_cdn;
   const response_answer = response.answer;
   const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
-  console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+  omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
 async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, prompt2, temperature, model, overwrite) {
   let passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
   if (passed_documents_are_valid) {
-    console_log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
+    omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
   } else {
-    console_log(`documents = ${passed_documents_cdns} is invalid`);
+    omnilog.log(`documents = ${passed_documents_cdns} is invalid`);
     passed_documents_cdns = await read_text_files_function(ctx, passed_documents_cdns);
     passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
     if (passed_documents_are_valid) {
-      console_log(`RECOVERED  #${passed_documents_cdns.lentgh} from "documents" input, RECOVERED passed_documents = ${JSON.stringify(passed_documents_cdns)}`);
+      omnilog.log(`RECOVERED  #${passed_documents_cdns.lentgh} from "documents" input, RECOVERED passed_documents = ${JSON.stringify(passed_documents_cdns)}`);
     }
   }
   let read_documents_cdns = await read_text_files_function(ctx, url2);
   const read_documents_are_valid = read_documents_cdns != null && read_documents_cdns != void 0 && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0;
   if (read_documents_are_valid) {
-    console_log(`type of read_documents_cdns = ${typeof read_documents_cdns}, read #${read_documents_cdns.length} from "read_documents_cdns", read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
+    omnilog.log(`type of read_documents_cdns = ${typeof read_documents_cdns}, read #${read_documents_cdns.length} from "read_documents_cdns", read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
   } else {
-    console_log(`documents = ${read_documents_cdns} is invalid`);
+    omnilog.log(`documents = ${read_documents_cdns} is invalid`);
   }
   if (passed_documents_are_valid && read_documents_are_valid)
     read_documents_cdns = passed_documents_cdns.concat(read_documents_cdns);
@@ -13747,10 +13738,10 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, p
   if (!passed_documents_are_valid && !read_documents_are_valid)
     throw new Error(`no texts passed as text, url or documents`);
   if (read_documents_are_valid) {
-    console_log(`2] read #${read_documents_cdns.length} from "read_documents_cdns"`);
-    console_log(`2] read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
+    omnilog.log(`2] read #${read_documents_cdns.length} from "read_documents_cdns"`);
+    omnilog.log(`2] read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);
   } else {
-    console_log(`2] documents = ${read_documents_cdns} is invalid`);
+    omnilog.log(`2] documents = ${read_documents_cdns} is invalid`);
   }
   const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
   let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
@@ -13775,7 +13766,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, p
     let llm_functions = null;
     try {
       llm_functions = JSON.parse(prompt2);
-      console_log(`[TextsToChatGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
+      omnilog.log(`[TextsToChatGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
     } catch {
       throw new Error(`Invalid JSON in [Prompt] field: ${prompt2}`);
     }
@@ -13783,7 +13774,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, p
       throw new Error("No valid functions specified in [prompt] field");
     if (!Array.isArray(llm_functions)) {
       llm_functions = [llm_functions];
-      console_log(`[TextsToChatGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
+      omnilog.log(`[TextsToChatGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
     }
     const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
     response_cdn = response.cdn;
@@ -13791,7 +13782,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, p
   } else {
     throw new Error(`Unknown usage: ${usage}`);
   }
-  console_log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+  omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return { response_cdn, answer };
 }
 

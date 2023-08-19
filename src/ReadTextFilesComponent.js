@@ -1,17 +1,11 @@
 // ReadTextFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { is_valid, console_log, rebuildToTicketObjectsIfNeeded, parse_text_to_array } from './utils/utils.js';
+import { is_valid, rebuildToTicketObjectsIfNeeded, parse_text_to_array } from './utils/utils.js';
 
-function printKeyValuePairs(obj) {
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      console.log(`Key: ${key}, Value: ${obj[key]}`);
-    }
-  }
-}
 let read_text_files_component = OAIBaseComponent
   .create(NS_ONMI, "read_text_files")
   .fromScratch()
@@ -43,14 +37,7 @@ read_text_files_component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files
 
 
 async function read_text_files_parse(payload, ctx) {
-  console.log(`[read_text_file_component] CTX`);
-  printKeyValuePairs(ctx);
-  console.log(`[read_text_file_component] payload`);
-  printKeyValuePairs(payload);
   const text_or_url = payload.text_or_url;
-  console.log(`[read_text_file_component] text_or_url = ${text_or_url}`);
-
-
   const documents = await read_text_files_function(ctx, text_or_url);
   return { result: { "ok": true }, documents: documents , files: documents};
 }
@@ -58,18 +45,11 @@ async function read_text_files_parse(payload, ctx) {
 async function read_text_files_function(ctx, url_or_text) {
   const returned_documents = [];
 
-  console_log(`[read_text_file_component] url_or_text = ${url_or_text}`);
   if (is_valid(url_or_text)) {
     console.time("read_text_file_component_processTime");
 
-
-    console_log(`--------------------------------`);
-
     const parsedArray = parse_text_to_array(url_or_text);
-    console_log(`[read_text_file_component] parsedArray #  ${parsedArray.length}`);
-
     const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
-    console_log(`[read_text_file_component] cdn_tickets #  ${cdn_tickets.length}`);
 
     if (cdn_tickets.length > 0) {
       // The parsedArray contains CDN tickets, return them as is.
@@ -93,8 +73,6 @@ async function read_text_files_function(ctx, url_or_text) {
     }
 
     if (is_valid(returned_documents) == false) throw new Error(`ERROR: could not convert to documents`);
-    console_log(`[read_text_file_component] documents # = ${returned_documents.length}`);
-    console_log(`[read_text_file_component] documents = ${JSON.stringify(returned_documents)}`);
 
     console.timeEnd("read_text_file_component_processTime");
   }

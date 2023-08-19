@@ -1,11 +1,12 @@
 
 // LoopGPTComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, get_chunks_from_cdn } from './utils/cdn.js';
-import { is_valid, sanitizeJSON, console_log, combineStringsWithoutOverlap } from './utils/utils.js';
+import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
 import { query_llm, get_model_max_size, adjust_model, get_llm_choices, DEFAULT_GPT_MODEL } from './utils/llm.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
 
@@ -82,7 +83,7 @@ async function loop_gpt_parse(payload, ctx) {
 
 async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions = null, llm_model = DEFAULT_GPT_MODEL, temperature = 0, top_p = 1, chunk_size = 2000)
 {
-    console_log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
+    omnilog.log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
 
     let maximize_chunks = false;
     let max_size = chunk_size;
@@ -100,7 +101,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
     console.time("loop_llm_component_processTime");
 
     const chunks_results = [];
-    console_log(`Processing ${chapters_cdns.length} chapter(s)`);
+    omnilog.log(`Processing ${chapters_cdns.length} chapter(s)`);
     for (let chapter_index = 0; chapter_index < chapters_cdns.length; chapter_index++)
     {
         const chunks_cdn = chapters_cdns[chapter_index];
@@ -110,7 +111,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
         let total_token_cost = 0;
         let combined_text = "";
 
-        console_log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`);
+        omnilog.log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`);
         for (let chunk_index = 0; chunk_index < chunks.length; chunk_index++)
         {
             //concatenate chunks into something that fits in the max size of the model. Although don't concatenate across chapters.
@@ -123,7 +124,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
                 const token_cost = count_tokens_in_text(text);
                 if (maximize_chunks)
                 {
-                    console_log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
+                    omnilog.log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
 
                     const can_fit = (total_token_cost + token_cost <= max_size);
                     const is_last_index = (chunk_index == chunks.length - 1);
@@ -140,7 +141,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
                         const gpt_results = await query_llm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
                         const sanetized_results = sanitizeJSON(gpt_results);
 
-                        console_log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
+                        omnilog.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
                         chunks_results.push(sanetized_results);
 
                         //reset the combined text and token cost
@@ -153,14 +154,14 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
                     const model = adjust_model(token_cost, llm_model);
                     const gpt_results = await query_llm(ctx, text, instruction, model, llm_functions, temperature, top_p);
                     const sanetized_results = sanitizeJSON(gpt_results);
-                    console_log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
+                    omnilog.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
 
                     chunks_results.push(sanetized_results);
                 }
             }
             else
             {
-                console_log(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
+                omnilog.log(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
             }
         }
 
@@ -169,18 +170,18 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
 
     let combined_answer = "";
     let combined_function_arguments = [];
-    console_log(`chunks_results.length = ${chunks_results.length}`);
+    omnilog.log(`chunks_results.length = ${chunks_results.length}`);
     for (let i = 0; i < chunks_results.length; i++)
     {
         const chunk_result = chunks_results[i];
-        console_log(`chunk_result = ${JSON.stringify(chunk_result)}`);
+        omnilog.log(`chunk_result = ${JSON.stringify(chunk_result)}`);
 
         const result_text = chunk_result.text || "";
         const function_string = chunk_result.function_arguments_string || "";
         const function_arguments = chunk_result.function_arguments || [];
 
         combined_answer += result_text + function_string + "\n\n";
-        console_log(`[$[i}] combined_answer = ${combined_answer}`);
+        omnilog.log(`[$[i}] combined_answer = ${combined_answer}`);
         combined_function_arguments = combined_function_arguments.concat(function_arguments);
     }
 

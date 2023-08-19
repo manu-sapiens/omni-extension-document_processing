@@ -1,38 +1,27 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { omnilog } from 'mercs_shared';
+//import { omnilog } from 'mercs_shared';
 
-async function walkDirForExtension(filePaths, directory_path, substring, extension) 
+async function walkDirForExtension(filePaths, directory_path, extension) 
 {
-  substring = substring.toLowerCase();
   const files = await fs.readdir(directory_path);
-  omnilog.warn(`reading dir: ${directory_path}`)
   for (const file of files) 
   {
+
     const filepath = path.join(directory_path, file);
     const stats = await fs.stat(filepath);
 
     if (stats.isDirectory()) 
     {
-      omnilog.warn(`Found directory: ${filepath}`)
-      filePaths = await walkDirForExtension(filepath, directory_path, substring, extension) 
+  
+      filePaths = await walkDirForExtension(filePaths, filepath, extension) 
     } 
     else 
     {
-      omnilog.warn(`Found file: ${filepath} with ext: ${path.extname(filepath)},  comparing to ${extension}`)
-
       if (path.extname(filepath) === extension) 
       {
-        const filename = file.toLowerCase(); // Convert filename to lowercase
 
-        if (filename.includes(substring)) {
-          omnilog.warn(`Adding ${filepath} to the list`)
-          filePaths.push(filepath);
-        }
-        else
-        {
-          omnilog.warn(`${filename} does not contain ${substring}`);
-        }
+        filePaths.push(filepath);
       }
     }
   }

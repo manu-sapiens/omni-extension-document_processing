@@ -1,15 +1,15 @@
 // QueryChunksComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
 import { initialize_hasher } from './utils/hashers.js'
 import { save_json_to_cdn, get_json_from_cdn } from './utils/cdn.js';
-import { is_valid, console_log } from './utils/utils.js';
+import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
 import { initialize_embedder } from './utils/embedder.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
-
 
 let query_chunk_component = OAIBaseComponent
     .create(NS_ONMI, "query_chunks")
@@ -90,7 +90,7 @@ async function query_chunk_parse(payload, ctx) {
           const chunks = document_json.chunks;
           if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
   
-          console_log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
+          omnilog.log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
   
           const hasher = initialize_hasher(hasher_model);
           const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
