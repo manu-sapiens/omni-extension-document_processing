@@ -1,6 +1,13 @@
+import { ClientExtension, ClientUtils } from 'mercs_client'
 import fs from 'fs/promises';
 import path from 'path';
 //import { omnilog } from 'mercs_shared';
+
+async function fetchJsonFromUrl(url)
+{
+  const json = await ClientUtils.fetchJSON(url);
+  return json;
+}
 
 async function walkDirForExtension(filePaths, directory_path, extension) 
 {
@@ -29,7 +36,7 @@ async function walkDirForExtension(filePaths, directory_path, extension)
   return filePaths;
 }
 
-async function read_json_file(jsonPath)
+async function readJsonFromDisk(jsonPath)
 {
   const jsonContent = JSON.parse(await fs.readFile(jsonPath, 'utf8'));
   return jsonContent;
@@ -57,4 +64,4 @@ async function validateDirectoryExists(path)
     }
   } 
 
-export {walkDirForExtension, validateDirectoryExists, validateFileExists, read_json_file }
+export {walkDirForExtension, validateDirectoryExists, validateFileExists, readJsonFromDisk, fetchJsonFromUrl }

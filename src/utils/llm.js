@@ -8,7 +8,7 @@ import { createCompletion, loadModel } from '../gpt4all/gpt4all.js';
 import path from "path";
 import os from "os";
 import { omnilog } from 'mercs_shared';
-import { walkDirForExtension, validateFileExists, read_json_file } from './files.js';
+import { walkDirForExtension, validateFileExists, readJsonFromDisk, fetchJsonFromUrl } from './files.js';
 
 
 const LLM_CONTEXT_SIZE_MARGIN = 500;
@@ -75,12 +75,138 @@ const llm_memory_needs = {};
 const llm_location = {};
 const llm_local_choices = {};
 const loaded_models = {};
+const JSON_URL = "https://raw.githubusercontent.com/nomic-ai/gpt4all/main/gpt4all-chat/metadata/models.json";
+
+
+
+function getDefaultModelContextSizeFromModelType(model_type, model_name)
+{
+    model_type = model_type.toLowerCase();
+    switch (model_type)
+    {
+        case 'llama':
+        case 'openllama':
+            return 2048;
+        case 'llama2':
+            return 4096;
+        case 'falcon':
+            return 2048;
+        case 'gptj':
+
+            return 4096;
+        case 'gptj-30b':
+            return 8192;
+        case 'mpt':
+            return 4096;
+        case 'replit':
+            return 2048; // but really, we don't know ( 'support variable context length at inference time' )
+        case 'openai':
+            if (model_name == GPT3_MODEL_SMALL) return 4096;
+            if (model_name == GPT3_MODEL_LARGE) return 16384;
+            if (model_name == GPT4_MODEL_SMALL) return 8192;
+            if (model_name == GPT4_MODEL_LARGE) return 32768;
+            return 4096;
+        default:
+            return 2048;            
+    }
+}
+
+function craftPrompt(instruction, prompt, model_type, model_name)
+{
+    switch (model_type)
+    {
+        case 'gptj':
+            return `${instruction}\n\n${prompt}`;
+        case 'llama':
+        case 'openllama':
+            return `### System:\n${instruction}\n\n${prompt}`;
+        case 'llama2':
+            return `[INST]<<SYS>>${instruction}<</SYS>>[/INST] ${prompt}`;
+        case 'falcon':
+            return `### Instruction: ${instruction}\n\n${prompt}\n### Response:`;
+        case 'mpt':
+            return 4096;
+        case 'replit':
+            return 2048; // but really, we don't know ( 'support variable context length at inference time' )
+        case 'openai':
+            if (model_name == GPT3_MODEL_SMALL) return 4096;
+            if (model_name == GPT3_MODEL_LARGE) return 16384;
+            if (model_name == GPT4_MODEL_SMALL) return 8192;
+            if (model_name == GPT4_MODEL_LARGE) return 32768;
+            return 4096;
+        default:
+            return 2048;            
+    }
+
+
+
+}
+
+function getSystemPromptTemplateFromModelType(model_type, model_name)
+{
+    model_type = model_type.toLowerCase();
+    switch (model_type)
+    {
+        case 'openllama':
+            return "### System:\n{{INSTRUCTION}}\n\n";
+        case 'llama2':
+            return"[INST]<<SYS>>{{INSTRUCTION}}<</SYS>>[/INST] "
+        case 'openai':
+            return "{{INSTRUCTION}}";
+        default:
+            return " ";            
+    }
+}
+
+function getDefaultPromptTemplateFromModelType(model_type, model_name)
+{
+
+    model_type = model_type.toLowerCase();
+    switch (model_type)
+    {
+        case 'openllama':
+            return "### System:\n{{INSTRUCTION}}\n\n";
+        case 'llama2':
+            return"[INST]{{PROMPT}}[/INST] "
+        case 'openai':
+            return "{{INSTRUCTION}}";
+        default:
+            return " ";            
+    }
+
+
+}
+
 
 async function get_llm_choices()
 {
     await add_local_llm_choices(LLM_GPT4ALL_CACHE_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
     await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
     await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
+
+    /*
+    let remote_models_json;
+    try 
+    {
+      remote_models_json = await ClientUtils.fetchJSON(JSON_URL);
+    } 
+    catch (error) 
+    {
+      omnilog.error(`Failed to fetch remote models: ${error}`);
+    }
+    */
+    //if (remote_models_json) 
+    //{
+        /*
+        // Convert remote models to the expected format
+        llm_remote_models = remote_models_json.map((model) => ({
+            model_name: model.filename,
+            model_type: model.type.toLowerCase(),
+            memory_need: parseInt(model.ramrequired) * 1024, // Assuming RAM required is in GB
+            context_size: 4096, // Update as needed
+            location: LLM_LOCATION_GPT4ALL_SERVER,
+        }));
+        */
 
     const choices = [];
     const directory_path = LLM_GPT4ALL_CACHE_DIRECTORY;
@@ -119,6 +245,7 @@ async function get_llm_choices()
 
     };
 
+
     const local_choices =  Object.values(llm_local_choices);
     for (const choice of local_choices)
     {
@@ -150,7 +277,7 @@ async function add_local_llm_choices(model_dir, location)
             if (await validateFileExists(jsonPath)) 
             {
                 
-                const jsonContent = await read_json_file(jsonPath);
+                const jsonContent = await readJsonFromDisk(jsonPath);
                 title = jsonContent.title ?? deduce_llm_title(name);;
                 description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
                 model_type = jsonContent.model_type ?? MODEL_TYPE_OTHER;
@@ -409,8 +536,6 @@ async function query_gpt4all_llm(prompt, instruction, model_name, llm_functions 
     else
     {
         if (model_name in llm_model_types == false) throw new Error(`Unknown model: ${model_name}.`);
-
-        process.env.GPT4ALL_NODE_LIBRARY_PATH = path.join('extensions', 'omni-extension-document_processing', 'src', 'gpt4all');
 
         omnilog.log(`LOADING NEW MODEL: ${model_name}`);
         model = await loadModel(model_name, { verbose: true });
