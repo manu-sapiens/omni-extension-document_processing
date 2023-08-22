@@ -7,17 +7,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b2) => (typeof require !== "undefined" ? require : a)[b2]
-}) : x)(function(x) {
-  if (typeof require !== "undefined")
-    return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
-var __commonJS = (cb, mod) => function __require2() {
+var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all3) => {
@@ -2667,9 +2660,9 @@ var require_base64_js = __commonJS({
   }
 });
 
-// node_modules/p-retry/node_modules/retry/lib/retry_operation.js
+// node_modules/retry/lib/retry_operation.js
 var require_retry_operation = __commonJS({
-  "node_modules/p-retry/node_modules/retry/lib/retry_operation.js"(exports, module) {
+  "node_modules/retry/lib/retry_operation.js"(exports, module) {
     function RetryOperation(timeouts, options3) {
       if (typeof options3 === "boolean") {
         options3 = { forever: options3 };
@@ -2802,9 +2795,9 @@ var require_retry_operation = __commonJS({
   }
 });
 
-// node_modules/p-retry/node_modules/retry/lib/retry.js
+// node_modules/retry/lib/retry.js
 var require_retry = __commonJS({
-  "node_modules/p-retry/node_modules/retry/lib/retry.js"(exports) {
+  "node_modules/retry/lib/retry.js"(exports) {
     var RetryOperation = require_retry_operation();
     exports.operation = function(options3) {
       var timeouts = exports.timeouts(options3);
@@ -2888,9 +2881,9 @@ var require_retry = __commonJS({
   }
 });
 
-// node_modules/p-retry/node_modules/retry/index.js
+// node_modules/retry/index.js
 var require_retry2 = __commonJS({
-  "node_modules/p-retry/node_modules/retry/index.js"(exports, module) {
+  "node_modules/retry/index.js"(exports, module) {
     module.exports = require_retry();
   }
 });
@@ -5375,846 +5368,6 @@ var require_lib6 = __commonJS({
   }
 });
 
-// node_modules/node-gyp-build/node-gyp-build.js
-var require_node_gyp_build = __commonJS({
-  "node_modules/node-gyp-build/node-gyp-build.js"(exports, module) {
-    var fs2 = __require("fs");
-    var path3 = __require("path");
-    var os2 = __require("os");
-    var runtimeRequire = typeof __webpack_require__ === "function" ? __non_webpack_require__ : __require;
-    var vars = process.config && process.config.variables || {};
-    var prebuildsOnly = !!process.env.PREBUILDS_ONLY;
-    var abi = process.versions.modules;
-    var runtime = isElectron() ? "electron" : isNwjs() ? "node-webkit" : "node";
-    var arch = process.env.npm_config_arch || os2.arch();
-    var platform2 = process.env.npm_config_platform || os2.platform();
-    var libc = process.env.LIBC || (isAlpine(platform2) ? "musl" : "glibc");
-    var armv = process.env.ARM_VERSION || (arch === "arm64" ? "8" : vars.arm_version) || "";
-    var uv = (process.versions.uv || "").split(".")[0];
-    module.exports = load;
-    function load(dir) {
-      return runtimeRequire(load.resolve(dir));
-    }
-    load.resolve = load.path = function(dir) {
-      dir = path3.resolve(dir || ".");
-      try {
-        var name = runtimeRequire(path3.join(dir, "package.json")).name.toUpperCase().replace(/-/g, "_");
-        if (process.env[name + "_PREBUILD"])
-          dir = process.env[name + "_PREBUILD"];
-      } catch (err) {
-      }
-      if (!prebuildsOnly) {
-        var release = getFirst(path3.join(dir, "build/Release"), matchBuild);
-        if (release)
-          return release;
-        var debug = getFirst(path3.join(dir, "build/Debug"), matchBuild);
-        if (debug)
-          return debug;
-      }
-      var prebuild = resolve(dir);
-      if (prebuild)
-        return prebuild;
-      var nearby = resolve(path3.dirname(process.execPath));
-      if (nearby)
-        return nearby;
-      var target = [
-        "platform=" + platform2,
-        "arch=" + arch,
-        "runtime=" + runtime,
-        "abi=" + abi,
-        "uv=" + uv,
-        armv ? "armv=" + armv : "",
-        "libc=" + libc,
-        "node=" + process.versions.node,
-        process.versions.electron ? "electron=" + process.versions.electron : "",
-        typeof __webpack_require__ === "function" ? "webpack=true" : ""
-        // eslint-disable-line
-      ].filter(Boolean).join(" ");
-      throw new Error("No native build was found for " + target + "\n    loaded from: " + dir + "\n");
-      function resolve(dir2) {
-        var tuples = readdirSync(path3.join(dir2, "prebuilds")).map(parseTuple);
-        var tuple = tuples.filter(matchTuple(platform2, arch)).sort(compareTuples)[0];
-        if (!tuple)
-          return;
-        var prebuilds = path3.join(dir2, "prebuilds", tuple.name);
-        var parsed = readdirSync(prebuilds).map(parseTags);
-        var candidates = parsed.filter(matchTags(runtime, abi));
-        var winner = candidates.sort(compareTags(runtime))[0];
-        if (winner)
-          return path3.join(prebuilds, winner.file);
-      }
-    };
-    function readdirSync(dir) {
-      try {
-        return fs2.readdirSync(dir);
-      } catch (err) {
-        return [];
-      }
-    }
-    function getFirst(dir, filter2) {
-      var files = readdirSync(dir).filter(filter2);
-      return files[0] && path3.join(dir, files[0]);
-    }
-    function matchBuild(name) {
-      return /\.node$/.test(name);
-    }
-    function parseTuple(name) {
-      var arr = name.split("-");
-      if (arr.length !== 2)
-        return;
-      var platform3 = arr[0];
-      var architectures = arr[1].split("+");
-      if (!platform3)
-        return;
-      if (!architectures.length)
-        return;
-      if (!architectures.every(Boolean))
-        return;
-      return { name, platform: platform3, architectures };
-    }
-    function matchTuple(platform3, arch2) {
-      return function(tuple) {
-        if (tuple == null)
-          return false;
-        if (tuple.platform !== platform3)
-          return false;
-        return tuple.architectures.includes(arch2);
-      };
-    }
-    function compareTuples(a, b2) {
-      return a.architectures.length - b2.architectures.length;
-    }
-    function parseTags(file) {
-      var arr = file.split(".");
-      var extension = arr.pop();
-      var tags = { file, specificity: 0 };
-      if (extension !== "node")
-        return;
-      for (var i = 0; i < arr.length; i++) {
-        var tag = arr[i];
-        if (tag === "node" || tag === "electron" || tag === "node-webkit") {
-          tags.runtime = tag;
-        } else if (tag === "napi") {
-          tags.napi = true;
-        } else if (tag.slice(0, 3) === "abi") {
-          tags.abi = tag.slice(3);
-        } else if (tag.slice(0, 2) === "uv") {
-          tags.uv = tag.slice(2);
-        } else if (tag.slice(0, 4) === "armv") {
-          tags.armv = tag.slice(4);
-        } else if (tag === "glibc" || tag === "musl") {
-          tags.libc = tag;
-        } else {
-          continue;
-        }
-        tags.specificity++;
-      }
-      return tags;
-    }
-    function matchTags(runtime2, abi2) {
-      return function(tags) {
-        if (tags == null)
-          return false;
-        if (tags.runtime !== runtime2 && !runtimeAgnostic(tags))
-          return false;
-        if (tags.abi !== abi2 && !tags.napi)
-          return false;
-        if (tags.uv && tags.uv !== uv)
-          return false;
-        if (tags.armv && tags.armv !== armv)
-          return false;
-        if (tags.libc && tags.libc !== libc)
-          return false;
-        return true;
-      };
-    }
-    function runtimeAgnostic(tags) {
-      return tags.runtime === "node" && tags.napi;
-    }
-    function compareTags(runtime2) {
-      return function(a, b2) {
-        if (a.runtime !== b2.runtime) {
-          return a.runtime === runtime2 ? -1 : 1;
-        } else if (a.abi !== b2.abi) {
-          return a.abi ? -1 : 1;
-        } else if (a.specificity !== b2.specificity) {
-          return a.specificity > b2.specificity ? -1 : 1;
-        } else {
-          return 0;
-        }
-      };
-    }
-    function isNwjs() {
-      return !!(process.versions && process.versions.nw);
-    }
-    function isElectron() {
-      if (process.versions && process.versions.electron)
-        return true;
-      if (process.env.ELECTRON_RUN_AS_NODE)
-        return true;
-      return typeof window !== "undefined" && window.process && window.process.type === "renderer";
-    }
-    function isAlpine(platform3) {
-      return platform3 === "linux" && fs2.existsSync("/etc/alpine-release");
-    }
-    load.parseTags = parseTags;
-    load.matchTags = matchTags;
-    load.compareTags = compareTags;
-    load.parseTuple = parseTuple;
-    load.matchTuple = matchTuple;
-    load.compareTuples = compareTuples;
-  }
-});
-
-// node_modules/node-gyp-build/index.js
-var require_node_gyp_build2 = __commonJS({
-  "node_modules/node-gyp-build/index.js"(exports, module) {
-    if (typeof process.addon === "function") {
-      module.exports = process.addon.bind(process);
-    } else {
-      module.exports = require_node_gyp_build();
-    }
-  }
-});
-
-// node_modules/mkdirp/index.js
-var require_mkdirp = __commonJS({
-  "node_modules/mkdirp/index.js"(exports, module) {
-    var path3 = __require("path");
-    var fs2 = __require("fs");
-    var _0777 = parseInt("0777", 8);
-    module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
-    function mkdirP(p2, opts, f2, made) {
-      if (typeof opts === "function") {
-        f2 = opts;
-        opts = {};
-      } else if (!opts || typeof opts !== "object") {
-        opts = { mode: opts };
-      }
-      var mode = opts.mode;
-      var xfs = opts.fs || fs2;
-      if (mode === void 0) {
-        mode = _0777;
-      }
-      if (!made)
-        made = null;
-      var cb = f2 || /* istanbul ignore next */
-      function() {
-      };
-      p2 = path3.resolve(p2);
-      xfs.mkdir(p2, mode, function(er) {
-        if (!er) {
-          made = made || p2;
-          return cb(null, made);
-        }
-        switch (er.code) {
-          case "ENOENT":
-            if (path3.dirname(p2) === p2)
-              return cb(er);
-            mkdirP(path3.dirname(p2), opts, function(er2, made2) {
-              if (er2)
-                cb(er2, made2);
-              else
-                mkdirP(p2, opts, cb, made2);
-            });
-            break;
-          default:
-            xfs.stat(p2, function(er2, stat) {
-              if (er2 || !stat.isDirectory())
-                cb(er, made);
-              else
-                cb(null, made);
-            });
-            break;
-        }
-      });
-    }
-    mkdirP.sync = function sync(p2, opts, made) {
-      if (!opts || typeof opts !== "object") {
-        opts = { mode: opts };
-      }
-      var mode = opts.mode;
-      var xfs = opts.fs || fs2;
-      if (mode === void 0) {
-        mode = _0777;
-      }
-      if (!made)
-        made = null;
-      p2 = path3.resolve(p2);
-      try {
-        xfs.mkdirSync(p2, mode);
-        made = made || p2;
-      } catch (err0) {
-        switch (err0.code) {
-          case "ENOENT":
-            made = sync(path3.dirname(p2), opts, made);
-            sync(p2, opts, made);
-            break;
-          default:
-            var stat;
-            try {
-              stat = xfs.statSync(p2);
-            } catch (err1) {
-              throw err0;
-            }
-            if (!stat.isDirectory())
-              throw err0;
-            break;
-        }
-      }
-      return made;
-    };
-  }
-});
-
-// node_modules/md5-file/index.js
-var require_md5_file = __commonJS({
-  "node_modules/md5-file/index.js"(exports, module) {
-    var crypto4 = __require("crypto");
-    var fs2 = __require("fs");
-    var BUFFER_SIZE = 8192;
-    function md5FileSync(path3) {
-      const fd = fs2.openSync(path3, "r");
-      const hash = crypto4.createHash("md5");
-      const buffer = Buffer.alloc(BUFFER_SIZE);
-      try {
-        let bytesRead;
-        do {
-          bytesRead = fs2.readSync(fd, buffer, 0, BUFFER_SIZE);
-          hash.update(buffer.slice(0, bytesRead));
-        } while (bytesRead === BUFFER_SIZE);
-      } finally {
-        fs2.closeSync(fd);
-      }
-      return hash.digest("hex");
-    }
-    function md5File(path3) {
-      return new Promise((resolve, reject) => {
-        const output = crypto4.createHash("md5");
-        const input = fs2.createReadStream(path3);
-        input.on("error", (err) => {
-          reject(err);
-        });
-        output.once("readable", () => {
-          resolve(output.read().toString("hex"));
-        });
-        input.pipe(output);
-      });
-    }
-    module.exports = md5File;
-    module.exports.sync = md5FileSync;
-  }
-});
-
-// gpt4all/config.js
-var require_config = __commonJS({
-  "gpt4all/config.js"(exports, module) {
-    var os2 = __require("node:os");
-    var path3 = __require("node:path");
-    var DEFAULT_DIRECTORY = path3.resolve(os2.homedir(), ".cache/gpt4all");
-    var librarySearchPaths = [
-      path3.join(DEFAULT_DIRECTORY, "libraries"),
-      path3.resolve("./libraries"),
-      path3.resolve(
-        __dirname,
-        "..",
-        `runtimes/${process.platform}-${process.arch}/native`
-      ),
-      process.cwd()
-    ];
-    var DEFAULT_LIBRARIES_DIRECTORY = librarySearchPaths.join(";");
-    var DEFAULT_MODEL_CONFIG = {
-      systemPrompt: "",
-      promptTemplate: "### Human: \n%1\n### Assistant:\n"
-    };
-    var DEFAULT_MODEL_LIST_URL = "https://gpt4all.io/models/models.json";
-    var DEFAULT_PROMPT_CONTEXT = {
-      temp: 0.7,
-      topK: 40,
-      topP: 0.4,
-      repeatPenalty: 1.18,
-      repeatLastN: 64,
-      nBatch: 8
-    };
-    module.exports = {
-      DEFAULT_DIRECTORY,
-      DEFAULT_LIBRARIES_DIRECTORY,
-      DEFAULT_MODEL_CONFIG,
-      DEFAULT_MODEL_LIST_URL,
-      DEFAULT_PROMPT_CONTEXT
-    };
-  }
-});
-
-// gpt4all/util.js
-var require_util = __commonJS({
-  "gpt4all/util.js"(exports, module) {
-    var { createWriteStream, existsSync, statSync } = __require("node:fs");
-    var fsp = __require("node:fs/promises");
-    var { performance } = __require("node:perf_hooks");
-    var path3 = __require("node:path");
-    var { mkdirp } = require_mkdirp();
-    var md5File = require_md5_file();
-    var {
-      DEFAULT_DIRECTORY,
-      DEFAULT_MODEL_CONFIG,
-      DEFAULT_MODEL_LIST_URL
-    } = require_config();
-    async function listModels(options3 = {
-      url: DEFAULT_MODEL_LIST_URL
-    }) {
-      if (!options3 || !options3.url && !options3.file) {
-        throw new Error(
-          `No model list source specified. Please specify either a url or a file.`
-        );
-      }
-      if (options3.file) {
-        if (!existsSync(options3.file)) {
-          throw new Error(`Model list file ${options3.file} does not exist.`);
-        }
-        const fileContents = await fsp.readFile(options3.file, "utf-8");
-        const modelList = JSON.parse(fileContents);
-        return modelList;
-      } else if (options3.url) {
-        const res = await fetch(options3.url);
-        if (!res.ok) {
-          throw Error(
-            `Failed to retrieve model list from ${url} - ${res.status} ${res.statusText}`
-          );
-        }
-        const modelList = await res.json();
-        return modelList;
-      }
-    }
-    function appendBinSuffixIfMissing(name) {
-      if (!name.endsWith(".bin")) {
-        return name + ".bin";
-      }
-      return name;
-    }
-    function readChunks(reader) {
-      return {
-        async *[Symbol.asyncIterator]() {
-          let readResult = await reader.read();
-          while (!readResult.done) {
-            yield readResult.value;
-            readResult = await reader.read();
-          }
-        }
-      };
-    }
-    function warnOnSnakeCaseKeys(promptContext) {
-      const snakeCaseKeys = Object.keys(promptContext).filter(
-        (key) => key.includes("_")
-      );
-      if (snakeCaseKeys.length > 0) {
-        console.warn(
-          "Prompt context keys should be camelCase. Support for snake_case might be removed in the future. Found keys: " + snakeCaseKeys.join(", ")
-        );
-      }
-    }
-    function normalizePromptContext(promptContext) {
-      const normalizedPromptContext = {};
-      for (const key in promptContext) {
-        if (promptContext.hasOwnProperty(key)) {
-          const snakeKey = key.replace(
-            /[A-Z]/g,
-            (match) => `_${match.toLowerCase()}`
-          );
-          normalizedPromptContext[snakeKey] = promptContext[key];
-        }
-      }
-      return normalizedPromptContext;
-    }
-    function downloadModel(modelName, options3 = {}) {
-      const downloadOptions = {
-        modelPath: DEFAULT_DIRECTORY,
-        verbose: false,
-        ...options3
-      };
-      const modelFileName = appendBinSuffixIfMissing(modelName);
-      const partialModelPath = path3.join(
-        downloadOptions.modelPath,
-        modelName + ".part"
-      );
-      const finalModelPath = path3.join(downloadOptions.modelPath, modelFileName);
-      const modelUrl = downloadOptions.url ?? `https://gpt4all.io/models/${modelFileName}`;
-      if (existsSync(finalModelPath)) {
-        throw Error(`Model already exists at ${finalModelPath}`);
-      }
-      if (downloadOptions.verbose) {
-        console.log(`Downloading ${modelName} from ${modelUrl}`);
-      }
-      const headers = {
-        "Accept-Ranges": "arraybuffer",
-        "Response-Type": "arraybuffer"
-      };
-      const writeStreamOpts = {};
-      if (existsSync(partialModelPath)) {
-        console.log("Partial model exists, resuming download...");
-        const startRange = statSync(partialModelPath).size;
-        headers["Range"] = `bytes=${startRange}-`;
-        writeStreamOpts.flags = "a";
-      }
-      const abortController = new AbortController();
-      const signal = abortController.signal;
-      const finalizeDownload = async () => {
-        if (options3.md5sum) {
-          const fileHash = await md5File(partialModelPath);
-          if (fileHash !== options3.md5sum) {
-            await fsp.unlink(partialModelPath);
-            const message = `Model "${modelName}" failed verification: Hashes mismatch. Expected ${options3.md5sum}, got ${fileHash}`;
-            throw Error(message);
-          }
-          if (options3.verbose) {
-            console.log(`MD5 hash verified: ${fileHash}`);
-          }
-        }
-        await fsp.rename(partialModelPath, finalModelPath);
-      };
-      const downloadPromise = new Promise((resolve, reject) => {
-        let timestampStart;
-        if (options3.verbose) {
-          console.log(`Downloading @ ${partialModelPath} ...`);
-          timestampStart = performance.now();
-        }
-        const writeStream2 = createWriteStream(
-          partialModelPath,
-          writeStreamOpts
-        );
-        writeStream2.on("error", (e) => {
-          writeStream2.close();
-          reject(e);
-        });
-        writeStream2.on("finish", () => {
-          if (options3.verbose) {
-            const elapsed2 = performance.now() - timestampStart;
-            console.log(`Finished. Download took ${elapsed2.toFixed(2)} ms`);
-          }
-          finalizeDownload().then(() => {
-            resolve(finalModelPath);
-          }).catch(reject);
-        });
-        fetch(modelUrl, {
-          signal,
-          headers
-        }).then((res) => {
-          if (!res.ok) {
-            const message = `Failed to download model from ${modelUrl} - ${res.status} ${res.statusText}`;
-            reject(Error(message));
-          }
-          return res.body.getReader();
-        }).then(async (reader) => {
-          for await (const chunk of readChunks(reader)) {
-            writeStream2.write(chunk);
-          }
-          writeStream2.end();
-        }).catch(reject);
-      });
-      return {
-        cancel: () => abortController.abort(),
-        promise: downloadPromise
-      };
-    }
-    async function retrieveModel(modelName, options3 = {}) {
-      const retrieveOptions = {
-        modelPath: DEFAULT_DIRECTORY,
-        allowDownload: true,
-        verbose: true,
-        ...options3
-      };
-      await mkdirp(retrieveOptions.modelPath);
-      const modelFileName = appendBinSuffixIfMissing(modelName);
-      const fullModelPath = path3.join(retrieveOptions.modelPath, modelFileName);
-      const modelExists = existsSync(fullModelPath);
-      let config = { ...DEFAULT_MODEL_CONFIG };
-      const availableModels = await listModels({
-        file: retrieveOptions.modelConfigFile,
-        url: retrieveOptions.allowDownload && "https://gpt4all.io/models/models.json"
-      });
-      const loadedModelConfig = availableModels.find(
-        (model) => model.filename === modelFileName
-      );
-      if (loadedModelConfig) {
-        config = {
-          ...config,
-          ...loadedModelConfig
-        };
-      } else {
-        console.warn(
-          `Failed to load model config for ${modelName}. Using defaults.`
-        );
-      }
-      config.systemPrompt = config.systemPrompt.trim();
-      if (modelExists) {
-        config.path = fullModelPath;
-        if (retrieveOptions.verbose) {
-          console.log(`Found ${modelName} at ${fullModelPath}`);
-        }
-      } else if (retrieveOptions.allowDownload) {
-        const downloadController = downloadModel(modelName, {
-          modelPath: retrieveOptions.modelPath,
-          verbose: retrieveOptions.verbose,
-          filesize: config.filesize,
-          url: config.url,
-          md5sum: config.md5sum
-        });
-        const downloadPath = await downloadController.promise;
-        config.path = downloadPath;
-        if (retrieveOptions.verbose) {
-          console.log(`Model downloaded to ${downloadPath}`);
-        }
-      } else {
-        throw Error("Failed to retrieve model.");
-      }
-      return config;
-    }
-    module.exports = {
-      appendBinSuffixIfMissing,
-      downloadModel,
-      retrieveModel,
-      listModels,
-      normalizePromptContext,
-      warnOnSnakeCaseKeys
-    };
-  }
-});
-
-// gpt4all/models.js
-var require_models = __commonJS({
-  "gpt4all/models.js"(exports, module) {
-    var { normalizePromptContext, warnOnSnakeCaseKeys } = require_util();
-    var InferenceModel = class {
-      llm;
-      config;
-      constructor(llmodel, config) {
-        this.llm = llmodel;
-        this.config = config;
-      }
-      async generate(prompt3, promptContext) {
-        warnOnSnakeCaseKeys(promptContext);
-        const normalizedPromptContext = normalizePromptContext(promptContext);
-        const result = this.llm.raw_prompt(prompt3, normalizedPromptContext, () => {
-        });
-        return result;
-      }
-    };
-    var EmbeddingModel = class {
-      llm;
-      config;
-      constructor(llmodel, config) {
-        this.llm = llmodel;
-        this.config = config;
-      }
-      embed(text2) {
-        return this.llm.embed(text2);
-      }
-    };
-    module.exports = {
-      InferenceModel,
-      EmbeddingModel
-    };
-  }
-});
-
-// gpt4all/gpt4all.js
-var require_gpt4all = __commonJS({
-  "gpt4all/gpt4all.js"(exports, module) {
-    "use strict";
-    var { existsSync } = __require("fs");
-    var path3 = __require("node:path");
-    var { LLModel } = require_node_gyp_build2()(path3.resolve(__dirname, ".."));
-    var {
-      retrieveModel,
-      downloadModel,
-      appendBinSuffixIfMissing
-    } = require_util();
-    var {
-      DEFAULT_DIRECTORY,
-      DEFAULT_LIBRARIES_DIRECTORY,
-      DEFAULT_PROMPT_CONTEXT,
-      DEFAULT_MODEL_CONFIG,
-      DEFAULT_MODEL_LIST_URL
-    } = require_config();
-    var { InferenceModel, EmbeddingModel } = require_models();
-    async function loadModel2(modelName, options3 = {}) {
-      const loadOptions = {
-        modelPath: DEFAULT_DIRECTORY,
-        librariesPath: DEFAULT_LIBRARIES_DIRECTORY,
-        type: "inference",
-        allowDownload: true,
-        verbose: true,
-        ...options3
-      };
-      const modelConfig = await retrieveModel(modelName, {
-        modelPath: loadOptions.modelPath,
-        modelConfigFile: loadOptions.modelConfigFile,
-        allowDownload: loadOptions.allowDownload,
-        verbose: loadOptions.verbose
-      });
-      const libSearchPaths = loadOptions.librariesPath.split(";");
-      let libPath = null;
-      for (const searchPath of libSearchPaths) {
-        if (existsSync(searchPath)) {
-          libPath = searchPath;
-          break;
-        }
-      }
-      if (!libPath) {
-        throw Error("Could not find a valid path from " + libSearchPaths);
-      }
-      const llmOptions = {
-        model_name: appendBinSuffixIfMissing(modelName),
-        model_path: loadOptions.modelPath,
-        library_path: libPath
-      };
-      if (loadOptions.verbose) {
-        console.debug("Creating LLModel with options:", llmOptions);
-      }
-      const llmodel = new LLModel(llmOptions);
-      if (loadOptions.type === "embedding") {
-        return new EmbeddingModel(llmodel, modelConfig);
-      } else if (loadOptions.type === "inference") {
-        return new InferenceModel(llmodel, modelConfig);
-      } else {
-        throw Error("Invalid model type: " + loadOptions.type);
-      }
-    }
-    function formatChatPrompt(messages, {
-      systemPromptTemplate,
-      defaultSystemPrompt,
-      promptTemplate,
-      promptFooter,
-      promptHeader
-    }) {
-      const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
-      let fullPrompt = "";
-      if (promptHeader) {
-        fullPrompt += promptHeader + "\n\n";
-      }
-      if (systemPromptTemplate) {
-        let systemPrompt = "";
-        if (systemMessages.length > 0) {
-          systemPrompt += systemMessages.join("\n");
-        }
-        if (systemPrompt) {
-          fullPrompt += systemPromptTemplate.replace("%1", systemPrompt) + "\n";
-        }
-      } else if (defaultSystemPrompt) {
-        fullPrompt += defaultSystemPrompt + "\n\n";
-      }
-      if (systemMessages.length > 0 && !systemPromptTemplate) {
-        console.warn(
-          "System messages were provided, but no systemPromptTemplate was specified. System messages will be ignored."
-        );
-      }
-      for (const message of messages) {
-        if (message.role === "user") {
-          const userMessage = promptTemplate.replace(
-            "%1",
-            message["content"]
-          );
-          fullPrompt += userMessage;
-        }
-        if (message["role"] == "assistant") {
-          const assistantMessage = message["content"] + "\n";
-          fullPrompt += assistantMessage;
-        }
-      }
-      if (promptFooter) {
-        fullPrompt += "\n\n" + promptFooter;
-      }
-      return fullPrompt;
-    }
-    function createEmbedding(model, text2) {
-      return model.embed(text2);
-    }
-    var defaultCompletionOptions = {
-      verbose: false,
-      ...DEFAULT_PROMPT_CONTEXT
-    };
-    async function createCompletion2(model, messages, options3 = defaultCompletionOptions) {
-      if (options3.hasDefaultHeader !== void 0) {
-        console.warn(
-          "hasDefaultHeader (bool) is deprecated and has no effect, use promptHeader (string) instead"
-        );
-      }
-      if (options3.hasDefaultFooter !== void 0) {
-        console.warn(
-          "hasDefaultFooter (bool) is deprecated and has no effect, use promptFooter (string) instead"
-        );
-      }
-      const optionsWithDefaults = {
-        ...defaultCompletionOptions,
-        ...options3
-      };
-      const {
-        verbose,
-        systemPromptTemplate,
-        promptTemplate,
-        promptHeader,
-        promptFooter,
-        ...promptContext
-      } = optionsWithDefaults;
-      const prompt3 = formatChatPrompt(messages, {
-        systemPromptTemplate,
-        defaultSystemPrompt: model.config.systemPrompt,
-        promptTemplate: promptTemplate || model.config.promptTemplate || "%1",
-        promptHeader: promptHeader || "",
-        promptFooter: promptFooter || ""
-        // These were the default header/footer prompts used for non-chat single turn completions.
-        // both seem to be working well still with some models, so keeping them here for reference.
-        // promptHeader: '### Instruction: The prompt below is a question to answer, a task to complete, or a conversation to respond to; decide which and write an appropriate response.',
-        // promptFooter: '### Response:',
-      });
-      if (verbose) {
-        console.debug("Sending Prompt:\n" + prompt3);
-      }
-      const response = await model.generate(prompt3, promptContext);
-      if (verbose) {
-        console.debug("Received Response:\n" + response);
-      }
-      return {
-        llmodel: model.llm.name(),
-        usage: {
-          prompt_tokens: prompt3.length,
-          completion_tokens: response.length,
-          //TODO
-          total_tokens: prompt3.length + response.length
-          //TODO
-        },
-        choices: [
-          {
-            message: {
-              role: "assistant",
-              content: response
-            }
-          }
-        ]
-      };
-    }
-    function createTokenStream() {
-      throw Error("This API has not been completed yet!");
-    }
-    module.exports = {
-      DEFAULT_LIBRARIES_DIRECTORY,
-      DEFAULT_DIRECTORY,
-      DEFAULT_PROMPT_CONTEXT,
-      DEFAULT_MODEL_CONFIG,
-      DEFAULT_MODEL_LIST_URL,
-      LLModel,
-      InferenceModel,
-      EmbeddingModel,
-      createCompletion: createCompletion2,
-      createEmbedding,
-      downloadModel,
-      retrieveModel,
-      loadModel: loadModel2,
-      createTokenStream
-    };
-  }
-});
-
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 
@@ -7538,11 +6691,11 @@ function rebuildToTicketObjectsIfNeeded(data) {
   }
   if (Array.isArray(data) && data.every((item) => typeof item === "string")) {
     for (let i = 0; i < data.length; i++) {
-      const url2 = data[i];
+      const url = data[i];
       const fidRegex = /\/fid\/(.+)/;
-      const match = url2.match(fidRegex);
+      const match = url.match(fidRegex);
       if (match) {
-        const baseurl = url2.substring(0, match.index);
+        const baseurl = url.substring(0, match.index);
         const fid = match[1];
         const filename = `${fid}.txt`;
         const rebuilt_cdn = {
@@ -7554,7 +6707,7 @@ function rebuildToTicketObjectsIfNeeded(data) {
           },
           fileName: filename,
           size: 0,
-          url: url2,
+          url,
           furl: `fid://${filename}`,
           mimeType: "text/plain; charset=utf-8",
           expires: 0,
@@ -7563,7 +6716,7 @@ function rebuildToTicketObjectsIfNeeded(data) {
           }
         };
         documents.push(rebuilt_cdn);
-        console_log(`rebuild url = ${url2} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
+        console_log(`rebuild url = ${url} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
       }
     }
   }
@@ -8135,8 +7288,8 @@ function shallowCopy(obj) {
 }
 function replaceSecrets(root, secretsMap) {
   const result = shallowCopy(root);
-  for (const [path3, secretId] of Object.entries(secretsMap)) {
-    const [last, ...partsReverse] = path3.split(".").reverse();
+  for (const [path2, secretId] of Object.entries(secretsMap)) {
+    const [last, ...partsReverse] = path2.split(".").reverse();
     let current = result;
     for (const part of partsReverse.reverse()) {
       if (current[part] === void 0) {
@@ -8924,8 +8077,8 @@ function getEnvironmentVariable(name) {
 }
 
 // node_modules/langsmith/dist/client.js
-var isLocalhost = (url2) => {
-  const strippedUrl = url2.replace("http://", "").replace("https://", "");
+var isLocalhost = (url) => {
+  const strippedUrl = url.replace("http://", "").replace("https://", "");
   const hostname = strippedUrl.split("/")[0].split(":")[0];
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 };
@@ -9011,33 +8164,33 @@ var Client = class _Client {
     }
     return headers;
   }
-  async _get(path3, queryParams) {
+  async _get(path2, queryParams) {
     const paramsString = queryParams?.toString() ?? "";
-    const url2 = `${this.apiUrl}${path3}?${paramsString}`;
-    const response = await this.caller.call(fetch, url2, {
+    const url = `${this.apiUrl}${path2}?${paramsString}`;
+    const response = await this.caller.call(fetch, url, {
       method: "GET",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch ${path2}: ${response.status} ${response.statusText}`);
     }
     return response.json();
   }
-  async *_getPaginated(path3, queryParams = new URLSearchParams()) {
+  async *_getPaginated(path2, queryParams = new URLSearchParams()) {
     let offset = Number(queryParams.get("offset")) || 0;
     const limit = Number(queryParams.get("limit")) || 100;
     while (true) {
       queryParams.set("offset", String(offset));
       queryParams.set("limit", String(limit));
-      const url2 = `${this.apiUrl}${path3}?${queryParams}`;
-      const response = await this.caller.call(fetch, url2, {
+      const url = `${this.apiUrl}${path2}?${queryParams}`;
+      const response = await this.caller.call(fetch, url, {
         method: "GET",
         headers: this.headers,
         signal: AbortSignal.timeout(this.timeout_ms)
       });
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch ${path2}: ${response.status} ${response.statusText}`);
       }
       const items = await response.json();
       if (items.length === 0) {
@@ -9250,18 +8403,18 @@ var Client = class _Client {
     return result;
   }
   async readProject({ projectId, projectName }) {
-    let path3 = "/sessions";
+    let path2 = "/sessions";
     const params = new URLSearchParams();
     if (projectId !== void 0 && projectName !== void 0) {
       throw new Error("Must provide either projectName or projectId, not both");
     } else if (projectId !== void 0) {
-      path3 += `/${projectId}`;
+      path2 += `/${projectId}`;
     } else if (projectName !== void 0) {
       params.append("name", projectName);
     } else {
       throw new Error("Must provide projectName or projectId");
     }
-    const response = await this._get(path3, params);
+    const response = await this._get(path2, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -9297,7 +8450,7 @@ var Client = class _Client {
     await raiseForStatus(response, `delete session ${projectId_} (${projectName})`);
   }
   async uploadCsv({ csvFile, fileName, inputKeys, outputKeys, description, dataType, name }) {
-    const url2 = `${this.apiUrl}/datasets/upload`;
+    const url = `${this.apiUrl}/datasets/upload`;
     const formData = new FormData();
     formData.append("file", csvFile, fileName);
     inputKeys.forEach((key) => {
@@ -9315,7 +8468,7 @@ var Client = class _Client {
     if (name) {
       formData.append("name", name);
     }
-    const response = await this.caller.call(fetch, url2, {
+    const response = await this.caller.call(fetch, url, {
       method: "POST",
       headers: this.headers,
       body: formData,
@@ -9356,18 +8509,18 @@ var Client = class _Client {
     return result;
   }
   async readDataset({ datasetId, datasetName }) {
-    let path3 = "/datasets";
+    let path2 = "/datasets";
     const params = new URLSearchParams({ limit: "1" });
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
     } else if (datasetId !== void 0) {
-      path3 += `/${datasetId}`;
+      path2 += `/${datasetId}`;
     } else if (datasetName !== void 0) {
       params.append("name", datasetName);
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this._get(path3, params);
+    const response = await this._get(path2, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -9380,7 +8533,7 @@ var Client = class _Client {
     return result;
   }
   async *listDatasets({ limit = 100, offset = 0, datasetIds, datasetName, datasetNameContains } = {}) {
-    const path3 = "/datasets";
+    const path2 = "/datasets";
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString()
@@ -9396,12 +8549,12 @@ var Client = class _Client {
     if (datasetNameContains !== void 0) {
       params.append("name_contains", datasetNameContains);
     }
-    for await (const datasets of this._getPaginated(path3, params)) {
+    for await (const datasets of this._getPaginated(path2, params)) {
       yield* datasets;
     }
   }
   async deleteDataset({ datasetId, datasetName }) {
-    let path3 = "/datasets";
+    let path2 = "/datasets";
     let datasetId_ = datasetId;
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
@@ -9410,17 +8563,17 @@ var Client = class _Client {
       datasetId_ = dataset.id;
     }
     if (datasetId_ !== void 0) {
-      path3 += `/${datasetId_}`;
+      path2 += `/${datasetId_}`;
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this.caller.call(fetch, this.apiUrl + path3, {
+    const response = await this.caller.call(fetch, this.apiUrl + path2, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -9454,10 +8607,10 @@ var Client = class _Client {
     return result;
   }
   async readExample(exampleId) {
-    const path3 = `/examples/${exampleId}`;
-    return await this._get(path3);
+    const path2 = `/examples/${exampleId}`;
+    return await this._get(path2);
   }
-  async *listExamples({ datasetId, datasetName } = {}) {
+  async *listExamples({ datasetId, datasetName, exampleIds } = {}) {
     let datasetId_;
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
@@ -9470,19 +8623,24 @@ var Client = class _Client {
       throw new Error("Must provide a datasetName or datasetId");
     }
     const params = new URLSearchParams({ dataset: datasetId_ });
+    if (exampleIds !== void 0) {
+      for (const id_ of exampleIds) {
+        params.append("id", id_);
+      }
+    }
     for await (const examples of this._getPaginated("/examples", params)) {
       yield* examples;
     }
   }
   async deleteExample(exampleId) {
-    const path3 = `/examples/${exampleId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path3, {
+    const path2 = `/examples/${exampleId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path2, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -9580,19 +8738,19 @@ var Client = class _Client {
     return response.json();
   }
   async readFeedback(feedbackId) {
-    const path3 = `/feedback/${feedbackId}`;
-    const response = await this._get(path3);
+    const path2 = `/feedback/${feedbackId}`;
+    const response = await this._get(path2);
     return response;
   }
   async deleteFeedback(feedbackId) {
-    const path3 = `/feedback/${feedbackId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path3, {
+    const path2 = `/feedback/${feedbackId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path2, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -12916,8 +12074,7 @@ var ChunkFilesComponent = chunk_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
 
 // utils/llm.js
-var import_gpt4all = __toESM(require_gpt4all());
-import path2 from "path";
+import path from "path";
 import os from "os";
 
 // ../../../../client/lib/index.js
@@ -12927,7 +12084,7 @@ var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames2 = Object.getOwnPropertyNames;
 var __getProtoOf2 = Object.getPrototypeOf;
 var __hasOwnProp2 = Object.prototype.hasOwnProperty;
-var __commonJS2 = (cb, mod) => function __require2() {
+var __commonJS2 = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __copyProps2 = (to, from, except, desc) => {
@@ -14298,10 +13455,10 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path3, key, dots) {
-  if (!path3)
+function renderKey(path2, key, dots) {
+  if (!path2)
     return key;
-  return path3.concat(key).map(function each(token, i) {
+  return path2.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -14347,9 +13504,9 @@ function toFormData(obj, formData, options22) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path3) {
+  function defaultVisitor(value, key, path2) {
     let arr = value;
-    if (value && !path3 && typeof value === "object") {
+    if (value && !path2 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -14368,7 +13525,7 @@ function toFormData(obj, formData, options22) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path3, key, dots), convertValue(value));
+    formData.append(renderKey(path2, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -14377,11 +13534,11 @@ function toFormData(obj, formData, options22) {
     convertValue,
     isVisitable
   });
-  function build(value, path3) {
+  function build(value, path2) {
     if (utils_default.isUndefined(value))
       return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path3.join("."));
+      throw Error("Circular reference detected in " + path2.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
@@ -14389,11 +13546,11 @@ function toFormData(obj, formData, options22) {
         formData,
         el,
         utils_default.isString(key) ? key.trim() : key,
-        path3,
+        path2,
         exposedHelpers
       );
       if (result === true) {
-        build(el, path3 ? path3.concat(key) : [key]);
+        build(el, path2 ? path2.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -14439,9 +13596,9 @@ var AxiosURLSearchParams_default = AxiosURLSearchParams;
 function encode22(val) {
   return encodeURIComponent(val).replace(/%3A/gi, ":").replace(/%24/g, "$").replace(/%2C/gi, ",").replace(/%20/g, "+").replace(/%5B/gi, "[").replace(/%5D/gi, "]");
 }
-function buildURL(url2, params, options22) {
+function buildURL(url, params, options22) {
   if (!params) {
-    return url2;
+    return url;
   }
   const _encode = options22 && options22.encode || encode22;
   const serializeFn = options22 && options22.serialize;
@@ -14452,13 +13609,13 @@ function buildURL(url2, params, options22) {
     serializedParams = utils_default.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams_default(params, options22).toString(_encode);
   }
   if (serializedParams) {
-    const hashmarkIndex = url2.indexOf("#");
+    const hashmarkIndex = url.indexOf("#");
     if (hashmarkIndex !== -1) {
-      url2 = url2.slice(0, hashmarkIndex);
+      url = url.slice(0, hashmarkIndex);
     }
-    url2 += (url2.indexOf("?") === -1 ? "?" : "&") + serializedParams;
+    url += (url.indexOf("?") === -1 ? "?" : "&") + serializedParams;
   }
-  return url2;
+  return url;
 }
 var InterceptorManager = class {
   constructor() {
@@ -14554,7 +13711,7 @@ var browser_default = {
 };
 function toURLEncodedForm(data, options22) {
   return toFormData_default(data, new browser_default.classes.URLSearchParams(), Object.assign({
-    visitor: function(value, key, path3, helpers) {
+    visitor: function(value, key, path2, helpers) {
       if (browser_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -14581,10 +13738,10 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path3, value, target, index) {
-    let name = path3[index++];
+  function buildPath(path2, value, target, index) {
+    let name = path2[index++];
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path3.length;
+    const isLast = index >= path2.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -14597,7 +13754,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path3, value, target[name], index);
+    const result = buildPath(path2, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -15016,14 +14173,14 @@ var cookies_default = browser_default.isStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   function standardBrowserEnv() {
     return {
-      write: function write(name, value, expires, path3, domain, secure) {
+      write: function write(name, value, expires, path2, domain, secure) {
         const cookie = [];
         cookie.push(name + "=" + encodeURIComponent(value));
         if (utils_default.isNumber(expires)) {
           cookie.push("expires=" + new Date(expires).toGMTString());
         }
-        if (utils_default.isString(path3)) {
-          cookie.push("path=" + path3);
+        if (utils_default.isString(path2)) {
+          cookie.push("path=" + path2);
         }
         if (utils_default.isString(domain)) {
           cookie.push("domain=" + domain);
@@ -15056,8 +14213,8 @@ var cookies_default = browser_default.isStandardBrowserEnv ? (
     };
   }()
 );
-function isAbsoluteURL(url2) {
-  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url2);
+function isAbsoluteURL(url) {
+  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
 }
 function combineURLs(baseURL, relativeURL) {
   return relativeURL ? baseURL.replace(/\/+$/, "") + "/" + relativeURL.replace(/^\/+/, "") : baseURL;
@@ -15075,8 +14232,8 @@ var isURLSameOrigin_default = browser_default.isStandardBrowserEnv ? (
     const msie = /(msie|trident)/i.test(navigator.userAgent);
     const urlParsingNode = document.createElement("a");
     let originURL;
-    function resolveURL(url2) {
-      let href = url2;
+    function resolveURL(url) {
+      let href = url;
       if (msie) {
         urlParsingNode.setAttribute("href", href);
         href = urlParsingNode.href;
@@ -15107,8 +14264,8 @@ var isURLSameOrigin_default = browser_default.isStandardBrowserEnv ? (
     };
   }()
 );
-function parseProtocol(url2) {
-  const match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url2);
+function parseProtocol(url) {
+  const match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
   return match && match[1] || "";
 }
 function speedometer(samplesCount, min) {
@@ -15645,23 +14802,23 @@ var Axios = class {
   }
 };
 utils_default.forEach(["delete", "get", "head", "options"], function forEachMethodNoData2(method) {
-  Axios.prototype[method] = function(url2, config) {
+  Axios.prototype[method] = function(url, config) {
     return this.request(mergeConfig(config || {}, {
       method,
-      url: url2,
+      url,
       data: (config || {}).data
     }));
   };
 });
 utils_default.forEach(["post", "put", "patch"], function forEachMethodWithData2(method) {
   function generateHTTPMethod(isForm) {
-    return function httpMethod(url2, data, config) {
+    return function httpMethod(url, data, config) {
       return this.request(mergeConfig(config || {}, {
         method,
         headers: isForm ? {
           "Content-Type": "multipart/form-data"
         } : {},
-        url: url2,
+        url,
         data
       }));
     };
@@ -17018,39 +16175,7 @@ for (let i = 0; i < 256; ++i) {
 }
 var randomUUID2 = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
-// utils/files.js
-import fs from "fs/promises";
-import path from "path";
-async function walkDirForExtension(filePaths, directory_path, extension) {
-  const files = await fs.readdir(directory_path);
-  for (const file of files) {
-    const filepath = path.join(directory_path, file);
-    const stats = await fs.stat(filepath);
-    if (stats.isDirectory()) {
-      filePaths = await walkDirForExtension(filePaths, filepath, extension);
-    } else {
-      if (path.extname(filepath) === extension) {
-        filePaths.push(filepath);
-      }
-    }
-  }
-  return filePaths;
-}
-async function readJsonFromDisk(jsonPath) {
-  const jsonContent = JSON.parse(await fs.readFile(jsonPath, "utf8"));
-  return jsonContent;
-}
-async function validateFileExists(path3) {
-  try {
-    const stats = await fs.stat(path3);
-    return stats.isFile();
-  } catch {
-    return false;
-  }
-}
-
 // utils/llm.js
-var import_config = __toESM(require_config());
 var LLM_CONTEXT_SIZE_MARGIN = 500;
 var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
 var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
@@ -17063,26 +16188,22 @@ var GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
 var MODEL_TYPE_OPENAI = "openai";
 var MODEL_TYPE_OTHER = "other";
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
-var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
-var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
-var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
+var LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
+var LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
 var LLM_LOCATION_OPENAI_SERVER = "openai_server";
-var LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache";
-var LLM_LOCATION_LM_STUDIO_CACHE = "lm_studio_cache";
-var LLM_LOCATION_USER_PROVIDED = "user_provided";
-var LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server";
 var llm_remote_models = [
   { model_name: "gpt-3.5-turbo", model_type: "openai", memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER }
+  /*
+  { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
   { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location:LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-gpt4all-j.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-gpt4all-l13b-snoozy.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-vicuna-7b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-vicuna-13b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+  { model_name: "ggml-vicuna-13b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
   { model_name: "ggml-wizardLM-7B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-stable-vicuna-13B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-nous-gpt4-vicuna-13b.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
@@ -17090,20 +16211,15 @@ var llm_remote_models = [
   { model_name: "ggml-mpt-7b-base.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-mpt-7b-chat.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
   { model_name: "ggml-mpt-7b-instruct.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER }
+  { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },*/
 ];
 var llm_model_types = {};
 var llm_context_sizes = {};
 var llm_memory_needs = {};
 var llm_location = {};
 var llm_local_choices = {};
-var loaded_models = {};
 async function get_llm_choices() {
-  await add_local_llm_choices(import_config.DEFAULT_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
-  await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
-  await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
   const choices = [];
-  const directory_path = import_config.DEFAULT_DIRECTORY;
   const remote_models = Object.values(llm_remote_models);
   for (const model of remote_models) {
     let name = model.model_name;
@@ -17111,13 +16227,6 @@ async function get_llm_choices() {
       let title, description;
       title = deduce_llm_title(name);
       description = deduce_llm_description(name, model.context_size);
-      if (model.location === LLM_LOCATION_GPT4ALL_SERVER) {
-        const filename = path2.join(directory_path, model.model_name);
-        const fileExist = await validateFileExists(filename);
-        if (!fileExist) {
-          title = "\u2B07" + title;
-        }
-      }
       if (name in llm_model_types == false)
         llm_model_types[name] = model.model_type;
       if (name in llm_context_sizes == false)
@@ -17135,43 +16244,6 @@ async function get_llm_choices() {
     choices.push(choice);
   }
   return choices;
-}
-async function add_local_llm_choices(model_dir, location) {
-  let filePaths = [];
-  omnilog.warn(`external model_dir = ${model_dir}`);
-  filePaths = await walkDirForExtension(filePaths, model_dir, ".bin");
-  omnilog.warn(`external filePaths # = ${filePaths.length}`);
-  for (const filepath of filePaths) {
-    const name = path2.basename(filepath);
-    omnilog.warn(`name = ${name}`);
-    const jsonPath = filepath.replace(".bin", ".json");
-    let title, description, model_type, context_size, memory_need;
-    if (name in llm_model_types == false) {
-      omnilog.warn(`not known yet: ${name}`);
-      if (await validateFileExists(jsonPath)) {
-        const jsonContent = await readJsonFromDisk(jsonPath);
-        title = jsonContent.title ?? deduce_llm_title(name);
-        ;
-        description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
-        model_type = jsonContent.model_type ?? MODEL_TYPE_OTHER;
-        context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
-        memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
-      } else {
-        title = deduce_llm_title(name);
-        description = deduce_llm_description(name);
-        model_type = MODEL_TYPE_OTHER;
-        context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-        memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
-      }
-      llm_model_types[name] = model_type;
-      llm_context_sizes[name] = context_size;
-      llm_memory_needs[name] = memory_need;
-      llm_location[name] = location;
-      const choice = { value: name, title, description };
-      llm_local_choices[name] = choice;
-      omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
-    }
-  }
 }
 function adjust_model(text_size, current_model) {
   if (current_model in llm_model_types == false)
@@ -17338,33 +16410,7 @@ async function runChatGPTBlock(ctx, args) {
   return response;
 }
 async function query_gpt4all_llm(prompt3, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128) {
-  omnilog.log(`Using model_name = ${model_name}`);
-  let model = null;
-  if (model_name in loaded_models)
-    model = loaded_models[model_name];
-  else {
-    if (model_name in llm_model_types == false)
-      throw new Error(`Unknown model: ${model_name}.`);
-    omnilog.log(`LOADING NEW MODEL: ${model_name}`);
-    model = await (0, import_gpt4all.loadModel)(model_name, { verbose: true });
-    loaded_models[model_name] = model;
-  }
-  const dialog = [{ role: "system", content: instruction }, { role: "user", content: prompt3 }];
-  omnilog.warn(`dialog = ${JSON.stringify(dialog)}`);
-  const response = await (0, import_gpt4all.createCompletion)(model, dialog);
-  omnilog.log(`response = ${JSON.stringify(response)}`);
-  const choices = response?.choices;
-  let result = { text: "" };
-  if (choices && Array.isArray(choices) && choices.length > 0) {
-    const choice = choices[0];
-    const message = choice?.message;
-    const content = message?.content;
-    const usage = response?.usage;
-    const total_tokens = usage.total_tokens;
-    result.text = content;
-    omnilog.log(`result = ${JSON.stringify(result)}`);
-  }
-  return result;
+  return null;
 }
 function deduce_llm_title(name) {
   const title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
@@ -17761,6 +16807,8 @@ var ReadTextFilesComponent = read_text_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 var NS_ONMI6 = "document_processing";
 async function async_get_docs_with_gpt_component() {
+  debugger;
+  
   let component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
     source: {
       "summary": "Feed text document(s) to chatGPT",
@@ -17800,20 +16848,20 @@ async function async_get_docs_with_gpt_component() {
 async function read_text_files_parse2(payload, ctx) {
   omnilog.log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
   const documents = payload.documents;
-  const url2 = payload.url;
+  const url = payload.url;
   const usage = payload.usage;
   const prompt3 = payload.prompt;
   const temperature = payload.temperature;
   const model = payload.model;
   const overwrite = payload.overwrite;
-  const response = await docs_with_gpt_function(ctx, documents, url2, usage, prompt3, temperature, model, overwrite);
+  const response = await docs_with_gpt_function(ctx, documents, url, usage, prompt3, temperature, model, overwrite);
   const response_cdn = response.response_cdn;
   const response_answer = response.answer;
   const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
   omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
-async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, prompt3, temperature, model, overwrite) {
+async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt3, temperature, model, overwrite) {
   let passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
   if (passed_documents_are_valid) {
     omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -17825,7 +16873,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url2, usage, p
       omnilog.log(`RECOVERED  #${passed_documents_cdns.lentgh} from "documents" input, RECOVERED passed_documents = ${JSON.stringify(passed_documents_cdns)}`);
     }
   }
-  let read_documents_cdns = await read_text_files_function(ctx, url2);
+  let read_documents_cdns = await read_text_files_function(ctx, url);
   const read_documents_are_valid = read_documents_cdns != null && read_documents_cdns != void 0 && Array.isArray(read_documents_cdns) && read_documents_cdns.length > 0;
   if (read_documents_are_valid) {
     omnilog.log(`type of read_documents_cdns = ${typeof read_documents_cdns}, read #${read_documents_cdns.length} from "read_documents_cdns", read_documents_cdns = ${JSON.stringify(read_documents_cdns)}`);

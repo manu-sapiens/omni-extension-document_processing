@@ -2,13 +2,12 @@
 import { is_valid, console_log, clean_string, pauseForSeconds } from './utils.js';
 import { runBlock } from './blocks.js';
 import { count_tokens_in_text } from './tiktoken.js';
-import { createCompletion, loadModel } from '../gpt4all/gpt4all.js';
-// --------------------
-
 import path from "path";
 import os from "os";
 import { omnilog } from 'mercs_shared';
 import { walkDirForExtension, validateFileExists, readJsonFromDisk, fetchJsonFromUrl } from './files.js';
+// import { createCompletion, loadModel } from '../gpt4all/gpt4all.js';
+// import { DEFAULT_DIRECTORY as LLM_GPT4ALL_CACHE_DIRECTORY } from '../gpt4all/config.js';
 
 
 const LLM_CONTEXT_SIZE_MARGIN = 500;
@@ -29,7 +28,6 @@ const DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
 
 const LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
 const LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
-import { DEFAULT_DIRECTORY as LLM_GPT4ALL_CACHE_DIRECTORY } from '../gpt4all/config.js';
 
 const LLM_LOCATION_OPENAI_SERVER = "openai_server"
 const LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache"
@@ -52,6 +50,7 @@ const llm_remote_models = [
     { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location:LLM_LOCATION_OPENAI_SERVER },
     { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
     { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+    /*
     { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
     { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
     { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location:LLM_LOCATION_GPT4ALL_SERVER },
@@ -66,7 +65,7 @@ const llm_remote_models = [
     { model_name: "ggml-mpt-7b-base.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
     { model_name: "ggml-mpt-7b-chat.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
     { model_name: "ggml-mpt-7b-instruct.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-    { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
+    { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },*/
 ];
 // TBD: read that info from online source
 const llm_model_types = {};
@@ -180,9 +179,11 @@ function getDefaultPromptTemplateFromModelType(model_type, model_name)
 
 async function get_llm_choices()
 {
+    /*
     await add_local_llm_choices(LLM_GPT4ALL_CACHE_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
     await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
     await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
+    */
 
     /*
     let remote_models_json;
@@ -209,7 +210,7 @@ async function get_llm_choices()
         */
 
     const choices = [];
-    const directory_path = LLM_GPT4ALL_CACHE_DIRECTORY;
+    // const directory_path = LLM_GPT4ALL_CACHE_DIRECTORY;
 
     const remote_models = Object.values(llm_remote_models);
     for (const model of remote_models)
@@ -222,7 +223,7 @@ async function get_llm_choices()
             let title, description;
             title = deduce_llm_title(name);
             description = deduce_llm_description(name, model.context_size);
-
+            /*
             if (model.location === LLM_LOCATION_GPT4ALL_SERVER)
             {
                 const filename = path.join(directory_path, model.model_name);
@@ -232,7 +233,8 @@ async function get_llm_choices()
                     title = '\u2B07' + title;
                 }
             }
-
+            */
+           
             if (name in llm_model_types == false) llm_model_types[name] = model.model_type;
             if (name in llm_context_sizes == false) llm_context_sizes[name] = model.context_size;
             if (name in llm_memory_needs == false) llm_memory_needs[name] = model.memory_need;
@@ -527,7 +529,8 @@ async function runChatGPTBlock(ctx, args)
 
 async function query_gpt4all_llm(prompt, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128)
 {
-
+    return null;
+    /*
     omnilog.log(`Using model_name = ${model_name}`);
 
     let model = null;
@@ -562,6 +565,7 @@ async function query_gpt4all_llm(prompt, instruction, model_name, llm_functions 
         omnilog.log(`result = ${JSON.stringify(result)}`);
     }
     return result;
+    */
 
 }
 
