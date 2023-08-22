@@ -10,50 +10,52 @@ import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
 import { initialize_embedder } from './utils/embedder.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
+import { get_llm_choices } from "./utils/llm.js"
 
-let query_chunk_component = OAIBaseComponent
-    .create(NS_ONMI, "query_chunks")
-    .fromScratch()
-    .set('title', 'Query documents')
-    .set('category', 'Text Manipulation')
-    .set('description', 'Query chunked documents using a vectorstore')
-    .setMethod('X-CUSTOM')
-    .setMeta({
-        source: {
-          summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
-          links: {
-                "Langchainjs Website": "https://docs.langchain.com/docs/",
-                "Documentation": "https://js.langchain.com/docs/",
-                "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-                "Faiss": "https://faiss.ai/"
-            },
-        }
-    });
-    
-// Adding input(s)
-const inputs = [
-  { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
-  { name: 'query', type: 'string', customSocket: 'text' },
-  { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: [
-    {value:'gpt-3.5-turbo', title:"chatGPT 3 (4k)", description:"gpt 3.5 with ~ 3,000 words context"}, 
-    {value:'gpt-3.5-turbo-16k', title:"chatGPT 3 (16k)", description:"gpt 3.5 with ~ 12,000 words context"}, 
-    {value:'gpt-4', title:"chatGPT 4 (8k)", description:"gpt 4 with ~ 6,000 words context"},
-    {value:'gpt-4-32k', title:"chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context"}] },
-];
-query_chunk_component = setComponentInputs(query_chunk_component, inputs);
+async function async_GetQueryChunksComponent()
+{
+  let query_chunk_component = OAIBaseComponent
+      .create(NS_ONMI, "query_chunks")
+      .fromScratch()
+      .set('title', 'Query documents')
+      .set('category', 'Text Manipulation')
+      .set('description', 'Query chunked documents using a vectorstore')
+      .setMethod('X-CUSTOM')
+      .setMeta({
+          source: {
+            summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+            links: {
+                  "Langchainjs Website": "https://docs.langchain.com/docs/",
+                  "Documentation": "https://js.langchain.com/docs/",
+                  "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
+                  "Faiss": "https://faiss.ai/"
+              },
+          }
+      });
+      
+  // Adding input(s)
+  const llm_choices  = await get_llm_choices();
+  const inputs = [
+    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
+    { name: 'query', type: 'string', customSocket: 'text' },
+    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+  ];
+  query_chunk_component = setComponentInputs(query_chunk_component, inputs);
 
-// Adding outpu(t)
-const outputs = [
-    { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
-    { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
-    { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
-];
-query_chunk_component = setComponentOutputs(query_chunk_component, outputs);
+  // Adding outpu(t)
+  const outputs = [
+      { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+      { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
+      { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
+  ];
+  query_chunk_component = setComponentOutputs(query_chunk_component, outputs);
 
 
-// Adding _exec function
-query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, query_chunk_parse);
+  // Adding _exec function
+  query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, query_chunk_parse);
 
+  return query_chunk_component.toJSON();
+}
 
 async function query_chunk_parse(payload, ctx) {
 
@@ -106,5 +108,5 @@ async function query_chunk_parse(payload, ctx) {
       return response;
   }
   
-const QueryChunksComponent = query_chunk_component.toJSON();
-export {QueryChunksComponent, query_chunks_function};
+
+export {async_GetQueryChunksComponent, query_chunks_function};

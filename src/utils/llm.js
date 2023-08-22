@@ -34,6 +34,7 @@ const LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache"
 const LLM_LOCATION_LM_STUDIO_CACHE = "lm_studio_cache"
 const LLM_LOCATION_USER_PROVIDED = "user_provided"
 const LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server"
+const LLM_LOCATION_OOBABOOGA = "oobabooga"
 
 
 //const {
@@ -46,10 +47,11 @@ const LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server"
 
 
 const llm_remote_models = [
-    { model_name: "gpt-3.5-turbo", model_type: "openai", memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
-    { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location:LLM_LOCATION_OPENAI_SERVER },
-    { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
-    { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location:LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "gpt-4-32k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+    { model_name: "local", title: "local via Text Generation Webui", model_type: MODEL_TYPE_OTHER, memory_need: 0, context_size: 2048, location: LLM_LOCATION_OOBABOOGA },
     /*
     { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
     { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
@@ -73,7 +75,9 @@ const llm_context_sizes = {};
 const llm_memory_needs = {};
 const llm_location = {};
 const llm_local_choices = {};
+const llm_titles = {};
 const loaded_models = {};
+const llm_descriptions = {};
 const JSON_URL = "https://raw.githubusercontent.com/nomic-ai/gpt4all/main/gpt4all-chat/metadata/models.json";
 
 
@@ -220,9 +224,10 @@ async function get_llm_choices()
 
         if (name in llm_local_choices == false)
         {
-            let title, description;
-            title = deduce_llm_title(name);
-            description = deduce_llm_description(name, model.context_size);
+ 
+            const title = model.title || deduce_llm_title(name);
+            const description = model.description || deduce_llm_description(name, model.context_size);
+          
             /*
             if (model.location === LLM_LOCATION_GPT4ALL_SERVER)
             {
@@ -234,11 +239,14 @@ async function get_llm_choices()
                 }
             }
             */
-           
+
             if (name in llm_model_types == false) llm_model_types[name] = model.model_type;
             if (name in llm_context_sizes == false) llm_context_sizes[name] = model.context_size;
             if (name in llm_memory_needs == false) llm_memory_needs[name] = model.memory_need;
             if (name in llm_location == false) llm_location[name] = model.location;
+            if (name in llm_titles == false) llm_titles[name] = model.title;
+            if (name in llm_descriptions == false) llm_descriptions[name] = model.description;
+
             // we do NOT add name to llm_local_choices on purpose to distinguish between local and remote models
         
             choices.push({ value: name, title: title, description: description });
@@ -449,18 +457,19 @@ function get_model_context_size(model_name)
     return context_size;
 }
 
-async function query_llm(ctx, prompt, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
+async function queryLlm(ctx, prompt, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
 {
-    omnilog.warn(`query_llm: model_name = ${model_name}, prompt = ${prompt}, instruction = ${instruction}, llm_functions = ${JSON.stringify(llm_functions)}, temperature = ${temperature}, top_p = ${top_p}`);
     let response = null;
 
     if (get_llm_type(model_name) == MODEL_TYPE_OPENAI)
     {
+
         response = await query_openai_llm(ctx, prompt, instruction, model_name, llm_functions, temperature, top_p);
     }
     else
     {
-        response = await query_gpt4all_llm(prompt, instruction, model_name, llm_functions, temperature, top_p);
+        const combined_prompt = `${instruction}\n\n${prompt}`
+        response = await queryOobaboogaLlm(ctx, combined_prompt, temperature); 
     }
 
     return response;
@@ -527,47 +536,6 @@ async function runChatGPTBlock(ctx, args)
     return response;
 }
 
-async function query_gpt4all_llm(prompt, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128)
-{
-    return null;
-    /*
-    omnilog.log(`Using model_name = ${model_name}`);
-
-    let model = null;
-
-    if (model_name in loaded_models) model = loaded_models[model_name];
-    else
-    {
-        if (model_name in llm_model_types == false) throw new Error(`Unknown model: ${model_name}.`);
-
-        omnilog.log(`LOADING NEW MODEL: ${model_name}`);
-        model = await loadModel(model_name, { verbose: true });
-        loaded_models[model_name] = model;
-    }
-
-    const dialog = [{ role : 'system', content : instruction}, {role : 'user', content : prompt} ];
-    omnilog.warn(`dialog = ${JSON.stringify(dialog)}`);
-    const response = await createCompletion(model, dialog);
-
-    omnilog.log(`response = ${JSON.stringify(response)}`);
-    const choices = response?.choices;
-
-    let result = { text: "" };
-    if (choices && Array.isArray(choices) && choices.length > 0)
-    {
-        const choice = choices[0];
-        const message = choice?.message;
-        const content = message?.content;
-        const usage = response?.usage;
-        const total_tokens = usage.total_tokens;
-
-        result.text = content;
-        omnilog.log(`result = ${JSON.stringify(result)}`);
-    }
-    return result;
-    */
-
-}
 
 function deduce_llm_title(name)
 {
@@ -581,7 +549,68 @@ function deduce_llm_description(name, context_size = 0)
     if (context_size > 0) description += ` (${Math.floor(context_size/1024)}k)`;
     return description;
 }
+async function queryOobaboogaLlm(ctx, prompt, temperature = 0.3)
+{
+    // for now, for this to work we need:
+    // 1a. a model loaded in oobabbooga (i.e. you need top open your browser to http://127.0.0.1:7860/ and load the model there)
+    // 1b. a model manually copied into oobabbooga's models directory 
+    // 2. in oobabooga session tab, options --api and --listen checked (or used as cmdline parameters when launching oobabooga)
 
-export { query_llm, runChatGPTBlock, get_model_max_size, adjust_model, get_llm_choices };
+    let args = {};
+    //args.user = ctx.userId;
+    args.prompt = prompt;
+    args.temperature = temperature;
+    // args.top_p = top_p;
+    // TBD: find a way to support functions
+
+    console_log(`[query_oobabooga_llm] args: ${JSON.stringify(args)}`);
+
+    const response = await runOobaboogaBlock(ctx, args);
+    if (response.error) throw new Error(response.error);
+
+    const results = response?.results || [];
+    if (results.length == 0) throw new Error("No results returned from oobabooga");
+
+    const text = results[0].text || null;
+    if (!text) throw new Error("Empty text result returned from oobabooga");
+
+    const return_value = {
+        text: text,
+        function_arguments_string: "",
+        function_arguments: null,
+        total_tokens: 0,
+    };
+
+    //DEBUG
+    omnilog.warn(`oobabooga return value = ${JSON.stringify(return_value)}`)
+
+    return return_value;
+
+}
+async function runOobaboogaBlock(ctx, args) 
+{
+    const block_name = 'oobabooga.simpleGenerateText';
+    let response = null;
+    try
+    {
+        response = await runBlock(ctx, block_name, args);
+    }
+    catch (err)
+    {
+        let error_message = `Error running ${block_name}: ${err.message}`;
+        console.error(error_message);
+        throw err;
+    }
+    return response;
+}
+
+
+// from: "automatic1111.generateText"
+// namespace: "oobabooga"
+// componentKey: "simpleGenerateText"
+
+
+
+export { queryLlm, runChatGPTBlock, get_model_max_size, adjust_model, get_llm_choices };
 export { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX }
 

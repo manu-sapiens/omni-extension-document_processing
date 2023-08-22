@@ -6520,8 +6520,8 @@ function generateTitle(name) {
   const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
-function setComponentInputs(component, inputs4) {
-  inputs4.forEach(function(input) {
+function setComponentInputs(component, inputs3) {
+  inputs3.forEach(function(input) {
     var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
     if (!title || title == "")
       title = generateTitle(name);
@@ -6531,8 +6531,8 @@ function setComponentInputs(component, inputs4) {
   });
   return component;
 }
-function setComponentOutputs(component, outputs4) {
-  outputs4.forEach(function(output) {
+function setComponentOutputs(component, outputs3) {
+  outputs3.forEach(function(output) {
     var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
     if (!title || title == "")
       title = generateTitle(name);
@@ -7616,7 +7616,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMError?.(run);
     await this._endTrace(run);
   }
-  async handleChainStart(chain, inputs4, runId, parentRunId, tags, metadata, runType) {
+  async handleChainStart(chain, inputs3, runId, parentRunId, tags, metadata, runType) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const run = {
@@ -7631,7 +7631,7 @@ var BaseTracer = class extends BaseCallbackHandler {
           time: start_time
         }
       ],
-      inputs: inputs4,
+      inputs: inputs3,
       execution_order,
       child_execution_order: execution_order,
       run_type: runType ?? "chain",
@@ -7642,13 +7642,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs4, runId) {
+  async handleChainEnd(outputs3, runId) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = outputs4;
+    run.outputs = outputs3;
     run.events.push({
       name: "end",
       time: run.end_time
@@ -7903,8 +7903,8 @@ var ConsoleCallbackHandler = class extends BaseTracer {
   }
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
-    const inputs4 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
-    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs4, "[inputs]")}`);
+    const inputs3 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
+    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs3, "[inputs]")}`);
   }
   onLLMEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
@@ -8577,7 +8577,7 @@ var Client = class _Client {
     }
     await response.json();
   }
-  async createExample(inputs4, outputs4, { datasetId, datasetName, createdAt }) {
+  async createExample(inputs3, outputs3, { datasetId, datasetName, createdAt }) {
     let datasetId_ = datasetId;
     if (datasetId_ === void 0 && datasetName === void 0) {
       throw new Error("Must provide either datasetName or datasetId");
@@ -8590,8 +8590,8 @@ var Client = class _Client {
     const createdAt_ = createdAt || /* @__PURE__ */ new Date();
     const data = {
       dataset_id: datasetId_,
-      inputs: inputs4,
-      outputs: outputs4,
+      inputs: inputs3,
+      outputs: outputs3,
       created_at: createdAt_.toISOString()
     };
     const response = await this.caller.call(fetch, `${this.apiUrl}/examples`, {
@@ -9478,11 +9478,11 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChainStart(chain, inputs4, runId = v4_default(), runType = void 0) {
+  async handleChainStart(chain, inputs3, runId = v4_default(), runType = void 0) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainStart?.(chain, inputs4, runId, this._parentRunId, this.tags, this.metadata, runType);
+          await handler.handleChainStart?.(chain, inputs3, runId, this._parentRunId, this.tags, this.metadata, runType);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainStart: ${err}`);
         }
@@ -9727,12 +9727,12 @@ var Runnable = class extends Serializable {
     }
     return Array.from({ length }, () => options3);
   }
-  async batch(inputs4, options3, batchOptions) {
-    const configList = this._getOptionsList(options3 ?? {}, inputs4.length);
-    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs4.length;
+  async batch(inputs3, options3, batchOptions) {
+    const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
+    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs3.length;
     const batchResults = [];
-    for (let i = 0; i < inputs4.length; i += batchSize) {
-      const batchPromises = inputs4.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
+    for (let i = 0; i < inputs3.length; i += batchSize) {
+      const batchPromises = inputs3.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
@@ -9867,11 +9867,11 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
     await runManager?.handleChainEnd(_coerceToDict(finalOutput, "output"));
     return finalOutput;
   }
-  async batch(inputs4, options3, batchOptions) {
-    const configList = this._getOptionsList(options3 ?? {}, inputs4.length);
+  async batch(inputs3, options3, batchOptions) {
+    const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs4[i], "input"))));
-    let nextStepInputs = inputs4;
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs3[i], "input"))));
+    let nextStepInputs = inputs3;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
@@ -10080,12 +10080,12 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
   async invoke(input, options3) {
     return this.bound.invoke(input, { ...options3, ...this.kwargs });
   }
-  async batch(inputs4, options3, batchOptions) {
+  async batch(inputs3, options3, batchOptions) {
     const mergedOptions = Array.isArray(options3) ? options3.map((individualOption) => ({
       ...individualOption,
       ...this.kwargs
     })) : { ...options3, ...this.kwargs };
-    return this.bound.batch(inputs4, mergedOptions, batchOptions);
+    return this.bound.batch(inputs3, mergedOptions, batchOptions);
   }
   async stream(input, options3) {
     return this.bound.stream(input, { ...options3, ...this.kwargs });
@@ -11861,7 +11861,7 @@ var CachedEmbeddings = class extends Embeddings {
 };
 
 // utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs4 = {}) {
+async function runBlock(ctx, block_name, args, outputs3 = {}) {
   try {
     const app = ctx.app;
     if (!app) {
@@ -11871,7 +11871,7 @@ async function runBlock(ctx, block_name, args, outputs4 = {}) {
     if (!blocks) {
       throw new Error(`[runBlock] blocks not found in app`);
     }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs4);
+    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
     return result;
   } catch (err) {
     throw new Error(`Error running block ${block_name}: ${err}`);
@@ -16191,11 +16191,13 @@ var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
 var LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
 var LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
 var LLM_LOCATION_OPENAI_SERVER = "openai_server";
+var LLM_LOCATION_OOBABOOGA = "oobabooga";
 var llm_remote_models = [
-  { model_name: "gpt-3.5-turbo", model_type: "openai", memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-3.5-turbo-16k", model_type: "openai", memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4", model_type: "openai", memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4-32k", model_type: "openai", memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER }
+  { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "gpt-4-32k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
+  { model_name: "local", title: "local via Text Generation Webui", model_type: MODEL_TYPE_OTHER, memory_need: 0, context_size: 2048, location: LLM_LOCATION_OOBABOOGA }
   /*
   { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
   { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
@@ -16218,15 +16220,16 @@ var llm_context_sizes = {};
 var llm_memory_needs = {};
 var llm_location = {};
 var llm_local_choices = {};
+var llm_titles = {};
+var llm_descriptions = {};
 async function get_llm_choices() {
   const choices = [];
   const remote_models = Object.values(llm_remote_models);
   for (const model of remote_models) {
     let name = model.model_name;
     if (name in llm_local_choices == false) {
-      let title, description;
-      title = deduce_llm_title(name);
-      description = deduce_llm_description(name, model.context_size);
+      const title = model.title || deduce_llm_title(name);
+      const description = model.description || deduce_llm_description(name, model.context_size);
       if (name in llm_model_types == false)
         llm_model_types[name] = model.model_type;
       if (name in llm_context_sizes == false)
@@ -16235,6 +16238,10 @@ async function get_llm_choices() {
         llm_memory_needs[name] = model.memory_need;
       if (name in llm_location == false)
         llm_location[name] = model.location;
+      if (name in llm_titles == false)
+        llm_titles[name] = model.title;
+      if (name in llm_descriptions == false)
+        llm_descriptions[name] = model.description;
       choices.push({ value: name, title, description });
     }
   }
@@ -16351,13 +16358,15 @@ function get_model_context_size(model_name) {
   const context_size = llm_context_sizes[model_name];
   return context_size;
 }
-async function query_llm(ctx, prompt3, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
-  omnilog.warn(`query_llm: model_name = ${model_name}, prompt = ${prompt3}, instruction = ${instruction}, llm_functions = ${JSON.stringify(llm_functions)}, temperature = ${temperature}, top_p = ${top_p}`);
+async function queryLlm(ctx, prompt3, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
   let response = null;
   if (get_llm_type(model_name) == MODEL_TYPE_OPENAI) {
     response = await query_openai_llm(ctx, prompt3, instruction, model_name, llm_functions, temperature, top_p);
   } else {
-    response = await query_gpt4all_llm(prompt3, instruction, model_name, llm_functions, temperature, top_p);
+    const combined_prompt = `${instruction}
+
+${prompt3}`;
+    response = await queryOobaboogaLlm(ctx, combined_prompt, temperature);
   }
   return response;
 }
@@ -16409,9 +16418,6 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
-async function query_gpt4all_llm(prompt3, instruction, model_name, llm_functions = null, temperature = 0, top_p = 1, numPredict = 512, numCtxTokens = 128) {
-  return null;
-}
 function deduce_llm_title(name) {
   const title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
   return title;
@@ -16421,6 +16427,41 @@ function deduce_llm_description(name, context_size = 0) {
   if (context_size > 0)
     description += ` (${Math.floor(context_size / 1024)}k)`;
   return description;
+}
+async function queryOobaboogaLlm(ctx, prompt3, temperature = 0.3) {
+  let args = {};
+  args.prompt = prompt3;
+  args.temperature = temperature;
+  console_log(`[query_oobabooga_llm] args: ${JSON.stringify(args)}`);
+  const response = await runOobaboogaBlock(ctx, args);
+  if (response.error)
+    throw new Error(response.error);
+  const results = response?.results || [];
+  if (results.length == 0)
+    throw new Error("No results returned from oobabooga");
+  const text2 = results[0].text || null;
+  if (!text2)
+    throw new Error("Empty text result returned from oobabooga");
+  const return_value = {
+    text: text2,
+    function_arguments_string: "",
+    function_arguments: null,
+    total_tokens: 0
+  };
+  omnilog.warn(`oobabooga return value = ${JSON.stringify(return_value)}`);
+  return return_value;
+}
+async function runOobaboogaBlock(ctx, args) {
+  const block_name = "oobabooga.simpleGenerateText";
+  let response = null;
+  try {
+    response = await runBlock(ctx, block_name, args);
+  } catch (err) {
+    let error_message = `Error running ${block_name}: ${err.message}`;
+    console.error(error_message);
+    throw err;
+  }
+  return response;
 }
 
 // GptIXPComponent.js
@@ -16433,7 +16474,7 @@ async function async_get_gpt_IxP_component() {
     }
   });
   const llm_choices = await get_llm_choices();
-  const inputs4 = [
+  const inputs3 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -16441,17 +16482,17 @@ async function async_get_gpt_IxP_component() {
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
     { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs4);
+  component = setComponentInputs(component, inputs3);
   const controls = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
   component = setComponentControls(component, controls);
-  const outputs4 = [
+  const outputs3 = [
     { name: "text", type: "string", customSocket: "text", description: "Result Text", title: "Result Text" },
     { name: "documents", type: "array", customSocket: "documentArray", description: "documents containing the answers" },
     { name: "answers", type: "object", customSocket: "object", description: "Answers JSON" }
   ];
-  component = setComponentOutputs(component, outputs4);
+  component = setComponentOutputs(component, outputs3);
   component.setMacro(OmniComponentMacroTypes2.EXEC, gpt_IxP_parse);
   return component.toJSON();
 }
@@ -16492,7 +16533,7 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
       if (token_cost > GPT4_SIZE_MAX) {
         omnilog.log("WARNING: token cost > GPT4_SIZE_MAX");
       }
-      const answer_object = await query_llm(ctx, prompt4, instruction2, model, llm_functions, temperature, top_p);
+      const answer_object = await queryLlm(ctx, prompt4, instruction2, model, llm_functions, temperature, top_p);
       if (is_valid(answer_object) == false)
         continue;
       const answer_text = answer_object.text;
@@ -16532,7 +16573,7 @@ async function async_get_loop_gpt_component() {
     }
   });
   const llm_choices = await get_llm_choices();
-  const inputs4 = [
+  const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -16540,17 +16581,17 @@ async function async_get_loop_gpt_component() {
     { name: "top_p", type: "number", defaultValue: 1 },
     { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs4);
+  component = setComponentInputs(component, inputs3);
   const controls = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
   component = setComponentControls(component, controls);
-  const outputs4 = [
+  const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
     { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
     { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
   ];
-  component = setComponentOutputs(component, outputs4);
+  component = setComponentOutputs(component, outputs3);
   component.setMacro(OmniComponentMacroTypes3.EXEC, loop_gpt_parse);
   return component.toJSON();
 }
@@ -16603,7 +16644,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
           }
           if (!can_fit || is_last_index) {
             const model = adjust_model(total_token_cost, llm_model);
-            const gpt_results = await query_llm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
+            const gpt_results = await queryLlm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
             const sanetized_results = sanitizeJSON(gpt_results);
             omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
             chunks_results.push(sanetized_results);
@@ -16652,7 +16693,6 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
   let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
   let max_size = get_model_max_size(model);
-  const instruction = `Please review the snippets of texts and see if you can find answers to the user's question. However, there is no need to mention that you are reading snippets of text (e.g. 'Based on the snippets of texts,'). Instead, just answer the question giving as much details as possible, quoting the source if is is useful. Thanks! The user's question is: ${query}`;
   let combined_text = "";
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
@@ -16670,7 +16710,9 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     total_tokens += token_cost;
     combined_text += text2;
   }
-  const query_answer_json = await query_llm(ctx, combined_text, instruction, model);
+  const instruction = `Here are some quotes. ${combined_text}`;
+  const prompt3 = `Based on the quotes, answer this question: ${query}`;
+  const query_answer_json = await queryLlm(ctx, prompt3, instruction, model);
   const query_answer = query_answer_json?.text || null;
   if (is_valid(query_answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
@@ -16679,35 +16721,34 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
 // QueryChunksComponent.js
 var NS_ONMI4 = "document_processing";
-var query_chunk_component = OAIBaseComponent4.create(NS_ONMI4, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
-    links: {
-      "Langchainjs Website": "https://docs.langchain.com/docs/",
-      "Documentation": "https://js.langchain.com/docs/",
-      "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-      "Faiss": "https://faiss.ai/"
+async function async_GetQueryChunksComponent() {
+  let query_chunk_component = OAIBaseComponent4.create(NS_ONMI4, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
+    source: {
+      summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+      links: {
+        "Langchainjs Website": "https://docs.langchain.com/docs/",
+        "Documentation": "https://js.langchain.com/docs/",
+        "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
+        "Faiss": "https://faiss.ai/"
+      }
     }
-  }
-});
-var inputs2 = [
-  { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
-  { name: "query", type: "string", customSocket: "text" },
-  { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: [
-    { value: "gpt-3.5-turbo", title: "chatGPT 3 (4k)", description: "gpt 3.5 with ~ 3,000 words context" },
-    { value: "gpt-3.5-turbo-16k", title: "chatGPT 3 (16k)", description: "gpt 3.5 with ~ 12,000 words context" },
-    { value: "gpt-4", title: "chatGPT 4 (8k)", description: "gpt 4 with ~ 6,000 words context" },
-    { value: "gpt-4-32k", title: "chatGPT 4 (32k)", description: "chat GPT 4 with ~ 24,000 words context" }
-  ] }
-];
-query_chunk_component = setComponentInputs(query_chunk_component, inputs2);
-var outputs2 = [
-  { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-  { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
-  { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
-];
-query_chunk_component = setComponentOutputs(query_chunk_component, outputs2);
-query_chunk_component.setMacro(OmniComponentMacroTypes4.EXEC, query_chunk_parse);
+  });
+  const llm_choices = await get_llm_choices();
+  const inputs3 = [
+    { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
+    { name: "query", type: "string", customSocket: "text" },
+    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+  ];
+  query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
+  const outputs3 = [
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
+    { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
+    { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
+  ];
+  query_chunk_component = setComponentOutputs(query_chunk_component, outputs3);
+  query_chunk_component.setMacro(OmniComponentMacroTypes4.EXEC, query_chunk_parse);
+  return query_chunk_component.toJSON();
+}
 async function query_chunk_parse(payload, ctx) {
   let return_value = { result: { "ok": false }, files: [], documents: [], answer: "" };
   if (payload.documents) {
@@ -16748,7 +16789,6 @@ chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model
   console.timeEnd("query_chunks_component_processTime");
   return response;
 }
-var QueryChunksComponent = query_chunk_component.toJSON();
 
 // ReadTextFilesComponent.js
 import { OAIBaseComponent as OAIBaseComponent5, WorkerContext as WorkerContext5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "mercs_rete";
@@ -16758,15 +16798,15 @@ var read_text_files_component = OAIBaseComponent5.create(NS_ONMI5, "read_text_fi
     summary: "Read text files"
   }
 });
-var inputs3 = [
+var inputs2 = [
   { name: "text_or_url", type: "string", title: "Text or URL(s)", customSocket: "text", description: "text or url(s) of text files" }
 ];
-read_text_files_component = setComponentInputs(read_text_files_component, inputs3);
-var outputs3 = [
+read_text_files_component = setComponentInputs(read_text_files_component, inputs2);
+var outputs2 = [
   { name: "documents", type: "array", customSocket: "documentArray", description: "The read documents" },
   { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The read files" }
 ];
-read_text_files_component = setComponentOutputs(read_text_files_component, outputs3);
+read_text_files_component = setComponentOutputs(read_text_files_component, outputs2);
 read_text_files_component.setMacro(OmniComponentMacroTypes5.EXEC, read_text_files_parse);
 async function read_text_files_parse(payload, ctx) {
   const text_or_url = payload.text_or_url;
@@ -16807,8 +16847,6 @@ var ReadTextFilesComponent = read_text_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 var NS_ONMI6 = "document_processing";
 async function async_get_docs_with_gpt_component() {
-  debugger;
-  
   let component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
     source: {
       "summary": "Feed text document(s) to chatGPT",
@@ -16818,7 +16856,7 @@ async function async_get_docs_with_gpt_component() {
     }
   });
   const llm_choices = await get_llm_choices();
-  const inputs4 = [
+  const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
     { name: "usage", type: "string", defaultValue: "query_documents", choices: [
@@ -16831,22 +16869,21 @@ async function async_get_docs_with_gpt_component() {
     { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
-  component = setComponentInputs(component, inputs4);
+  component = setComponentInputs(component, inputs3);
   const controls = [
     { name: "documents", placeholder: "AlpineCodeMirrorComponent" }
   ];
   component = setComponentControls(component, controls);
-  const outputs4 = [
+  const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-    { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" },
-    { name: "files", type: "array", customSocket: "cdnObjectArray", description: "The files containing the results" }
+    { name: "documents", type: "array", customSocket: "documentArray", description: "The documents containing the results" }
   ];
-  component = setComponentOutputs(component, outputs4);
+  component = setComponentOutputs(component, outputs3);
   component.setMacro(OmniComponentMacroTypes6.EXEC, read_text_files_parse2);
   return component.toJSON();
 }
 async function read_text_files_parse2(payload, ctx) {
-  omnilog.log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
+  omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
   const documents = payload.documents;
   const url = payload.url;
   const usage = payload.usage;
@@ -16858,7 +16895,7 @@ async function read_text_files_parse2(payload, ctx) {
   const response_cdn = response.response_cdn;
   const response_answer = response.answer;
   const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
-  omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+  omnilog.log(`[DocsWithGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
 async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt3, temperature, model, overwrite) {
@@ -16893,7 +16930,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
     omnilog.log(`2] documents = ${read_documents_cdns} is invalid`);
   }
   const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
-  let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
+  let return_value = { result: { "ok": false }, answers: [], documents: [] };
   let response_cdn = null;
   let answer = "";
   let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
@@ -16915,7 +16952,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
     let llm_functions = null;
     try {
       llm_functions = JSON.parse(prompt3);
-      omnilog.log(`[TextsToChatGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
+      omnilog.log(`[DocsWithGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
     } catch {
       throw new Error(`Invalid JSON in [Prompt] field: ${prompt3}`);
     }
@@ -16923,7 +16960,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
       throw new Error("No valid functions specified in [prompt] field");
     if (!Array.isArray(llm_functions)) {
       llm_functions = [llm_functions];
-      omnilog.log(`[TextsToChatGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
+      omnilog.log(`[DocsWithGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
     }
     const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
     response_cdn = response.cdn;
@@ -16931,8 +16968,9 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
   } else {
     throw new Error(`Unknown usage: ${usage}`);
   }
-  omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
-  return { response_cdn, answer };
+  return_value = { result: { "ok": true }, answer, documents: [response_cdn] };
+  omnilog.log(`[DocsWithGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+  return return_value;
 }
 
 // extension.js
@@ -16940,6 +16978,7 @@ async function CreateComponents() {
   const GptIXPComponent = await async_get_gpt_IxP_component();
   const LoopGPTComponent = await async_get_loop_gpt_component();
   const DocsWithGPTComponent = await async_get_docs_with_gpt_component();
+  const QueryChunksComponent = await async_GetQueryChunksComponent();
   const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
   return {
     blocks: components,

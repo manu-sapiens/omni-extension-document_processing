@@ -1,4 +1,4 @@
-// TextsToChatGPTComponent
+// DocsWithGPTComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
@@ -53,7 +53,6 @@ async function async_get_docs_with_gpt_component()
     const outputs = [
         { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
         { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
-        { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
     ];
     component = setComponentOutputs(component, outputs);
 
@@ -65,7 +64,7 @@ async function async_get_docs_with_gpt_component()
 }
 
 async function read_text_files_parse(payload, ctx) {
-    omnilog.log(`[TextsToChatGPTComponent]: payload = ${JSON.stringify(payload)}`);
+    omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
 
 
     const documents = payload.documents;
@@ -81,7 +80,7 @@ async function read_text_files_parse(payload, ctx) {
     const response_answer = response.answer;
 
     const return_value = { result: { "ok": true }, answer: response_answer, documents: [response_cdn], files: [response_cdn] };
-    omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+    omnilog.log(`[DocsWithGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
     return return_value;
 
 }
@@ -127,7 +126,7 @@ async function read_text_files_parse(payload, ctx) {
         }
 
         const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
-        let return_value = { result: { "ok": false }, answers: [], documents: [], files: [] };
+        let return_value = { result: { "ok": false }, answers: [], documents: [] };
         let response_cdn = null;
         let answer = "";
         let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
@@ -152,7 +151,7 @@ async function read_text_files_parse(payload, ctx) {
             let llm_functions = null;
             try {
                 llm_functions = JSON.parse(prompt);
-                omnilog.log(`[TextsToChatGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
+                omnilog.log(`[DocsWithGPTComponent]: string -> object: llm_functions = ${JSON.stringify(llm_functions)}`);
             }
             catch
             {
@@ -161,7 +160,7 @@ async function read_text_files_parse(payload, ctx) {
             if (llm_functions === null || llm_functions === undefined || llm_functions.length == 0) throw new Error("No valid functions specified in [prompt] field");
             if (!Array.isArray(llm_functions)) {
                 llm_functions = [llm_functions];
-                omnilog.log(`[TextsToChatGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
+                omnilog.log(`[DocsWithGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
             }
 
             const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
@@ -173,8 +172,9 @@ async function read_text_files_parse(payload, ctx) {
             throw new Error(`Unknown usage: ${usage}`);
         }
 
-        omnilog.log(`[TextsToChatGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
-        return { response_cdn, answer }
+        return_value = { result: { "ok": true }, answer: answer, documents: [response_cdn]};
+        omnilog.log(`[DocsWithGPTComponent]: return_value = ${JSON.stringify(return_value)}`);
+        return return_value
     }
 
     export { async_get_docs_with_gpt_component, docs_with_gpt_function };

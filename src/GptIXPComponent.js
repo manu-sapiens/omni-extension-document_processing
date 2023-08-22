@@ -7,7 +7,7 @@ const NS_ONMI = 'document_processing';
 import { save_json_to_cdn, } from './utils/cdn.js';
 import { is_valid, parse_text_to_array } from './utils/utils.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
-import { query_llm, adjust_model, get_llm_choices , DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
+import { queryLlm, adjust_model, get_llm_choices , DEFAULT_GPT_MODEL, GPT4_SIZE_MAX } from './utils/llm.js';
 
 
 async function async_get_gpt_IxP_component()
@@ -105,7 +105,7 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
             let model = adjust_model(token_cost, llm_model);
 
             if (token_cost > GPT4_SIZE_MAX) { omnilog.log('WARNING: token cost > GPT4_SIZE_MAX'); }
-            const answer_object = await query_llm(ctx, prompt, instruction, model, llm_functions, temperature, top_p);
+            const answer_object = await queryLlm(ctx, prompt, instruction, model, llm_functions, temperature, top_p);
             if (is_valid(answer_object) == false) continue;
 
             const answer_text = answer_object.text;

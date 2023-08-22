@@ -7,7 +7,7 @@ const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, get_chunks_from_cdn } from './utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
-import { query_llm, get_model_max_size, adjust_model, get_llm_choices, DEFAULT_GPT_MODEL } from './utils/llm.js';
+import { queryLlm, get_model_max_size, adjust_model, get_llm_choices, DEFAULT_GPT_MODEL } from './utils/llm.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
 
 async function async_get_loop_gpt_component()
@@ -138,7 +138,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
                     if (!can_fit || is_last_index)
                     {
                         const model = adjust_model(total_token_cost, llm_model);
-                        const gpt_results = await query_llm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
+                        const gpt_results = await queryLlm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
                         const sanetized_results = sanitizeJSON(gpt_results);
 
                         omnilog.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
