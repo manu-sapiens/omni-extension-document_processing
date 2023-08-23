@@ -463,7 +463,7 @@ function deduce_llm_description(name, context_size = 0)
 
 function parseOobaboogaModelResponse(model_response)
 {
-    let nestedResult = JSON.parse(JSON.stringify(model_response));
+    let nestedResult = JSON.parse(model_response);
     omnilog.warn(`nestedResult = ${JSON.stringify(nestedResult)}`);
 
     // Rename the keys
@@ -495,7 +495,9 @@ async function queryOobaboogaLlm(ctx, prompt, model_name, temperature = 0.3)
     
     let loaded_model = nestedResult?.model_name;
     const context_size = nestedResult?.settings?.max_new_tokens_max || 0;
+    llm_context_sizes[model_name] = context_size;
     omnilog.warn(`context_size = ${context_size}`);
+    
 
     omnilog.warn(`nestedResult (1) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
 

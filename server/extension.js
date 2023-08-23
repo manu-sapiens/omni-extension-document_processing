@@ -16508,7 +16508,7 @@ function deduce_llm_description(name, context_size = 0) {
   return description;
 }
 function parseOobaboogaModelResponse(model_response) {
-  let nestedResult = JSON.parse(JSON.stringify(model_response));
+  let nestedResult = JSON.parse(model_response);
   omnilog.warn(`nestedResult = ${JSON.stringify(nestedResult)}`);
   if (nestedResult["shared.settings"]) {
     nestedResult.settings = nestedResult["shared.settings"];
