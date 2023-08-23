@@ -10,7 +10,7 @@ import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
 import { initialize_embedder } from './utils/embedder.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
-import { get_llm_choices } from "./utils/llm.js"
+import { getLlmChoices } from "./utils/llm.js"
 
 async function async_GetQueryChunksComponent()
 {
@@ -34,7 +34,7 @@ async function async_GetQueryChunksComponent()
       });
       
   // Adding input(s)
-  const llm_choices  = await get_llm_choices();
+  const llm_choices  = await getLlmChoices();
   const inputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
     { name: 'query', type: 'string', customSocket: 'text' },

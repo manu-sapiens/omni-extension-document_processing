@@ -7,7 +7,7 @@ const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, get_chunks_from_cdn } from './utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
-import { queryLlm, get_model_max_size, adjust_model, get_llm_choices, DEFAULT_GPT_MODEL } from './utils/llm.js';
+import { queryLlm, get_model_max_size, adjust_model, getLlmChoices, DEFAULT_GPT_MODEL } from './utils/llm.js';
 import { count_tokens_in_text } from './utils/tiktoken.js';
 
 async function async_get_loop_gpt_component()
@@ -32,7 +32,7 @@ async function async_get_loop_gpt_component()
         });
     
     // Adding input(s)
-    const llm_choices  = await get_llm_choices();
+    const llm_choices  = await getLlmChoices();
     const inputs = [
         { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
         { name: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },

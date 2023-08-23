@@ -7288,8 +7288,8 @@ function shallowCopy(obj) {
 }
 function replaceSecrets(root, secretsMap) {
   const result = shallowCopy(root);
-  for (const [path2, secretId] of Object.entries(secretsMap)) {
-    const [last, ...partsReverse] = path2.split(".").reverse();
+  for (const [path3, secretId] of Object.entries(secretsMap)) {
+    const [last, ...partsReverse] = path3.split(".").reverse();
     let current = result;
     for (const part of partsReverse.reverse()) {
       if (current[part] === void 0) {
@@ -8164,33 +8164,33 @@ var Client = class _Client {
     }
     return headers;
   }
-  async _get(path2, queryParams) {
+  async _get(path3, queryParams) {
     const paramsString = queryParams?.toString() ?? "";
-    const url = `${this.apiUrl}${path2}?${paramsString}`;
+    const url = `${this.apiUrl}${path3}?${paramsString}`;
     const response = await this.caller.call(fetch, url, {
       method: "GET",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to fetch ${path2}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
     }
     return response.json();
   }
-  async *_getPaginated(path2, queryParams = new URLSearchParams()) {
+  async *_getPaginated(path3, queryParams = new URLSearchParams()) {
     let offset = Number(queryParams.get("offset")) || 0;
     const limit = Number(queryParams.get("limit")) || 100;
     while (true) {
       queryParams.set("offset", String(offset));
       queryParams.set("limit", String(limit));
-      const url = `${this.apiUrl}${path2}?${queryParams}`;
+      const url = `${this.apiUrl}${path3}?${queryParams}`;
       const response = await this.caller.call(fetch, url, {
         method: "GET",
         headers: this.headers,
         signal: AbortSignal.timeout(this.timeout_ms)
       });
       if (!response.ok) {
-        throw new Error(`Failed to fetch ${path2}: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch ${path3}: ${response.status} ${response.statusText}`);
       }
       const items = await response.json();
       if (items.length === 0) {
@@ -8403,18 +8403,18 @@ var Client = class _Client {
     return result;
   }
   async readProject({ projectId, projectName }) {
-    let path2 = "/sessions";
+    let path3 = "/sessions";
     const params = new URLSearchParams();
     if (projectId !== void 0 && projectName !== void 0) {
       throw new Error("Must provide either projectName or projectId, not both");
     } else if (projectId !== void 0) {
-      path2 += `/${projectId}`;
+      path3 += `/${projectId}`;
     } else if (projectName !== void 0) {
       params.append("name", projectName);
     } else {
       throw new Error("Must provide projectName or projectId");
     }
-    const response = await this._get(path2, params);
+    const response = await this._get(path3, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -8509,18 +8509,18 @@ var Client = class _Client {
     return result;
   }
   async readDataset({ datasetId, datasetName }) {
-    let path2 = "/datasets";
+    let path3 = "/datasets";
     const params = new URLSearchParams({ limit: "1" });
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
     } else if (datasetId !== void 0) {
-      path2 += `/${datasetId}`;
+      path3 += `/${datasetId}`;
     } else if (datasetName !== void 0) {
       params.append("name", datasetName);
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this._get(path2, params);
+    const response = await this._get(path3, params);
     let result;
     if (Array.isArray(response)) {
       if (response.length === 0) {
@@ -8533,7 +8533,7 @@ var Client = class _Client {
     return result;
   }
   async *listDatasets({ limit = 100, offset = 0, datasetIds, datasetName, datasetNameContains } = {}) {
-    const path2 = "/datasets";
+    const path3 = "/datasets";
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString()
@@ -8549,12 +8549,12 @@ var Client = class _Client {
     if (datasetNameContains !== void 0) {
       params.append("name_contains", datasetNameContains);
     }
-    for await (const datasets of this._getPaginated(path2, params)) {
+    for await (const datasets of this._getPaginated(path3, params)) {
       yield* datasets;
     }
   }
   async deleteDataset({ datasetId, datasetName }) {
-    let path2 = "/datasets";
+    let path3 = "/datasets";
     let datasetId_ = datasetId;
     if (datasetId !== void 0 && datasetName !== void 0) {
       throw new Error("Must provide either datasetName or datasetId, not both");
@@ -8563,17 +8563,17 @@ var Client = class _Client {
       datasetId_ = dataset.id;
     }
     if (datasetId_ !== void 0) {
-      path2 += `/${datasetId_}`;
+      path3 += `/${datasetId_}`;
     } else {
       throw new Error("Must provide datasetName or datasetId");
     }
-    const response = await this.caller.call(fetch, this.apiUrl + path2, {
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -8607,8 +8607,8 @@ var Client = class _Client {
     return result;
   }
   async readExample(exampleId) {
-    const path2 = `/examples/${exampleId}`;
-    return await this._get(path2);
+    const path3 = `/examples/${exampleId}`;
+    return await this._get(path3);
   }
   async *listExamples({ datasetId, datasetName, exampleIds } = {}) {
     let datasetId_;
@@ -8633,14 +8633,14 @@ var Client = class _Client {
     }
   }
   async deleteExample(exampleId) {
-    const path2 = `/examples/${exampleId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path2, {
+    const path3 = `/examples/${exampleId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -8738,19 +8738,19 @@ var Client = class _Client {
     return response.json();
   }
   async readFeedback(feedbackId) {
-    const path2 = `/feedback/${feedbackId}`;
-    const response = await this._get(path2);
+    const path3 = `/feedback/${feedbackId}`;
+    const response = await this._get(path3);
     return response;
   }
   async deleteFeedback(feedbackId) {
-    const path2 = `/feedback/${feedbackId}`;
-    const response = await this.caller.call(fetch, this.apiUrl + path2, {
+    const path3 = `/feedback/${feedbackId}`;
+    const response = await this.caller.call(fetch, this.apiUrl + path3, {
       method: "DELETE",
       headers: this.headers,
       signal: AbortSignal.timeout(this.timeout_ms)
     });
     if (!response.ok) {
-      throw new Error(`Failed to delete ${path2}: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to delete ${path3}: ${response.status} ${response.statusText}`);
     }
     await response.json();
   }
@@ -12074,7 +12074,7 @@ var ChunkFilesComponent = chunk_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
 
 // utils/llm.js
-import path from "path";
+import path2 from "path";
 import os from "os";
 
 // ../../../../client/lib/index.js
@@ -13455,10 +13455,10 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path2, key, dots) {
-  if (!path2)
+function renderKey(path3, key, dots) {
+  if (!path3)
     return key;
-  return path2.concat(key).map(function each(token, i) {
+  return path3.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -13504,9 +13504,9 @@ function toFormData(obj, formData, options22) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path2) {
+  function defaultVisitor(value, key, path3) {
     let arr = value;
-    if (value && !path2 && typeof value === "object") {
+    if (value && !path3 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -13525,7 +13525,7 @@ function toFormData(obj, formData, options22) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path2, key, dots), convertValue(value));
+    formData.append(renderKey(path3, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -13534,11 +13534,11 @@ function toFormData(obj, formData, options22) {
     convertValue,
     isVisitable
   });
-  function build(value, path2) {
+  function build(value, path3) {
     if (utils_default.isUndefined(value))
       return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path2.join("."));
+      throw Error("Circular reference detected in " + path3.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
@@ -13546,11 +13546,11 @@ function toFormData(obj, formData, options22) {
         formData,
         el,
         utils_default.isString(key) ? key.trim() : key,
-        path2,
+        path3,
         exposedHelpers
       );
       if (result === true) {
-        build(el, path2 ? path2.concat(key) : [key]);
+        build(el, path3 ? path3.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -13711,7 +13711,7 @@ var browser_default = {
 };
 function toURLEncodedForm(data, options22) {
   return toFormData_default(data, new browser_default.classes.URLSearchParams(), Object.assign({
-    visitor: function(value, key, path2, helpers) {
+    visitor: function(value, key, path3, helpers) {
       if (browser_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -13738,10 +13738,10 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path2, value, target, index) {
-    let name = path2[index++];
+  function buildPath(path3, value, target, index) {
+    let name = path3[index++];
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path2.length;
+    const isLast = index >= path3.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -13754,7 +13754,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path2, value, target[name], index);
+    const result = buildPath(path3, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -14173,14 +14173,14 @@ var cookies_default = browser_default.isStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   function standardBrowserEnv() {
     return {
-      write: function write(name, value, expires, path2, domain, secure) {
+      write: function write(name, value, expires, path3, domain, secure) {
         const cookie = [];
         cookie.push(name + "=" + encodeURIComponent(value));
         if (utils_default.isNumber(expires)) {
           cookie.push("expires=" + new Date(expires).toGMTString());
         }
-        if (utils_default.isString(path2)) {
-          cookie.push("path=" + path2);
+        if (utils_default.isString(path3)) {
+          cookie.push("path=" + path3);
         }
         if (utils_default.isString(domain)) {
           cookie.push("domain=" + domain);
@@ -16175,6 +16175,37 @@ for (let i = 0; i < 256; ++i) {
 }
 var randomUUID2 = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
+// utils/files.js
+import fs from "fs/promises";
+import path from "path";
+async function walkDirForExtension(filePaths, directory_path, extension) {
+  const files = await fs.readdir(directory_path);
+  for (const file of files) {
+    const filepath = path.join(directory_path, file);
+    const stats = await fs.stat(filepath);
+    if (stats.isDirectory()) {
+      filePaths = await walkDirForExtension(filePaths, filepath, extension);
+    } else {
+      if (path.extname(filepath) === extension) {
+        filePaths.push(filepath);
+      }
+    }
+  }
+  return filePaths;
+}
+async function readJsonFromDisk(jsonPath) {
+  const jsonContent = JSON.parse(await fs.readFile(jsonPath, "utf8"));
+  return jsonContent;
+}
+async function validateFileExists(path3) {
+  try {
+    const stats = await fs.stat(path3);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
 // utils/llm.js
 var LLM_CONTEXT_SIZE_MARGIN = 500;
 var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
@@ -16186,18 +16217,25 @@ var GPT4_MODEL_LARGE = "gpt-4-32k";
 var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
 var GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
 var MODEL_TYPE_OPENAI = "openai";
-var MODEL_TYPE_OTHER = "other";
+var MODEL_TYPE_OOBABOOGA = "other";
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
-var LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
-var LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
+var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
+var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
+var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
+var oobabooga_model_dir_json = await readJsonFromDisk(path2.resolve(process.cwd(), "etc", "registry", "oobabooga", "oobabooga_models_directory.json"));
+omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
+var OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
 var LLM_LOCATION_OPENAI_SERVER = "openai_server";
-var LLM_LOCATION_OOBABOOGA = "oobabooga";
+var LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga";
+var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
+var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
+var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
 var llm_remote_models = [
   { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4-32k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "local", title: "local via Text Generation Webui", model_type: MODEL_TYPE_OTHER, memory_need: 0, context_size: 2048, location: LLM_LOCATION_OOBABOOGA }
+  { model_name: "gpt-4-32k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER }
+  //{ model_name: "local", title: "local via Text Generation Webui", model_type: MODEL_TYPE_OOBABOOGA, memory_need: 0, context_size: 2048, location: LLM_LOCATION_OOBABOOGA_LOCAL },
   /*
   { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
   { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
@@ -16222,28 +16260,28 @@ var llm_location = {};
 var llm_local_choices = {};
 var llm_titles = {};
 var llm_descriptions = {};
-async function get_llm_choices() {
+async function getLlmChoices(ctx) {
+  await add_local_llm_choices(OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
+  omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_local_choices)}`);
   const choices = [];
   const remote_models = Object.values(llm_remote_models);
   for (const model of remote_models) {
     let name = model.model_name;
-    if (name in llm_local_choices == false) {
-      const title = model.title || deduce_llm_title(name);
-      const description = model.description || deduce_llm_description(name, model.context_size);
-      if (name in llm_model_types == false)
-        llm_model_types[name] = model.model_type;
-      if (name in llm_context_sizes == false)
-        llm_context_sizes[name] = model.context_size;
-      if (name in llm_memory_needs == false)
-        llm_memory_needs[name] = model.memory_need;
-      if (name in llm_location == false)
-        llm_location[name] = model.location;
-      if (name in llm_titles == false)
-        llm_titles[name] = model.title;
-      if (name in llm_descriptions == false)
-        llm_descriptions[name] = model.description;
-      choices.push({ value: name, title, description });
-    }
+    const title = model.title || deduceLlmTitle(name, true);
+    const description = model.description || deduce_llm_description(name, model.context_size);
+    if (name in llm_model_types == false)
+      llm_model_types[name] = model.model_type;
+    if (name in llm_context_sizes == false)
+      llm_context_sizes[name] = model.context_size;
+    if (name in llm_memory_needs == false)
+      llm_memory_needs[name] = model.memory_need;
+    if (name in llm_location == false)
+      llm_location[name] = model.location;
+    if (name in llm_titles == false)
+      llm_titles[name] = model.title;
+    if (name in llm_descriptions == false)
+      llm_descriptions[name] = model.description;
+    choices.push({ value: name, title, description });
   }
   ;
   const local_choices = Object.values(llm_local_choices);
@@ -16252,9 +16290,46 @@ async function get_llm_choices() {
   }
   return choices;
 }
+async function add_local_llm_choices(model_dir, default_model_type, location, check_json = false) {
+  let filePaths = [];
+  omnilog.warn(`external model_dir = ${model_dir}`);
+  filePaths = await walkDirForExtension(filePaths, model_dir, ".bin");
+  omnilog.warn(`external filePaths # = ${filePaths.length}`);
+  for (const filepath of filePaths) {
+    const name = path2.basename(filepath);
+    omnilog.warn(`name = ${name}`);
+    const jsonPath = filepath.replace(".bin", ".json");
+    let title, description, model_type, context_size, memory_need;
+    if (name in llm_model_types == false) {
+      omnilog.warn(`not known yet: ${name}`);
+      if (check_json && await validateFileExists(jsonPath)) {
+        const jsonContent = await readJsonFromDisk(jsonPath);
+        title = jsonContent.title ?? deduceLlmTitle(name);
+        ;
+        description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
+        model_type = jsonContent.model_type ?? default_model_type;
+        context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
+        memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
+      } else {
+        title = deduceLlmTitle(name, false);
+        description = deduce_llm_description(name);
+        model_type = default_model_type;
+        context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+        memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
+      }
+      llm_model_types[name] = model_type;
+      llm_context_sizes[name] = context_size;
+      llm_memory_needs[name] = memory_need;
+      llm_location[name] = location;
+      const choice = { value: name, title, description };
+      llm_local_choices[name] = choice;
+      omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
+    }
+  }
+}
 function adjust_model(text_size, current_model) {
   if (current_model in llm_model_types == false)
-    return current_models;
+    return current_model;
   if (llm_model_types[current_model] != MODEL_TYPE_OPENAI)
     return current_model;
   if (typeof text_size !== "number") {
@@ -16348,7 +16423,7 @@ cleanedString: ${cleanedString})`);
 }
 function get_llm_type(model_name) {
   if (model_name in llm_model_types == false)
-    return MODEL_TYPE_OTHER;
+    return MODEL_TYPE_OOBABOOGA;
   const model_type = llm_model_types[model_name];
   return model_type;
 }
@@ -16363,10 +16438,10 @@ async function queryLlm(ctx, prompt3, instruction, model_name = GPT3_MODEL_SMALL
   if (get_llm_type(model_name) == MODEL_TYPE_OPENAI) {
     response = await query_openai_llm(ctx, prompt3, instruction, model_name, llm_functions, temperature, top_p);
   } else {
-    const combined_prompt = `${instruction}
+    const prompt_and_instructions = `${instruction}
 
 ${prompt3}`;
-    response = await queryOobaboogaLlm(ctx, combined_prompt, temperature);
+    response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
   }
   return response;
 }
@@ -16410,7 +16485,7 @@ async function runChatGPTBlock(ctx, args) {
   args.model = adjust_model(cost, model);
   let response = null;
   try {
-    response = await runBlock(ctx, "openai.advancedChatGPT", args);
+    response = await runBlock(ctx, BLOCK_OPENAI_ADVANCED_CHATGPT, args);
   } catch (err) {
     let error_message = `Error running openai.advancedChatGPT: ${err.message}`;
     console.error(error_message);
@@ -16418,8 +16493,12 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
-function deduce_llm_title(name) {
-  const title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
+function deduceLlmTitle(name, paid = true) {
+  let title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
+  if (paid)
+    title = "[$]" + title;
+  else
+    title = "[\u2B07]" + title;
   return title;
 }
 function deduce_llm_description(name, context_size = 0) {
@@ -16428,12 +16507,42 @@ function deduce_llm_description(name, context_size = 0) {
     description += ` (${Math.floor(context_size / 1024)}k)`;
   return description;
 }
-async function queryOobaboogaLlm(ctx, prompt3, temperature = 0.3) {
+function parseOobaboogaModelResponse(model_response) {
+  debugger;
+  let nestedResult = JSON.parse(model_response);
+  omnilog.warn(`nestedResult = ${JSON.stringify(nestedResult)}`);
+  if (nestedResult["shared.settings"]) {
+    nestedResult.settings = nestedResult["shared.settings"];
+    delete nestedResult["shared.settings"];
+  }
+  if (nestedResult["shared.args"]) {
+    nestedResult.args = nestedResult["shared.args"];
+    delete nestedResult["shared.args"];
+  }
+  omnilog.warn(`nestedResult (after) = ${JSON.stringify(nestedResult)}`);
+  return nestedResult;
+}
+async function queryOobaboogaLlm(ctx, prompt3, model_name, temperature = 0.3) {
+  let model_response = await getOobaboggaCurrentModelInfo(ctx);
+  omnilog.warn(`model_response = ${JSON.stringify(model_response)}`);
+  let nestedResult = parseOobaboogaModelResponse(model_response);
+  let loaded_model = nestedResult?.model_name;
+  const context_size = nestedResult?.settings?.max_new_tokens_max || 0;
+  omnilog.warn(`context_size = ${context_size}`);
+  omnilog.warn(`nestedResult (1) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
+  if (loaded_model != model_name) {
+    model_response = await loadOobaboogaModel(ctx, model_name);
+    nestedResult = parseOobaboogaModelResponse(model_response);
+    loaded_model = nestedResult?.model_name;
+    omnilog.warn(`nestedResult (2) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
+  }
+  if (loaded_model != model_name)
+    throw new Error(`Failed to load model ${model_name} into oobabooga`);
   let args = {};
   args.prompt = prompt3;
   args.temperature = temperature;
   console_log(`[query_oobabooga_llm] args: ${JSON.stringify(args)}`);
-  const response = await runOobaboogaBlock(ctx, args);
+  const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
   if (response.error)
     throw new Error(response.error);
   const results = response?.results || [];
@@ -16441,7 +16550,7 @@ async function queryOobaboogaLlm(ctx, prompt3, temperature = 0.3) {
     throw new Error("No results returned from oobabooga");
   const text2 = results[0].text || null;
   if (!text2)
-    throw new Error("Empty text result returned from oobabooga");
+    throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
   const return_value = {
     text: text2,
     function_arguments_string: "",
@@ -16451,17 +16560,13 @@ async function queryOobaboogaLlm(ctx, prompt3, temperature = 0.3) {
   omnilog.warn(`oobabooga return value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
-async function runOobaboogaBlock(ctx, args) {
-  const block_name = "oobabooga.simpleGenerateText";
-  let response = null;
-  try {
-    response = await runBlock(ctx, block_name, args);
-  } catch (err) {
-    let error_message = `Error running ${block_name}: ${err.message}`;
-    console.error(error_message);
-    throw err;
-  }
-  return response;
+async function getOobaboggaCurrentModelInfo(ctx) {
+  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
+  return response?.result;
+}
+async function loadOobaboogaModel(ctx, model_name) {
+  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
+  return response.result;
 }
 
 // GptIXPComponent.js
@@ -16473,7 +16578,7 @@ async function async_get_gpt_IxP_component() {
       links: {}
     }
   });
-  const llm_choices = await get_llm_choices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
@@ -16572,7 +16677,7 @@ async function async_get_loop_gpt_component() {
       }
     }
   });
-  const llm_choices = await get_llm_choices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
@@ -16733,7 +16838,7 @@ async function async_GetQueryChunksComponent() {
       }
     }
   });
-  const llm_choices = await get_llm_choices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
@@ -16855,7 +16960,7 @@ async function async_get_docs_with_gpt_component() {
       }
     }
   });
-  const llm_choices = await get_llm_choices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },

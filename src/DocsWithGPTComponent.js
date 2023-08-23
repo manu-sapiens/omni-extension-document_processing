@@ -8,7 +8,7 @@ import { read_text_files_function } from "./ReadTextFilesComponent.js";
 import { chunk_files_function } from './ChunkFilesComponent.js';
 import { query_chunks_function } from './QueryChunksComponent.js';
 import { loop_gpt_function } from './LoopGPTComponent.js';
-import { get_llm_choices } from "./utils/llm.js"
+import { getLlmChoices } from "./utils/llm.js"
 
 async function async_get_docs_with_gpt_component()
 {
@@ -28,7 +28,7 @@ async function async_get_docs_with_gpt_component()
         });
 
     // Adding input(s)
-    const llm_choices  = await get_llm_choices();
+    const llm_choices  = await getLlmChoices();
     const inputs = [
         { name: 'documents', type: 'array', customSocket: 'documentArray', title: 'Text document(s) to process', defaultValue: [] },
         { name: 'url', type: 'string', title: 'or some Texts to process (text or url(s))', customSocket: 'text' },
