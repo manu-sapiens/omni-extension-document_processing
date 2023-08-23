@@ -38,7 +38,7 @@ async function async_get_docs_with_gpt_component()
             {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
         { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
-        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
         { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
     ];
     component = setComponentInputs(component, inputs);

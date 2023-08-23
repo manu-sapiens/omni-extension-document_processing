@@ -12075,7 +12075,6 @@ import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2,
 
 // utils/llm.js
 import path2 from "path";
-import os from "os";
 
 // ../../../../client/lib/index.js
 var __create2 = Object.create;
@@ -16197,6 +16196,22 @@ async function readJsonFromDisk(jsonPath) {
   const jsonContent = JSON.parse(await fs.readFile(jsonPath, "utf8"));
   return jsonContent;
 }
+async function validateDirectoryExists(path3) {
+  try {
+    const stats = await fs.stat(path3);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+async function validateFileExists(path3) {
+  try {
+    const stats = await fs.stat(path3);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
 
 // utils/llm.js
 var LLM_CONTEXT_SIZE_MARGIN = 500;
@@ -16208,139 +16223,107 @@ var GPT4_MODEL_SMALL = "gpt-4";
 var GPT4_MODEL_LARGE = "gpt-4-32k";
 var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
 var GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
-var MODEL_TYPE_OPENAI = "openai";
-var MODEL_TYPE_OOBABOOGA = "oobabooga";
-var MODEL_TYPE_LM_STUDIO = "lm-studio";
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
-var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
-var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
-var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
-var oobabooga_model_dir_json = await readJsonFromDisk(path2.resolve(process.cwd(), "..", "..", "user_files", "oobabooga_models_directory.json"));
-omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
-var LLM_OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
-var LLM_LOCATION_OPENAI_SERVER = "openai_server";
-var LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga_local";
-var LLM_LOCATION_LM_STUDIO_LOCAL = "lm-studio_local";
-var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
-var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
+var MODELS_DIR_JSON_PATH = ["..", "..", "user_files", "local_llms_directories.json"];
+var LLM_PROVIDER_OPENAI_SERVER = "openai";
+var LLM_MODEL_TYPE_OPENAI = "openai";
 var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
-var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
+var LOAD_LOCAL_LLMS = true;
 var llm_openai_models = [
-  { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
-  { model_name: "gpt-4-32k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 32768, location: LLM_LOCATION_OPENAI_SERVER }
-  //{ model_name: "local", title: "local via Text Generation Webui", model_type: MODEL_TYPE_OOBABOOGA, memory_need: 0, context_size: 2048, location: LLM_LOCATION_OOBABOOGA_LOCAL },
-  /*
-  { model_name: "ggml-gpt4all-j-v1.3-groovy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
-  { model_name: "ggml-gpt4all-j-v1.2-jazzy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-gpt4all-j-v1.1-breezy.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location:LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-gpt4all-j.bin", model_type: "gptj", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-gpt4all-l13b-snoozy.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-vicuna-7b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-vicuna-13b-1.1-q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER},
-  { model_name: "ggml-wizardLM-7B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-stable-vicuna-13B.q4_2.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-nous-gpt4-vicuna-13b.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-v3-13b-hermes-q5_1.bin", model_type: "llama", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-mpt-7b-base.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-mpt-7b-chat.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-mpt-7b-instruct.bin", model_type: "mpt", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },
-  { model_name: "ggml-replit-code-v1-3b.bin", model_type: "replit", memory_need: 8192, context_size: 4096, location: LLM_LOCATION_GPT4ALL_SERVER },*/
+  { model_name: "gpt-3.5-turbo", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 4096, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: "gpt-3.5-turbo-16k", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 16384, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: "gpt-4", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 8192, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: "gpt-4-32k", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 32768, provider: LLM_PROVIDER_OPENAI_SERVER }
 ];
 var llm_model_types = {};
 var llm_context_sizes = {};
-var llm_memory_needs = {};
-var llm_location = {};
-var llm_choices = {};
-var llm_titles = {};
-var llm_descriptions = {};
-function addOpenaiLlmChoices() {
+var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
+var LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
+var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
+var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
+var LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
+var LLM_MODEL_TYPE_LM_STUDIO = "lm-studio";
+var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
+function addOpenaiLlmChoices(choices) {
   const remote_models = Object.values(llm_openai_models);
   for (const model of remote_models) {
-    let name = model.model_name;
-    let combined = combineModelNameAndType(name, MODEL_TYPE_OPENAI);
-    if (combined in llm_model_types == false) {
-      const title = model.title || deduceLlmTitle(name, MODEL_TYPE_OPENAI);
-      const description = model.description || deduce_llm_description(name, model.context_size);
-      llm_model_types[combined] = model.model_type;
-      llm_context_sizes[combined] = model.context_size;
-      llm_memory_needs[combined] = model.memory_need;
-      llm_location[combined] = model.location;
-      llm_titles[combined] = model.title;
-      llm_descriptions[combined] = model.description;
-      const choice = { value: combined, title, description };
-      llm_choices[combined] = choice;
-    }
-  }
-}
-async function getLlmChoices() {
-  await addOpenaiLlmChoices();
-  await addLocalLlmChoices(LLM_OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
-  await addLocalLlmChoices(LLM_LM_STUDIO_CACHE_DIRECTORY, MODEL_TYPE_LM_STUDIO, LLM_LOCATION_LM_STUDIO_LOCAL);
-  omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_choices)}`);
-  const choices = [];
-  const local_choices = Object.values(llm_choices);
-  for (const choice of local_choices) {
+    let model_name = model.model_name;
+    let provider = model.provider;
+    let combined = combineModelNameAndProvider(model_name, provider);
+    const title = model.title || deduceLlmTitle(model_name, provider);
+    const description = model.description || deduceLlmDescription(model_name, model.context_size);
+    llm_model_types[model_name] = model.type;
+    llm_context_sizes[model_name] = model.context_size;
+    const choice = { value: combined, title, description };
     choices.push(choice);
   }
   return choices;
 }
-function combineModelNameAndType(model_name, model_type) {
-  return `${model_name}|${model_type}`;
+async function getLlmChoices() {
+  debugger;
+  let choices = [];
+  choices = await addOpenaiLlmChoices(choices);
+  if (LOAD_LOCAL_LLMS) {
+    const models_dir_json = await getModelsDirJson();
+    if (models_dir_json) {
+      choices = await addLocalLlmChoices(choices, models_dir_json, LLM_PROVIDER_OOBABOOGA_LOCAL);
+      if (models_dir_json[LLM_PROVIDER_LM_STUDIO_LOCAL])
+        choices.push({ value: combineModelNameAndProvider("loaded_model", LLM_PROVIDER_LM_STUDIO_LOCAL), title: "\u{1F5A5}model currently loaded in (LM-Studio)", description: "Use the model currently loaded in LM-Studio if that model's server is running." });
+    }
+  }
+  return choices;
 }
-function splitModelNameFromType(model_combined) {
+function combineModelNameAndProvider(model_name, model_provider) {
+  return `${model_name}|${model_provider}`;
+}
+function splitModelNameFromProvider(model_combined) {
   const splits = model_combined.split("|");
   if (splits.length != 2)
     throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
-  return { model_name: splits[0], model_type: splits[1] };
+  return { model_name: splits[0], model_provider: splits[1] };
 }
-async function addLocalLlmChoices(model_dir, model_type, model_location) {
+async function addLocalLlmChoices(choices, models_dir_json, model_provider) {
+  const model_dir = models_dir_json[model_provider];
+  if (!model_dir)
+    return choices;
+  const dir_exists = await validateDirectoryExists(model_dir);
+  if (!dir_exists)
+    return choices;
   let filePaths = [];
-  omnilog.warn(`external model_dir = ${model_dir}`);
   filePaths = await walkDirForExtension(filePaths, model_dir, ".bin");
-  omnilog.warn(`external filePaths # = ${filePaths.length}`);
+  omnilog.warn(`external model_dir = ${model_dir}, external filePaths # = ${filePaths.length}`);
   for (const filepath of filePaths) {
     const name = path2.basename(filepath);
-    const combined = combineModelNameAndType(name, model_type);
-    if (combined in llm_model_types == false) {
-      omnilog.warn(`combined = ${combined}`);
-      const title = deduceLlmTitle(name, model_type);
-      const description = deduce_llm_description(name);
-      const choice = { value: combined, title, description };
-      llm_model_types[combined] = model_type;
-      llm_context_sizes[combined] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-      llm_memory_needs[combined] = DEFAULT_UNKNOWN_MEMORY_NEED;
-      llm_location[combined] = model_location;
-      llm_choices[combined] = choice;
-    }
+    const combined = combineModelNameAndProvider(name, model_provider);
+    const title = deduceLlmTitle(name, model_provider);
+    const description = deduceLlmDescription(name);
+    const choice = { value: combined, title, description };
+    llm_context_sizes[name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+    choices.push(choice);
   }
+  return choices;
 }
-function adjust_model(text_size, current_model) {
-  if (current_model in llm_model_types == false)
-    return current_model;
-  if (llm_model_types[current_model] != MODEL_TYPE_OPENAI)
-    return current_model;
+function adjustOpenaiModel(text_size, model_name) {
   if (typeof text_size !== "number") {
     throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
   }
-  if (current_model == GPT3_MODEL_SMALL)
-    return current_model;
-  if (current_model == GPT3_MODEL_LARGE) {
+  if (model_name == GPT3_MODEL_SMALL)
+    return model_name;
+  if (model_name == GPT3_MODEL_LARGE) {
     if (text_size < GPT3_SIZE_CUTOFF)
       return GPT3_MODEL_SMALL;
     else
-      return current_model;
+      return model_name;
   }
-  if (current_model == GPT4_MODEL_SMALL)
-    return current_model;
-  if (current_model == GPT4_MODEL_LARGE) {
+  if (model_name == GPT4_MODEL_SMALL)
+    return model_name;
+  if (model_name == GPT4_MODEL_LARGE) {
     if (text_size < GPT4_SIZE_CUTOFF)
       return GPT3_MODEL_SMALL;
     else
-      return current_model;
+      return model_name;
   }
-  throw new Error(`pick_model: Unknown model: ${current_model}`);
+  throw new Error(`pick_model: Unknown model: ${model_name}`);
 }
 function get_model_max_size(model_name, use_a_margin = true) {
   if (use_a_margin == false)
@@ -16416,20 +16399,20 @@ function get_model_context_size(model_name) {
   const context_size = llm_context_sizes[model_name];
   return context_size;
 }
-async function queryLlm(ctx, prompt3, instruction, combined = GPT3_MODEL_SMALL + "|" + MODEL_TYPE_OPENAI, llm_functions = null, temperature = 0, top_p = 1) {
+async function queryLlm(ctx, prompt3, instruction, combined = GPT3_MODEL_SMALL + "|" + LLM_PROVIDER_OPENAI_SERVER, llm_functions = null, temperature = 0, top_p = 1) {
   let response = null;
-  const splits = splitModelNameFromType(combined);
+  const splits = splitModelNameFromProvider(combined);
   const model_name = splits.model_name;
-  const model_type = splits.model_type;
-  omnilog.warn(`[queryLlm] model_name = ${model_name}, model_type = ${model_type}`);
-  if (model_type == MODEL_TYPE_OPENAI) {
+  const model_provider = splits.model_provider;
+  omnilog.warn(`[queryLlm] model_name = ${model_name}, model_type = ${model_provider}`);
+  if (model_provider == LLM_PROVIDER_OPENAI_SERVER) {
     response = await query_openai_llm(ctx, prompt3, instruction, model_name, llm_functions, temperature, top_p);
-  } else if (model_type == MODEL_TYPE_OOBABOOGA) {
+  } else if (model_provider == LLM_MODEL_TYPE_OOBABOOGA) {
     const prompt_and_instructions = `${instruction}
 
 ${prompt3}`;
     response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
-  } else if (model_type == MODEL_TYPE_LM_STUDIO) {
+  } else if (model_provider == LLM_MODEL_TYPE_LM_STUDIO) {
     response = await queryLmStudioLlm(ctx, prompt3, instruction, temperature);
   }
   return response;
@@ -16471,7 +16454,7 @@ async function runChatGPTBlock(ctx, args) {
   const prompt_cost = count_tokens_in_text(prompt3);
   const instruction_cost = count_tokens_in_text(instruction);
   const cost = prompt_cost + instruction_cost;
-  args.model = adjust_model(cost, model);
+  args.model = adjustOpenaiModel(cost, model);
   let response = null;
   try {
     response = await runBlock(ctx, BLOCK_OPENAI_ADVANCED_CHATGPT, args);
@@ -16482,20 +16465,20 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
-function deduceLlmTitle(name, model_type) {
+function deduceLlmTitle(name, model_provider) {
   let icon = "";
   let postfix = "";
-  switch (model_type) {
-    case MODEL_TYPE_OPENAI:
+  switch (model_provider) {
+    case LLM_PROVIDER_OPENAI_SERVER:
       icon = "\u{1F4B0}";
       postfix = "openai";
       break;
-    case MODEL_TYPE_OOBABOOGA:
-      icon = "\u{1F4BE}";
+    case LLM_PROVIDER_OOBABOOGA_LOCAL:
+      icon = "\u{1F4C1}";
       postfix = "oobabooga";
       break;
-    case MODEL_TYPE_LM_STUDIO:
-      icon = "\u{1F4BD}";
+    case LLM_PROVIDER_LM_STUDIO_LOCAL:
+      icon = "\u{1F5A5}";
       postfix = "lm-studio";
       break;
     default:
@@ -16505,11 +16488,20 @@ function deduceLlmTitle(name, model_type) {
   const title = icon + name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase()) + " (" + postfix + ")";
   return title;
 }
-function deduce_llm_description(name, context_size = 0) {
-  let description = name.substring(0, name.length - 4);
+function deduceLlmDescription(model_name, context_size = 0) {
+  let description = model_name.substring(0, model_name.length - 4);
   if (context_size > 0)
     description += ` (${Math.floor(context_size / 1024)}k)`;
   return description;
+}
+async function getModelsDirJson() {
+  const json_path = path2.resolve(process.cwd(), ...MODELS_DIR_JSON_PATH);
+  const file_exist = validateFileExists(json_path);
+  if (!file_exist)
+    return null;
+  const models_dir_json = await readJsonFromDisk(json_path);
+  omnilog.warn(`[getModelsDirJson] json_path = ${json_path}, models_dir_json = ${JSON.stringify(models_dir_json)}`);
+  return models_dir_json;
 }
 function parseOobaboogaModelResponse(model_response) {
   let nestedResult = JSON.parse(model_response);
@@ -16560,6 +16552,14 @@ async function queryOobaboogaLlm(ctx, prompt3, model_name, temperature = 0.3) {
   omnilog.warn(`oobabooga return value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
+async function getOobaboggaCurrentModelInfo(ctx) {
+  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
+  return response?.result;
+}
+async function loadOobaboogaModel(ctx, model_name) {
+  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
+  return response.result;
+}
 async function queryLmStudioLlm(ctx, prompt3, instruction, temperature = 0.3) {
   let args = {};
   args.prompt = prompt3;
@@ -16585,14 +16585,6 @@ async function queryLmStudioLlm(ctx, prompt3, instruction, temperature = 0.3) {
   omnilog.warn(`lm-studio return value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
-async function getOobaboggaCurrentModelInfo(ctx) {
-  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
-  return response?.result;
-}
-async function loadOobaboogaModel(ctx, model_name) {
-  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
-  return response.result;
-}
 
 // GptIXPComponent.js
 var NS_ONMI2 = "document_processing";
@@ -16603,14 +16595,14 @@ async function async_get_gpt_IxP_component() {
       links: {}
     }
   });
-  const llm_choices2 = await getLlmChoices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16659,7 +16651,7 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
       const prompt4 = prompts[p2];
       omnilog.log(`instruction = ${instruction2}, prompt = ${prompt4}, id = ${id}`);
       const token_cost = count_tokens_in_text(prompt4);
-      let model = adjust_model(token_cost, llm_model);
+      let model = adjustOpenaiModel(token_cost, llm_model);
       if (token_cost > GPT4_SIZE_MAX) {
         omnilog.log("WARNING: token cost > GPT4_SIZE_MAX");
       }
@@ -16702,14 +16694,14 @@ async function async_get_loop_gpt_component() {
       }
     }
   });
-  const llm_choices2 = await getLlmChoices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16773,7 +16765,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
             total_token_cost += token_cost;
           }
           if (!can_fit || is_last_index) {
-            const model = adjust_model(total_token_cost, llm_model);
+            const model = adjustOpenaiModel(total_token_cost, llm_model);
             const gpt_results = await queryLlm(ctx, combined_text, instruction, model, llm_functions, temperature, top_p);
             const sanetized_results = sanitizeJSON(gpt_results);
             omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
@@ -16782,7 +16774,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions 
             total_token_cost = token_cost;
           }
         } else {
-          const model = adjust_model(token_cost, llm_model);
+          const model = adjustOpenaiModel(token_cost, llm_model);
           const gpt_results = await query_llm(ctx, text2, instruction, model, llm_functions, temperature, top_p);
           const sanetized_results = sanitizeJSON(gpt_results);
           omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
@@ -16863,11 +16855,11 @@ async function async_GetQueryChunksComponent() {
       }
     }
   });
-  const llm_choices2 = await getLlmChoices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
-    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
+    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
   const outputs3 = [
@@ -16985,7 +16977,7 @@ async function async_get_docs_with_gpt_component() {
       }
     }
   });
-  const llm_choices2 = await getLlmChoices();
+  const llm_choices = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
@@ -16996,7 +16988,7 @@ async function async_get_docs_with_gpt_component() {
     ] },
     { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 },
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
   component = setComponentInputs(component, inputs3);

@@ -38,7 +38,7 @@ async function async_GetQueryChunksComponent()
   const inputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
     { name: 'query', type: 'string', customSocket: 'text' },
-    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs);
 

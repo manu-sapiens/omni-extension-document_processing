@@ -35,7 +35,7 @@ async function async_get_gpt_IxP_component()
         { name: 'llm_functions', title: 'functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
         { name: 'temperature', title: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'top_p', title: 'top_p', type: 'number', defaultValue: 1 },
-        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k', choices: llm_choices},
+        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
     ];
     component = setComponentInputs(component, inputs);
 
