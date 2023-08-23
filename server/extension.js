@@ -16197,14 +16197,6 @@ async function readJsonFromDisk(jsonPath) {
   const jsonContent = JSON.parse(await fs.readFile(jsonPath, "utf8"));
   return jsonContent;
 }
-async function validateFileExists(path3) {
-  try {
-    const stats = await fs.stat(path3);
-    return stats.isFile();
-  } catch {
-    return false;
-  }
-}
 
 // utils/llm.js
 var LLM_CONTEXT_SIZE_MARGIN = 500;
@@ -16217,20 +16209,23 @@ var GPT4_MODEL_LARGE = "gpt-4-32k";
 var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
 var GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
 var MODEL_TYPE_OPENAI = "openai";
-var MODEL_TYPE_OOBABOOGA = "other";
+var MODEL_TYPE_OOBABOOGA = "oobabooga";
+var MODEL_TYPE_LM_STUDIO = "lm-studio";
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
 var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
 var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
 var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
 var oobabooga_model_dir_json = await readJsonFromDisk(path2.resolve(process.cwd(), "..", "..", "user_files", "oobabooga_models_directory.json"));
 omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
-var OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
+var LLM_OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
 var LLM_LOCATION_OPENAI_SERVER = "openai_server";
-var LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga";
+var LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga_local";
+var LLM_LOCATION_LM_STUDIO_LOCAL = "lm-studio_local";
 var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
 var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
 var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
-var llm_remote_models = [
+var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
+var llm_openai_models = [
   { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
   { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
@@ -16257,73 +16252,67 @@ var llm_model_types = {};
 var llm_context_sizes = {};
 var llm_memory_needs = {};
 var llm_location = {};
-var llm_local_choices = {};
+var llm_choices = {};
 var llm_titles = {};
 var llm_descriptions = {};
-async function getLlmChoices(ctx) {
-  await add_local_llm_choices(OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
-  omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_local_choices)}`);
-  const choices = [];
-  const remote_models = Object.values(llm_remote_models);
+function addOpenaiLlmChoices() {
+  const remote_models = Object.values(llm_openai_models);
   for (const model of remote_models) {
     let name = model.model_name;
-    const title = model.title || deduceLlmTitle(name, true);
-    const description = model.description || deduce_llm_description(name, model.context_size);
-    if (name in llm_model_types == false)
-      llm_model_types[name] = model.model_type;
-    if (name in llm_context_sizes == false)
-      llm_context_sizes[name] = model.context_size;
-    if (name in llm_memory_needs == false)
-      llm_memory_needs[name] = model.memory_need;
-    if (name in llm_location == false)
-      llm_location[name] = model.location;
-    if (name in llm_titles == false)
-      llm_titles[name] = model.title;
-    if (name in llm_descriptions == false)
-      llm_descriptions[name] = model.description;
-    choices.push({ value: name, title, description });
+    let combined = combineModelNameAndType(name, MODEL_TYPE_OPENAI);
+    if (combined in llm_model_types == false) {
+      const title = model.title || deduceLlmTitle(name, MODEL_TYPE_OPENAI);
+      const description = model.description || deduce_llm_description(name, model.context_size);
+      llm_model_types[combined] = model.model_type;
+      llm_context_sizes[combined] = model.context_size;
+      llm_memory_needs[combined] = model.memory_need;
+      llm_location[combined] = model.location;
+      llm_titles[combined] = model.title;
+      llm_descriptions[combined] = model.description;
+      const choice = { value: combined, title, description };
+      llm_choices[combined] = choice;
+    }
   }
-  ;
-  const local_choices = Object.values(llm_local_choices);
+}
+async function getLlmChoices() {
+  await addOpenaiLlmChoices();
+  await addLocalLlmChoices(LLM_OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
+  await addLocalLlmChoices(LLM_LM_STUDIO_CACHE_DIRECTORY, MODEL_TYPE_LM_STUDIO, LLM_LOCATION_LM_STUDIO_LOCAL);
+  omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_choices)}`);
+  const choices = [];
+  const local_choices = Object.values(llm_choices);
   for (const choice of local_choices) {
     choices.push(choice);
   }
   return choices;
 }
-async function add_local_llm_choices(model_dir, default_model_type, location, check_json = false) {
+function combineModelNameAndType(model_name, model_type) {
+  return `${model_name}|${model_type}`;
+}
+function splitModelNameFromType(model_combined) {
+  const splits = model_combined.split("|");
+  if (splits.length != 2)
+    throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
+  return { model_name: splits[0], model_type: splits[1] };
+}
+async function addLocalLlmChoices(model_dir, model_type, model_location) {
   let filePaths = [];
   omnilog.warn(`external model_dir = ${model_dir}`);
   filePaths = await walkDirForExtension(filePaths, model_dir, ".bin");
   omnilog.warn(`external filePaths # = ${filePaths.length}`);
   for (const filepath of filePaths) {
     const name = path2.basename(filepath);
-    omnilog.warn(`name = ${name}`);
-    const jsonPath = filepath.replace(".bin", ".json");
-    let title, description, model_type, context_size, memory_need;
-    if (name in llm_model_types == false) {
-      omnilog.warn(`not known yet: ${name}`);
-      if (check_json && await validateFileExists(jsonPath)) {
-        const jsonContent = await readJsonFromDisk(jsonPath);
-        title = jsonContent.title ?? deduceLlmTitle(name);
-        ;
-        description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
-        model_type = jsonContent.model_type ?? default_model_type;
-        context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
-        memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
-      } else {
-        title = deduceLlmTitle(name, false);
-        description = deduce_llm_description(name);
-        model_type = default_model_type;
-        context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-        memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
-      }
-      llm_model_types[name] = model_type;
-      llm_context_sizes[name] = context_size;
-      llm_memory_needs[name] = memory_need;
-      llm_location[name] = location;
-      const choice = { value: name, title, description };
-      llm_local_choices[name] = choice;
-      omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
+    const combined = combineModelNameAndType(name, model_type);
+    if (combined in llm_model_types == false) {
+      omnilog.warn(`combined = ${combined}`);
+      const title = deduceLlmTitle(name, model_type);
+      const description = deduce_llm_description(name);
+      const choice = { value: combined, title, description };
+      llm_model_types[combined] = model_type;
+      llm_context_sizes[combined] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+      llm_memory_needs[combined] = DEFAULT_UNKNOWN_MEMORY_NEED;
+      llm_location[combined] = model_location;
+      llm_choices[combined] = choice;
     }
   }
 }
@@ -16421,27 +16410,27 @@ cleanedString: ${cleanedString})`);
   }
   return "{}";
 }
-function get_llm_type(model_name) {
-  if (model_name in llm_model_types == false)
-    return MODEL_TYPE_OOBABOOGA;
-  const model_type = llm_model_types[model_name];
-  return model_type;
-}
 function get_model_context_size(model_name) {
   if (model_name in llm_context_sizes == false)
     return DEFAULT_UNKNOWN_CONTEXT_SIZE;
   const context_size = llm_context_sizes[model_name];
   return context_size;
 }
-async function queryLlm(ctx, prompt3, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
+async function queryLlm(ctx, prompt3, instruction, combined = GPT3_MODEL_SMALL + "|" + MODEL_TYPE_OPENAI, llm_functions = null, temperature = 0, top_p = 1) {
   let response = null;
-  if (get_llm_type(model_name) == MODEL_TYPE_OPENAI) {
+  const splits = splitModelNameFromType(combined);
+  const model_name = splits.model_name;
+  const model_type = splits.model_type;
+  omnilog.warn(`[queryLlm] model_name = ${model_name}, model_type = ${model_type}`);
+  if (model_type == MODEL_TYPE_OPENAI) {
     response = await query_openai_llm(ctx, prompt3, instruction, model_name, llm_functions, temperature, top_p);
-  } else {
+  } else if (model_type == MODEL_TYPE_OOBABOOGA) {
     const prompt_and_instructions = `${instruction}
 
 ${prompt3}`;
     response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
+  } else if (model_type == MODEL_TYPE_LM_STUDIO) {
+    response = await queryLmStudioLlm(ctx, prompt3, instruction, temperature);
   }
   return response;
 }
@@ -16493,12 +16482,27 @@ async function runChatGPTBlock(ctx, args) {
   }
   return response;
 }
-function deduceLlmTitle(name, paid = true) {
-  let title = name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase());
-  if (paid)
-    title = "[$]" + title;
-  else
-    title = "[\u2B07]" + title;
+function deduceLlmTitle(name, model_type) {
+  let icon = "";
+  let postfix = "";
+  switch (model_type) {
+    case MODEL_TYPE_OPENAI:
+      icon = "\u{1F4B0}";
+      postfix = "openai";
+      break;
+    case MODEL_TYPE_OOBABOOGA:
+      icon = "\u{1F4BE}";
+      postfix = "oobabooga";
+      break;
+    case MODEL_TYPE_LM_STUDIO:
+      icon = "\u{1F4BD}";
+      postfix = "lm-studio";
+      break;
+    default:
+      icon = "?";
+      break;
+  }
+  const title = icon + name.replace(/-/g, " ").replace(/\b\w/g, (l2) => l2.toUpperCase()) + " (" + postfix + ")";
   return title;
 }
 function deduce_llm_description(name, context_size = 0) {
@@ -16511,11 +16515,11 @@ function parseOobaboogaModelResponse(model_response) {
   let nestedResult = JSON.parse(model_response);
   omnilog.warn(`nestedResult = ${JSON.stringify(nestedResult)}`);
   if (nestedResult["shared.settings"]) {
-    nestedResult.settings = nestedResult["shared.settings"];
+    nestedResult.shared_settings = nestedResult["shared.settings"];
     delete nestedResult["shared.settings"];
   }
   if (nestedResult["shared.args"]) {
-    nestedResult.args = nestedResult["shared.args"];
+    nestedResult.shared_args = nestedResult["shared.args"];
     delete nestedResult["shared.args"];
   }
   omnilog.warn(`nestedResult (after) = ${JSON.stringify(nestedResult)}`);
@@ -16523,24 +16527,21 @@ function parseOobaboogaModelResponse(model_response) {
 }
 async function queryOobaboogaLlm(ctx, prompt3, model_name, temperature = 0.3) {
   let model_response = await getOobaboggaCurrentModelInfo(ctx);
-  omnilog.warn(`model_response = ${JSON.stringify(model_response)}`);
   let nestedResult = parseOobaboogaModelResponse(model_response);
   let loaded_model = nestedResult?.model_name;
-  const context_size = nestedResult?.settings?.max_new_tokens_max || 0;
-  omnilog.warn(`context_size = ${context_size}`);
-  omnilog.warn(`nestedResult (1) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
+  const context_size = nestedResult?.shared_settings?.max_new_tokens_max || 0;
+  llm_context_sizes[model_name] = context_size;
   if (loaded_model != model_name) {
     model_response = await loadOobaboogaModel(ctx, model_name);
     nestedResult = parseOobaboogaModelResponse(model_response);
     loaded_model = nestedResult?.model_name;
-    omnilog.warn(`nestedResult (2) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
   }
   if (loaded_model != model_name)
     throw new Error(`Failed to load model ${model_name} into oobabooga`);
   let args = {};
   args.prompt = prompt3;
   args.temperature = temperature;
-  console_log(`[query_oobabooga_llm] args: ${JSON.stringify(args)}`);
+  console_log(`[queryOobaboogaLlm] args: ${JSON.stringify(args)}`);
   const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
   if (response.error)
     throw new Error(response.error);
@@ -16557,6 +16558,31 @@ async function queryOobaboogaLlm(ctx, prompt3, model_name, temperature = 0.3) {
     total_tokens: 0
   };
   omnilog.warn(`oobabooga return value = ${JSON.stringify(return_value)}`);
+  return return_value;
+}
+async function queryLmStudioLlm(ctx, prompt3, instruction, temperature = 0.3) {
+  let args = {};
+  args.prompt = prompt3;
+  args.instruction = instruction;
+  args.temperature = temperature;
+  console_log(`[queryLmStudioLlm] args: ${JSON.stringify(args)}`);
+  const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
+  if (response.error)
+    throw new Error(response.error);
+  omnilog.warn(`response = ${JSON.stringify(response)}`);
+  const choices = response?.choices || [];
+  if (choices.length == 0)
+    throw new Error("No results returned from lm_studio");
+  const text2 = choices[0].content;
+  if (!text2)
+    throw new Error(`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+  const return_value = {
+    text: text2,
+    function_arguments_string: "",
+    function_arguments: null,
+    total_tokens: 0
+  };
+  omnilog.warn(`lm-studio return value = ${JSON.stringify(return_value)}`);
   return return_value;
 }
 async function getOobaboggaCurrentModelInfo(ctx) {
@@ -16577,14 +16603,14 @@ async function async_get_gpt_IxP_component() {
       links: {}
     }
   });
-  const llm_choices = await getLlmChoices();
+  const llm_choices2 = await getLlmChoices();
   const inputs3 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16676,14 +16702,14 @@ async function async_get_loop_gpt_component() {
       }
     }
   });
-  const llm_choices = await getLlmChoices();
+  const llm_choices2 = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16837,11 +16863,11 @@ async function async_GetQueryChunksComponent() {
       }
     }
   });
-  const llm_choices = await getLlmChoices();
+  const llm_choices2 = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
-    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices }
+    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 }
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
   const outputs3 = [
@@ -16959,7 +16985,7 @@ async function async_get_docs_with_gpt_component() {
       }
     }
   });
-  const llm_choices = await getLlmChoices();
+  const llm_choices2 = await getLlmChoices();
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
@@ -16970,7 +16996,7 @@ async function async_get_docs_with_gpt_component() {
     ] },
     { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices },
+    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k", choices: llm_choices2 },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
   component = setComponentInputs(component, inputs3);

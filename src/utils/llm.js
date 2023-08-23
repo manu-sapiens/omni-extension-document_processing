@@ -23,7 +23,8 @@ const GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
 const GPT4_SIZE_MAX = 32768 - LLM_CONTEXT_SIZE_MARGIN;
 
 const MODEL_TYPE_OPENAI = "openai";
-const MODEL_TYPE_OOBABOOGA = "other";
+const MODEL_TYPE_OOBABOOGA = "oobabooga";
+const MODEL_TYPE_LM_STUDIO = "lm-studio";
 const DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
 const DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
 
@@ -36,18 +37,20 @@ const oobabooga_model_dir_json = await readJsonFromDisk(path.resolve(process.cwd
 //debug
 omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
 
-const OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
+const LLM_OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
 const LLM_LOCATION_OPENAI_SERVER = "openai_server";
 const LLM_LOCATION_GPT4ALL_CACHE = "gpt4all_cache";
 const LLM_LOCATION_LM_STUDIO_CACHE = "lm_studio_cache";
 const LLM_LOCATION_USER_PROVIDED = "user_provided";
 const LLM_LOCATION_GPT4ALL_SERVER = "gpt4all_server";
-const LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga";
+const LLM_LOCATION_OOBABOOGA_LOCAL = "oobabooga_local";
+const LLM_LOCATION_LM_STUDIO_LOCAL = "lm-studio_local"
 
 const BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
 const BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
 const BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
 const BLOCK_OPENAI_SIMPLE_CHATGPT = "openai.simpleChatGPT";
+const BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
 
 //const {
 //    DEFAULT_DIRECTORY,
@@ -58,7 +61,7 @@ const BLOCK_OPENAI_SIMPLE_CHATGPT = "openai.simpleChatGPT";
 //} = require("../gpt4all/config.js");
 
 
-const llm_remote_models = [
+const llm_openai_models = [
     { model_name: "gpt-3.5-turbo", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 4096, location: LLM_LOCATION_OPENAI_SERVER },
     { model_name: "gpt-3.5-turbo-16k", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 16384, location: LLM_LOCATION_OPENAI_SERVER },
     { model_name: "gpt-4", model_type: MODEL_TYPE_OPENAI, memory_need: 0, context_size: 8192, location: LLM_LOCATION_OPENAI_SERVER },
@@ -86,7 +89,7 @@ const llm_model_types = {};
 const llm_context_sizes = {};
 const llm_memory_needs = {};
 const llm_location = {};
-const llm_local_choices = {};
+const llm_choices = {};
 const llm_titles = {};
 const loaded_models = {};
 const llm_descriptions = {};
@@ -94,77 +97,47 @@ const JSON_URL = "https://raw.githubusercontent.com/nomic-ai/gpt4all/main/gpt4al
 
 
 
-function getDefaultModelContextSizeFromModelType(model_type, model_name)
+
+
+
+function addOpenaiLlmChoices()
 {
-    model_type = model_type.toLowerCase();
-    switch (model_type)
-    {
-        case 'llama':
-        case 'openllama':
-            return 2048;
-        case 'llama2':
-            return 4096;
-        case 'falcon':
-            return 2048;
-        case 'gptj':
-
-            return 4096;
-        case 'gptj-30b':
-            return 8192;
-        case 'mpt':
-            return 4096;
-        case 'replit':
-            return 2048; // but really, we don't know ( 'support variable context length at inference time' )
-        case 'openai':
-            if (model_name == GPT3_MODEL_SMALL) return 4096;
-            if (model_name == GPT3_MODEL_LARGE) return 16384;
-            if (model_name == GPT4_MODEL_SMALL) return 8192;
-            if (model_name == GPT4_MODEL_LARGE) return 32768;
-            return 4096;
-        default:
-            return 2048;
-    }
-}
-
-
-async function getLlmChoices(ctx)
-{
-
-    await add_local_llm_choices(OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
-
-    //debug
-    omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_local_choices)}`);
-    
-    /*
-    await add_local_llm_choices(LLM_GPT4ALL_CACHE_DIRECTORY, LLM_LOCATION_GPT4ALL_CACHE);
-    await add_local_llm_choices(LLM_LM_STUDIO_CACHE_DIRECTORY, LLM_LOCATION_LM_STUDIO_CACHE);
-    await add_local_llm_choices(LLM_USER_PROVIDED_MODELS_DIRECTORY, LLM_LOCATION_USER_PROVIDED);
-    */
-
-    const choices = [];
-
-    const remote_models = Object.values(llm_remote_models);
+    const remote_models = Object.values(llm_openai_models);
     for (const model of remote_models)
     {
 
         let name = model.model_name;
+        let combined = combineModelNameAndType(name, MODEL_TYPE_OPENAI);
 
-        const title = model.title || deduceLlmTitle(name, true);
-        const description = model.description || deduce_llm_description(name, model.context_size);
+        if (combined in llm_model_types == false)
+        {
+            const title = model.title || deduceLlmTitle(name, MODEL_TYPE_OPENAI);
+            const description = model.description || deduce_llm_description(name, model.context_size);
 
-        if (name in llm_model_types == false) llm_model_types[name] = model.model_type;
-        if (name in llm_context_sizes == false) llm_context_sizes[name] = model.context_size;
-        if (name in llm_memory_needs == false) llm_memory_needs[name] = model.memory_need;
-        if (name in llm_location == false) llm_location[name] = model.location;
-        if (name in llm_titles == false) llm_titles[name] = model.title;
-        if (name in llm_descriptions == false) llm_descriptions[name] = model.description;
-        // we do NOT add name to llm_local_choices on purpose to distinguish between local and remote models
+            llm_model_types[combined] = model.model_type;
+            llm_context_sizes[combined] = model.context_size;
+            llm_memory_needs[combined] = model.memory_need;
+            llm_location[combined] = model.location;
+            llm_titles[combined] = model.title;
+            llm_descriptions[combined] = model.description;
 
-        choices.push({ value: name, title: title, description: description });
-    };
+            const choice = { value: combined, title: title, description: description };
+            llm_choices[combined] = choice;
+        }
+    }
+}
 
+async function getLlmChoices()
+{
+    await addOpenaiLlmChoices();
+    await addLocalLlmChoices(LLM_OOBABOOGA_MODEL_DIRECTORY, MODEL_TYPE_OOBABOOGA, LLM_LOCATION_OOBABOOGA_LOCAL);
+    await addLocalLlmChoices(LLM_LM_STUDIO_CACHE_DIRECTORY, MODEL_TYPE_LM_STUDIO, LLM_LOCATION_LM_STUDIO_LOCAL);
+
+    //debug
+    omnilog.warn(`llm_local_choices = ${JSON.stringify(llm_choices)}`);
     
-    const local_choices = Object.values(llm_local_choices);
+    const choices = [];
+    const local_choices = Object.values(llm_choices);
     for (const choice of local_choices)
     {
         choices.push(choice);
@@ -172,10 +145,21 @@ async function getLlmChoices(ctx)
 
     return choices;
 }
-
-async function add_local_llm_choices(model_dir, default_model_type, location, check_json = false) 
+function combineModelNameAndType(model_name, model_type)
 {
-    // adding externally downloaded llms
+    return `${model_name}|${model_type}`;
+}
+
+function splitModelNameFromType(model_combined)
+{
+    const splits = model_combined.split('|');
+    if (splits.length != 2) throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
+    return { model_name: splits[0], model_type: splits[1] };
+}
+
+async function addLocalLlmChoices(model_dir, model_type, model_location) 
+{
+
     let filePaths = [];
     omnilog.warn(`external model_dir = ${model_dir}`);
 
@@ -185,44 +169,21 @@ async function add_local_llm_choices(model_dir, default_model_type, location, ch
     for (const filepath of filePaths)
     {
         const name = path.basename(filepath);
-        omnilog.warn(`name = ${name}`);
-        const jsonPath = filepath.replace('.bin', '.json');
-        let title, description, model_type, context_size, memory_need;
+        const combined = combineModelNameAndType(name, model_type);
 
-        if (name in llm_model_types == false) 
+        if (combined in llm_model_types == false)
         {
-            
-            omnilog.warn(`not known yet: ${name}`);
-            if (check_json && await validateFileExists(jsonPath)) 
-            {
 
-                const jsonContent = await readJsonFromDisk(jsonPath);
-                title = jsonContent.title ?? deduceLlmTitle(name);;
-                description = jsonContent.description ?? deduce_llm_description(name, jsonContent.context_size ?? 0);
-                model_type = jsonContent.model_type ?? default_model_type;
-                context_size = jsonContent.context_size ?? DEFAULT_UNKNOWN_CONTEXT_SIZE;
-                memory_need = jsonContent.memory_need ?? DEFAULT_UNKNOWN_MEMORY_NEED;
+            omnilog.warn(`combined = ${combined}`);
+            const title = deduceLlmTitle(name, model_type);
+            const description = deduce_llm_description(name);
+            const choice = { value: combined, title: title, description: description };
 
-            }
-            else 
-            {
-                
-                title = deduceLlmTitle(name, false);
-                description = deduce_llm_description(name);
-                model_type = default_model_type;
-                context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-                memory_need = DEFAULT_UNKNOWN_MEMORY_NEED;
-
-            }
-
-            llm_model_types[name] = model_type;
-            llm_context_sizes[name] = context_size;
-            llm_memory_needs[name] = memory_need;
-            llm_location[name] = location;
-            const choice = { value: name, title: title, description: description };
-            llm_local_choices[name] = choice;
-
-            omnilog.warn(`added: ${name} with choices: ${JSON.stringify(choice)}`);
+            llm_model_types[combined] = model_type;
+            llm_context_sizes[combined] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+            llm_memory_needs[combined] = DEFAULT_UNKNOWN_MEMORY_NEED;
+            llm_location[combined] = model_location;
+            llm_choices[combined] = choice;
         }
     }
 
@@ -366,21 +327,27 @@ function get_model_context_size(model_name)
     return context_size;
 }
 
-async function queryLlm(ctx, prompt, instruction, model_name = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1)
+async function queryLlm(ctx, prompt, instruction, combined = GPT3_MODEL_SMALL+"|"+MODEL_TYPE_OPENAI, llm_functions = null, temperature = 0, top_p = 1)
 {
     let response = null;
+    const splits = splitModelNameFromType(combined);
+    const model_name = splits.model_name;
+    const model_type = splits.model_type;
 
-    if (get_llm_type(model_name) == MODEL_TYPE_OPENAI)
+    omnilog.warn(`[queryLlm] model_name = ${model_name}, model_type = ${model_type}`);
+    if (model_type == MODEL_TYPE_OPENAI)
     {
-
         response = await query_openai_llm(ctx, prompt, instruction, model_name, llm_functions, temperature, top_p);
     }
-    else
+    else if (model_type == MODEL_TYPE_OOBABOOGA)
     {
         const prompt_and_instructions = `${instruction}\n\n${prompt}`;
         response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
     }
-
+    else if (model_type == MODEL_TYPE_LM_STUDIO)
+    {
+        response = await queryLmStudioLlm(ctx, prompt, instruction, temperature);
+    }
     return response;
 }
 
@@ -446,11 +413,30 @@ async function runChatGPTBlock(ctx, args)
 }
 
 
-function deduceLlmTitle(name, paid = true)
+function deduceLlmTitle(name, model_type)
 {
-    let title = name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    if (paid) title = '[$]' + title;
-    else title = '[\u2B07]' + title;
+    let icon = '';
+    let postfix = '';
+    switch (model_type)
+    {
+        case MODEL_TYPE_OPENAI:
+            icon = '💰';
+            postfix = 'openai'
+            break;
+        case MODEL_TYPE_OOBABOOGA:
+            icon = '💾';
+            postfix = 'oobabooga'
+            break;
+        case MODEL_TYPE_LM_STUDIO:
+            icon = '💽';
+            postfix = 'lm-studio'
+            break;
+        default:
+            icon = '?';
+            break;    
+    }
+    const title = icon + name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) + ' (' + postfix + ')';
+
     return title;
 }
 
@@ -468,12 +454,12 @@ function parseOobaboogaModelResponse(model_response)
 
     // Rename the keys
     if (nestedResult['shared.settings']) {
-        nestedResult.settings = nestedResult['shared.settings'];
+        nestedResult.shared_settings = nestedResult['shared.settings'];
         delete nestedResult['shared.settings'];
     }
     
     if (nestedResult['shared.args']) {
-        nestedResult.args = nestedResult['shared.args'];
+        nestedResult.shared_args = nestedResult['shared.args'];
         delete nestedResult['shared.args'];
     }
 
@@ -488,27 +474,19 @@ async function queryOobaboogaLlm(ctx, prompt, model_name, temperature = 0.3)
     // 2. in oobabooga session tab, options --api and --listen checked (or used as cmdline parameters when launching oobabooga)
 
     let model_response = await getOobaboggaCurrentModelInfo(ctx);
-    omnilog.warn(`model_response = ${JSON.stringify(model_response)}`);
 
     // Parsing the nested JSON string inside the 'result' property
     let nestedResult = parseOobaboogaModelResponse(model_response);
     
     let loaded_model = nestedResult?.model_name;
-    const context_size = nestedResult?.settings?.max_new_tokens_max || 0;
+    const context_size = nestedResult?.shared_settings?.max_new_tokens_max || 0;
     llm_context_sizes[model_name] = context_size;
-    omnilog.warn(`context_size = ${context_size}`);
-    
-
-    omnilog.warn(`nestedResult (1) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
 
     if (loaded_model != model_name)
     {
         model_response = await loadOobaboogaModel(ctx, model_name);
         nestedResult = parseOobaboogaModelResponse(model_response);
         loaded_model = nestedResult?.model_name;
-
-        //debug
-        omnilog.warn(`nestedResult (2) = ${JSON.stringify(nestedResult)}, loaded_model = ${loaded_model}, model_name = ${model_name}, ==? ${loaded_model == model_name}`);
     }
     
     if (loaded_model != model_name) throw new Error (`Failed to load model ${model_name} into oobabooga`);
@@ -520,7 +498,7 @@ async function queryOobaboogaLlm(ctx, prompt, model_name, temperature = 0.3)
     // args.top_p = top_p;
     // TBD: find a way to support functions
 
-    console_log(`[query_oobabooga_llm] args: ${JSON.stringify(args)}`);
+    console_log(`[queryOobaboogaLlm] args: ${JSON.stringify(args)}`);
 
     const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
     if (response.error) throw new Error(response.error);
@@ -545,7 +523,48 @@ async function queryOobaboogaLlm(ctx, prompt, model_name, temperature = 0.3)
 
 }
 
+async function queryLmStudioLlm(ctx, prompt, instruction, temperature = 0.3)
+{
+    // for now, for this to work we need:
+    // 1. a model manually copied into oobabbooga's models directory 
+    // 2. in oobabooga session tab, options --api and --listen checked (or used as cmdline parameters when launching oobabooga)
 
+    let args = {};
+    //args.user = ctx.userId;
+    args.prompt = prompt;
+    args.instruction = instruction;
+    args.temperature = temperature;
+    // args.top_p = top_p;
+    // TBD: find a way to support functions
+
+    console_log(`[queryLmStudioLlm] args: ${JSON.stringify(args)}`);
+
+    const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
+    if (response.error) throw new Error(response.error);
+
+    omnilog.warn(`response = ${JSON.stringify(response)}`);
+
+    const choices = response?.choices || [];
+    if (choices.length == 0) throw new Error("No results returned from lm_studio");
+
+    const text = choices[0].content;
+
+    if (!text) throw new Error (`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+    
+   
+    const return_value = {
+        text: text,
+        function_arguments_string: "",
+        function_arguments: null,
+        total_tokens: 0,
+    };
+
+    //DEBUG
+    omnilog.warn(`lm-studio return value = ${JSON.stringify(return_value)}`);
+
+    return return_value;
+
+}
 
 async function getOobaboggaCurrentModelInfo(ctx)
 {
@@ -566,8 +585,10 @@ async function loadOobaboogaModel(ctx, model_name)
     return response.result;
 }
 
+/*
 async function readLocalOobaboogaChoices(ctx)
 {
+ 
     const model_names = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "list" });
 
 
@@ -583,7 +604,7 @@ async function readLocalOobaboogaChoices(ctx)
         {
             omnilog.warn(`not known yet: ${model_name}`);
             {
-                title = deduceLlmTitle(model_name, false);
+                title = deduceLlmTitle(model_name, MODEL_TYPE_OOBABOOGA);
                 description = deduce_llm_description(model_name);
                 model_type = MODEL_TYPE_OOBABOOGA;
                 context_size = DEFAULT_UNKNOWN_CONTEXT_SIZE;
@@ -596,13 +617,14 @@ async function readLocalOobaboogaChoices(ctx)
             llm_location[model_name] = LLM_LOCATION_OOBABOOGA_LOCAL;
 
             const choice = { value: model_name, title: title, description: description };
-            llm_local_choices[model_name] = choice;
+            llm_choices[model_name] = choice;
 
             omnilog.warn(`added: ${model_name} with choices: ${JSON.stringify(choice)}`);
         }
     }
-}
 
+}
+*/
 
 export { queryLlm, runChatGPTBlock, get_model_max_size, adjust_model, getLlmChoices };
 export { DEFAULT_GPT_MODEL, GPT4_SIZE_MAX }
