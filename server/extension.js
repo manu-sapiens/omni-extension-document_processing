@@ -16222,7 +16222,7 @@ var DEFAULT_UNKNOWN_CONTEXT_SIZE = 4096;
 var DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
 var LLM_USER_PROVIDED_MODELS_DIRECTORY = path2.resolve(process.cwd(), "user_provided_models");
 var LLM_LM_STUDIO_CACHE_DIRECTORY = path2.resolve(os.homedir(), ".cache/lm-studio", "models");
-var oobabooga_model_dir_json = await readJsonFromDisk(path2.resolve(process.cwd(), "etc", "registry", "oobabooga", "oobabooga_models_directory.json"));
+var oobabooga_model_dir_json = await readJsonFromDisk(path2.resolve(process.cwd(), "..", "..", "user_files", "oobabooga_models_directory.json"));
 omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
 var OOBABOOGA_MODEL_DIRECTORY = oobabooga_model_dir_json.models_path;
 var LLM_LOCATION_OPENAI_SERVER = "openai_server";
@@ -16508,8 +16508,7 @@ function deduce_llm_description(name, context_size = 0) {
   return description;
 }
 function parseOobaboogaModelResponse(model_response) {
-  debugger;
-  let nestedResult = JSON.parse(model_response);
+  let nestedResult = JSON.parse(JSON.stringify(model_response));
   omnilog.warn(`nestedResult = ${JSON.stringify(nestedResult)}`);
   if (nestedResult["shared.settings"]) {
     nestedResult.settings = nestedResult["shared.settings"];

@@ -30,7 +30,9 @@ const DEFAULT_UNKNOWN_MEMORY_NEED = 8192;
 const LLM_USER_PROVIDED_MODELS_DIRECTORY = path.resolve(process.cwd(), "user_provided_models");
 const LLM_LM_STUDIO_CACHE_DIRECTORY = path.resolve(os.homedir(), ".cache/lm-studio", "models");
 
-const oobabooga_model_dir_json = await readJsonFromDisk(path.resolve(process.cwd(), "etc", "registry" ,"oobabooga", "oobabooga_models_directory.json"));
+//const oobabooga_model_dir_json = await readJsonFromDisk(path.resolve(process.cwd(), "etc", "registry" ,"oobabooga", "oobabooga_models_directory.json"));
+const oobabooga_model_dir_json = await readJsonFromDisk(path.resolve(process.cwd(), "..", ".." ,"user_files", "oobabooga_models_directory.json"));
+
 //debug
 omnilog.warn(`oobabooga_model_dir_json = ${JSON.stringify(oobabooga_model_dir_json)}`);
 
