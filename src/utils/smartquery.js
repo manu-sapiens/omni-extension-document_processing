@@ -1,7 +1,8 @@
+//@ts-check
 // smartquery.js
 
 import { query_vectorstore } from './vectorstore.js';
-import { queryLlm, get_model_max_size } from './llm.js';
+import { queryLlm, getModelMaxSize } from './llms.js';
 import { console_log, is_valid } from './utils.js';
 import { count_tokens_in_text } from './tiktoken.js';
 
@@ -15,7 +16,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
     let total_tokens = 0;
 
-    let max_size = get_model_max_size(model);
+    let max_size = getModelMaxSize(model);
 
 
     let combined_text = "";

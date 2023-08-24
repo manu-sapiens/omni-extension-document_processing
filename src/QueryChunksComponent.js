@@ -1,3 +1,4 @@
+//@ts-check
 // QueryChunksComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
@@ -10,7 +11,7 @@ import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
 import { initialize_embedder } from './utils/embedder.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
-import { getLlmChoices } from "./utils/llm.js"
+import { getLlmChoices } from "./utils/llms.js"
 
 async function async_GetQueryChunksComponent()
 {
@@ -45,8 +46,6 @@ async function async_GetQueryChunksComponent()
   // Adding outpu(t)
   const outputs = [
       { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
-      { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The documents containing the results' },
-      { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The files containing the results' },
   ];
   query_chunk_component = setComponentOutputs(query_chunk_component, outputs);
 
@@ -59,7 +58,7 @@ async function async_GetQueryChunksComponent()
 
 async function query_chunk_parse(payload, ctx) {
 
-  let return_value = { result: { "ok": false }, files: [], documents: [], answer : "" };
+  let return_value = { result: { "ok": false }, answer : "" };
   if (payload.documents)
   {
 
@@ -67,10 +66,9 @@ async function query_chunk_parse(payload, ctx) {
     const query = payload.query;
     const model = payload.model;
     
-    const response =  await query_chunks_function(ctx, documents_cdns, query, model);
-    const results_cdn = response.cdn;
-    const answer = response.answer;
-    return_value = { result: { "ok": true }, files: [results_cdn], documents: [results_cdn], answer: answer };
+    const answer =  await query_chunks_function(ctx, documents_cdns, query, model);
+    if (!answer) return return_value;
+    return_value = { result: { "ok": true }, answer: answer };
   }
 
   return return_value;
@@ -102,8 +100,7 @@ async function query_chunk_parse(payload, ctx) {
           combined_answer += query_result + "\n\n";
       }
   
-      const results_cdn = await save_json_to_cdn(ctx, { answer: combined_answer });
-      const response = { cdn: results_cdn, answer: combined_answer };
+      const response = combined_answer;
       console.timeEnd("query_chunks_component_processTime");
       return response;
   }

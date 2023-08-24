@@ -1,6 +1,6 @@
+//@ts-check
 // ReadTextFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
@@ -27,7 +27,6 @@ read_text_files_component = setComponentInputs(read_text_files_component, inputs
 // Adding outpu(t)
 const outputs = [
   { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The read documents' },
-  { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The read files' },
 ];
 read_text_files_component = setComponentOutputs(read_text_files_component, outputs);
 
@@ -50,6 +49,8 @@ async function read_text_files_function(ctx, url_or_text) {
 
     const parsedArray = parse_text_to_array(url_or_text);
     const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
+
+    if (!parsedArray) return [];
 
     if (cdn_tickets.length > 0) {
       // The parsedArray contains CDN tickets, return them as is.

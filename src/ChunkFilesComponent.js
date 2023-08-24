@@ -1,3 +1,4 @@
+//@ts-check
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
@@ -68,8 +69,6 @@ chunk_files_component = setComponentInputs(chunk_files_component, inputs);
 
 // Adding output(s)
 const outputs = [
-    { name: 'text', type: 'string', customSocket: 'text', description: 'Result Text', title: 'Result Text' },
-    { name: 'files', type: 'array', customSocket: 'cdnObjectArray', description: 'The chunked texts files' },
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'The chunked texts documents' },
   ];
 chunk_files_component = setComponentOutputs(chunk_files_component, outputs);
@@ -102,14 +101,13 @@ async function chunk_files_parse(payload, ctx)
     const chunk_size = payload.chunk_size;
     const chunk_overlap = payload.chunk_overlap;
 
-    let return_value = { result: { "ok": false }, documents: [], files: [] };
-    if (payload.documents)
-    {
-        const result_cdns = await chunk_files_function(ctx, documents_cdns, overwrite, vectorstore_name, embedder_model, splitter_model, chunk_size, chunk_overlap);
-        return_value = { result: { "ok": true }, documents: result_cdns, files: result_cdns };
-    }
+    if (!payload.documents) return { result: { "ok": false }, documents: [] };
+    const result_cdns = await chunk_files_function(ctx, documents_cdns, overwrite, vectorstore_name, embedder_model, splitter_model, chunk_size, chunk_overlap);
+    if (!result_cdns) return { result: { "ok": false }, documents: [] };
 
+    const return_value = { result: { "ok": true }, documents: result_cdns };
     return return_value;
+   
 }
 
 async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
