@@ -1,6 +1,6 @@
 // hashers.js
 
-import { SHA256Hasher } from "./hashersSHA256.js";
+import { Hasher_SHA256 } from "./hasher_SHA256.js";
 import { console_log, is_valid } from "./utils.js";
 
 const HASHER_MODEL_SHA256 = "SHA256";
@@ -35,7 +35,7 @@ function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL)
 {
 
     let hasher = null;
-    if (hasher_model == HASHER_MODEL_SHA256) hasher = new SHA256Hasher();
+    if (hasher_model == HASHER_MODEL_SHA256) hasher = new Hasher_SHA256();
     else  
     {
         throw new Error(`initialize_hasher: Unknown hasher model: ${hasher_model}`);

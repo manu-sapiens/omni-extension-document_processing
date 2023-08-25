@@ -3,7 +3,7 @@
 import { Hasher } from './hasher.js'
 import { createHash } from "crypto";
 
-class SHA256Hasher extends Hasher
+class Hasher_SHA256 extends Hasher
 {
     constructor()
     {
@@ -45,4 +45,4 @@ class SHA256Hasher extends Hasher
     }
 }
 
-export { SHA256Hasher }
+export { Hasher_SHA256 }

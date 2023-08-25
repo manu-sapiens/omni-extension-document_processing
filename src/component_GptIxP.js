@@ -7,7 +7,7 @@ const NS_ONMI = 'document_processing';
 
 import { save_json_to_cdn, } from './utils/cdn.js';
 import { is_valid, parse_text_to_array } from './utils/utils.js';
-import { count_tokens_in_text } from './utils/tiktoken.js';
+//import { countTokens } from './utils/tiktoken.js';
 import { queryLlm, getLlmChoices, DEFAULT_LLM_MODEL } from './utils/llms.js';
 
 
@@ -63,6 +63,8 @@ async function async_get_gpt_IxP_component()
 async function gpt_IxP_parse(payload, ctx) {
     omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
 
+    if (!payload) return { result: { "ok": false }, answers_text: "", answers_json: null};
+    
     const instruction = payload.instruction;
     const prompt = payload.prompt;
     const llm_functions = payload.llm_functions;
@@ -101,13 +103,14 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
 
             omnilog.log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
-            const answer_object = await queryLlm(ctx, prompt, instruction, llm_model, temperature, llm_functions, top_p);
+            const query_args = {function: llm_functions, top_p : top_p}
+            const answer_object = await queryLlm(ctx, prompt, instruction, llm_model, temperature, query_args);
             if (!answer_object) continue;
             if (is_valid(answer_object) == false) continue;
 
-            const answer_text = answer_object.text;
-            const answer_fa = answer_object.function_arguments;
-            const answer_fa_string = answer_object.function_arguments_string;
+            const answer_text = answer_object.answer;
+            const answer_fa = answer_object.args?.function_arguments;
+            const answer_fa_string = answer_object.args?.function_arguments_string;
 
             if (is_valid(answer_text)) {
                 answers_json[id] = answer_text;

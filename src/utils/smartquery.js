@@ -4,7 +4,7 @@
 import { query_vectorstore } from './vectorstore.js';
 import { queryLlm, getModelMaxSize } from './llms.js';
 import { console_log, is_valid } from './utils.js';
-import { count_tokens_in_text } from './tiktoken.js';
+import { countTokens } from './tiktoken.js';
 
 async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model)
 {
@@ -29,7 +29,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
         const raw_text = vectorstore_response?.pageContent;
         const text = `[...] ${raw_text} [...]\n\n`;
-        const token_cost = count_tokens_in_text(text);
+        const token_cost = countTokens(text);
         const metadata = vectorstore_response?.metadata; // TBD: contains reference to the chunk that was matched. We could read the token_cost from there
         console_log(`vectorstore_responses[${i}] metadata = ${JSON.stringify(metadata)}`);
 
@@ -42,7 +42,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const prompt = `Based on the quotes, answer this question: ${query}`;
     
     const query_answer_json = await queryLlm(ctx, prompt, instruction, model);
-    const query_answer = query_answer_json?.text || null;
+    const query_answer = query_answer_json?.answer || null;
     if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 
     return query_answer;

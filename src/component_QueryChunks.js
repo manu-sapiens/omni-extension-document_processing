@@ -9,7 +9,7 @@ import { initialize_hasher } from './utils/hashers.js'
 import { save_json_to_cdn, get_json_from_cdn } from './utils/cdn.js';
 import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
-import { initialize_embedder } from './utils/embedder.js';
+import { initialize_embedder } from './utils/embeddings.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
 import { getLlmChoices } from "./utils/llms.js"
 

@@ -1,7 +1,7 @@
 // chunking.js
 import { compute_chunk_id } from './hashers.js';
 import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer} from './cdn.js'
-import { count_tokens_in_text } from './tiktoken.js';
+import { countTokens } from './tiktoken.js';
 import { is_valid, console_log } from './utils.js';
 
 const DEFAULT_CHUNK_SIZE = 512;
@@ -22,7 +22,7 @@ async function break_chapter_into_chunks(ctx, text, vectorstore_name, hasher, em
   
         const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
         const chunk_embedding = await embedder.embedQuery(chunk_text);
-        const chunk_token_count = count_tokens_in_text(chunk_text);
+        const chunk_token_count = countTokens(chunk_text);
         const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
         console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
         return chunk_json;

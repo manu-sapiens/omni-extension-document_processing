@@ -8,9 +8,9 @@ const NS_ONMI = 'document_processing';
 import { get_chunks_from_cdn } from './utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
 import { queryLlm, getLlmChoices, getModelMaxSize } from './utils/llms.js';
-import { count_tokens_in_text } from './utils/tiktoken.js';
+import { countTokens } from './utils/tiktoken.js';
 
-async function async_get_loop_gpt_component()
+async function async_getLoopGptComponent()
 {
     let component = OAIBaseComponent
         .create(NS_ONMI, "loop_gpt")
@@ -114,7 +114,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
             {
 
                 const text = chunk.text;
-                const token_cost = count_tokens_in_text(text);
+                const token_cost = countTokens(text);
                 omnilog.log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
 
                 const can_fit = (total_token_cost + token_cost <= max_size);
@@ -128,11 +128,13 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
                 }
                 if (!can_fit || is_last_index)
                 {
-                    const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, llm_functions, top_p);
+                    const query_args = {function: llm_functions, top_p : top_p}
+                    const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, query_args);
                     const sanetized_results = sanitizeJSON(gpt_results);
+                    const chunk_result = {text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments}
 
                     omnilog.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
-                    chunks_results.push(sanetized_results);
+                    chunks_results.push(chunk_result);
 
                     //reset the combined text and token cost
                     combined_text = text;
@@ -170,4 +172,4 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
     return response;
 }
 
-export { async_get_loop_gpt_component, loop_gpt_function};
+export { async_getLoopGptComponent, loop_gpt_function};

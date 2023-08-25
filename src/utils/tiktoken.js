@@ -1,8 +1,9 @@
 import { encode } from 'gpt-tokenizer'
 
-const GPT_MODEL_TIKTOKEN_GPT3 = "cl100k_base";//gpt-3.5-turbo";
+// https://www.npmjs.com/package/gpt-tokenizer 
+// By default, importing from gpt-tokenizer uses cl100k_base encoding, used by gpt-3.5-turbo and gpt-4.
 
-function count_tokens_in_text(text)
+export function countTokens(text)
 {
 
     const tokens = encode(text); //encoding.encode(text);
@@ -18,4 +19,4 @@ function count_tokens_in_text(text)
 }
 
 
-export { count_tokens_in_text }
+//export { countTokens }

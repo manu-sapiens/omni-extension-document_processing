@@ -1,6 +1,6 @@
 // vectorstore.js
 //import { faiss_from_texts } from "./vectorstoreFaiss.js";
-import { memory_from_texts } from "./vectorstoreMemory.js";
+import { memory_from_texts } from "./vectorstore_Memory.js";
 import { console_log,   is_valid } from "./utils.js";
 
 //const FAISS_VECTORSTORE = "FAISS";

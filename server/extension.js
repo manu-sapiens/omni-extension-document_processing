@@ -2781,12 +2781,12 @@ var require_retry_operation = __commonJS({
       var mainError = null;
       var mainErrorCount = 0;
       for (var i = 0; i < this._errors.length; i++) {
-        var error2 = this._errors[i];
-        var message = error2.message;
+        var error = this._errors[i];
+        var message = error.message;
         var count = (counts[message] || 0) + 1;
         counts[message] = count;
         if (count >= mainErrorCount) {
-          mainError = error2;
+          mainError = error;
           mainErrorCount = count;
         }
       }
@@ -2917,11 +2917,11 @@ var require_p_retry = __commonJS({
         this.message = message;
       }
     };
-    var decorateErrorWithCounts = (error2, attemptNumber, options3) => {
+    var decorateErrorWithCounts = (error, attemptNumber, options3) => {
       const retriesLeft = options3.retries - (attemptNumber - 1);
-      error2.attemptNumber = attemptNumber;
-      error2.retriesLeft = retriesLeft;
-      return error2;
+      error.attemptNumber = attemptNumber;
+      error.retriesLeft = retriesLeft;
+      return error;
     };
     var isNetworkError = (errorMessage) => networkErrorMsgs.includes(errorMessage);
     var pRetry3 = (input, options3) => new Promise((resolve, reject) => {
@@ -2935,26 +2935,26 @@ var require_p_retry = __commonJS({
       operation.attempt(async (attemptNumber) => {
         try {
           resolve(await input(attemptNumber));
-        } catch (error2) {
-          if (!(error2 instanceof Error)) {
-            reject(new TypeError(`Non-error was thrown: "${error2}". You should only throw errors.`));
+        } catch (error) {
+          if (!(error instanceof Error)) {
+            reject(new TypeError(`Non-error was thrown: "${error}". You should only throw errors.`));
             return;
           }
-          if (error2 instanceof AbortError) {
+          if (error instanceof AbortError) {
             operation.stop();
-            reject(error2.originalError);
-          } else if (error2 instanceof TypeError && !isNetworkError(error2.message)) {
+            reject(error.originalError);
+          } else if (error instanceof TypeError && !isNetworkError(error.message)) {
             operation.stop();
-            reject(error2);
+            reject(error);
           } else {
-            decorateErrorWithCounts(error2, attemptNumber, options3);
+            decorateErrorWithCounts(error, attemptNumber, options3);
             try {
-              await options3.onFailedAttempt(error2);
-            } catch (error3) {
-              reject(error3);
+              await options3.onFailedAttempt(error);
+            } catch (error2) {
+              reject(error2);
               return;
             }
-            if (!operation.retry(error2)) {
+            if (!operation.retry(error)) {
               reject(operation.mainError());
             }
           }
@@ -3193,8 +3193,8 @@ var require_p_timeout = __commonJS({
         if (typeof fallback === "function") {
           try {
             resolve(fallback());
-          } catch (error2) {
-            reject(error2);
+          } catch (error) {
+            reject(error);
           }
           return;
         }
@@ -3437,8 +3437,8 @@ var require_dist = __commonJS({
                 return void 0;
               });
               resolve(await operation);
-            } catch (error2) {
-              reject(error2);
+            } catch (error) {
+              reject(error);
             }
             this._next();
           };
@@ -5368,7 +5368,7 @@ var require_lib6 = __commonJS({
   }
 });
 
-// ChunkFilesComponent.js
+// component_ChunkFiles.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 
 // ../../../../../node_modules/consola/dist/index.mjs
@@ -6561,9 +6561,9 @@ var Hasher = class {
   }
 };
 
-// utils/hashersSHA256.js
+// utils/hasher_SHA256.js
 import { createHash } from "crypto";
-var SHA256Hasher = class extends Hasher {
+var Hasher_SHA256 = class extends Hasher {
   constructor() {
     super();
   }
@@ -6731,7 +6731,7 @@ function parse_text_to_array(candidate_text) {
     if (Array.isArray(parsedArray) && parsedArray.every((elem) => typeof elem === "string")) {
       texts = parsedArray;
     }
-  } catch (error2) {
+  } catch (error) {
     texts = [candidate_text];
   }
   console_log(`parse_text_to_array: texts = ${JSON.stringify(texts)}`);
@@ -6763,7 +6763,7 @@ function compute_document_id(ctx, texts, vectorstore_name, hasher) {
 function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL) {
   let hasher = null;
   if (hasher_model == HASHER_MODEL_SHA256)
-    hasher = new SHA256Hasher();
+    hasher = new Hasher_SHA256();
   else {
     throw new Error(`initialize_hasher: Unknown hasher model: ${hasher_model}`);
   }
@@ -6919,7 +6919,7 @@ async function gather_all_texts_from_documents(ctx, documents) {
       }
       const clearn_text = clean_string(text2);
       texts.push(clearn_text);
-    } catch (error2) {
+    } catch (error) {
       console_log(`WARNING: document ${JSON.stringify(document_cdn)} cannot be retrieved from cdn`);
     }
   }
@@ -7147,29 +7147,29 @@ var AsyncCaller = class {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   call(callable, ...args) {
-    return this.queue.add(() => (0, import_p_retry.default)(() => callable(...args).catch((error2) => {
-      if (error2 instanceof Error) {
-        throw error2;
+    return this.queue.add(() => (0, import_p_retry.default)(() => callable(...args).catch((error) => {
+      if (error instanceof Error) {
+        throw error;
       } else {
-        throw new Error(error2);
+        throw new Error(error);
       }
     }), {
-      onFailedAttempt(error2) {
-        if (error2.message.startsWith("Cancel") || error2.message.startsWith("TimeoutError") || error2.message.startsWith("AbortError")) {
-          throw error2;
+      onFailedAttempt(error) {
+        if (error.message.startsWith("Cancel") || error.message.startsWith("TimeoutError") || error.message.startsWith("AbortError")) {
+          throw error;
         }
-        if (error2?.code === "ECONNABORTED") {
-          throw error2;
+        if (error?.code === "ECONNABORTED") {
+          throw error;
         }
-        const status = error2?.response?.status;
+        const status = error?.response?.status;
         if (status && STATUS_NO_RETRY.includes(+status)) {
-          throw error2;
+          throw error;
         }
-        const data = error2?.response?.data;
+        const data = error?.response?.data;
         if (data?.error?.code === "insufficient_quota") {
-          const error3 = new Error(data?.error?.message);
-          error3.name = "InsufficientQuotaError";
-          throw error3;
+          const error2 = new Error(data?.error?.message);
+          error2.name = "InsufficientQuotaError";
+          throw error2;
         }
       },
       retries: this.maxRetries,
@@ -7595,13 +7595,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMEnd?.(run);
     await this._endTrace(run);
   }
-  async handleLLMError(error2, runId) {
+  async handleLLMError(error, runId) {
     const run = this.runMap.get(runId);
     if (!run || run?.run_type !== "llm") {
       throw new Error("No LLM run to end.");
     }
     run.end_time = Date.now();
-    run.error = error2.message;
+    run.error = error.message;
     run.events.push({
       name: "error",
       time: run.end_time
@@ -7649,13 +7649,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onChainEnd?.(run);
     await this._endTrace(run);
   }
-  async handleChainError(error2, runId) {
+  async handleChainError(error, runId) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.error = error2.message;
+    run.error = error.message;
     run.events.push({
       name: "error",
       time: run.end_time
@@ -7703,13 +7703,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onToolEnd?.(run);
     await this._endTrace(run);
   }
-  async handleToolError(error2, runId) {
+  async handleToolError(error, runId) {
     const run = this.runMap.get(runId);
     if (!run || run?.run_type !== "tool") {
       throw new Error("No tool run to end");
     }
     run.end_time = Date.now();
-    run.error = error2.message;
+    run.error = error.message;
     run.events.push({
       name: "error",
       time: run.end_time
@@ -7784,13 +7784,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onRetrieverEnd?.(run);
     await this._endTrace(run);
   }
-  async handleRetrieverError(error2, runId) {
+  async handleRetrieverError(error, runId) {
     const run = this.runMap.get(runId);
     if (!run || run?.run_type !== "retriever") {
       throw new Error("No retriever run to end");
     }
     run.end_time = Date.now();
-    run.error = error2.message;
+    run.error = error.message;
     run.events.push({
       name: "error",
       time: run.end_time
@@ -7980,23 +7980,23 @@ var AsyncCaller2 = class {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   call(callable, ...args) {
-    return this.queue.add(() => (0, import_p_retry2.default)(() => callable(...args).catch((error2) => {
-      if (error2 instanceof Error) {
-        throw error2;
+    return this.queue.add(() => (0, import_p_retry2.default)(() => callable(...args).catch((error) => {
+      if (error instanceof Error) {
+        throw error;
       } else {
-        throw new Error(error2);
+        throw new Error(error);
       }
     }), {
-      onFailedAttempt(error2) {
-        if (error2.message.startsWith("Cancel") || error2.message.startsWith("TimeoutError") || error2.message.startsWith("AbortError")) {
-          throw error2;
+      onFailedAttempt(error) {
+        if (error.message.startsWith("Cancel") || error.message.startsWith("TimeoutError") || error.message.startsWith("AbortError")) {
+          throw error;
         }
-        if (error2?.code === "ECONNABORTED") {
-          throw error2;
+        if (error?.code === "ECONNABORTED") {
+          throw error;
         }
-        const status = error2?.response?.status;
+        const status = error?.response?.status;
         if (status && STATUS_NO_RETRY2.includes(+status)) {
-          throw error2;
+          throw error;
         }
       },
       retries: this.maxRetries,
@@ -8269,7 +8269,7 @@ var Client = class _Client {
     }
     return run;
   }
-  async *listRuns({ projectId, projectName, parentRunId, referenceExampleId, datasetId, startTime, endTime, executionOrder, runType, error: error2, id, limit, offset, query, filter: filter2, orderBy }) {
+  async *listRuns({ projectId, projectName, parentRunId, referenceExampleId, datasetId, startTime, endTime, executionOrder, runType, error, id, limit, offset, query, filter: filter2, orderBy }) {
     const queryParams = new URLSearchParams();
     let projectId_ = projectId;
     if (projectName) {
@@ -8302,8 +8302,8 @@ var Client = class _Client {
     if (runType) {
       queryParams.append("run_type", runType);
     }
-    if (error2 !== void 0) {
-      queryParams.append("error", error2.toString());
+    if (error !== void 0) {
+      queryParams.append("error", error.toString());
     }
     if (id !== void 0) {
       for (const id_ of id) {
@@ -9249,8 +9249,8 @@ var CallbackManagerForRetrieverRun = class extends BaseRunManager {
       if (!handler.ignoreRetriever) {
         try {
           await handler.handleRetrieverError?.(err, this.runId, this._parentRunId, this.tags);
-        } catch (error2) {
-          console.error(`Error in handler ${handler.constructor.name}, handleRetrieverError: ${error2}`);
+        } catch (error) {
+          console.error(`Error in handler ${handler.constructor.name}, handleRetrieverError: ${error}`);
         }
       }
     }, handler.awaitHandlers)));
@@ -11322,7 +11322,7 @@ var api = GptEncoding.getEncodingApi("cl100k_base", () => convertTokenBytePairEn
 var { decode, decodeAsyncGenerator, decodeGenerator, encode, encodeGenerator, isWithinTokenLimit, encodeChat, encodeChatGenerator } = api;
 
 // utils/tiktoken.js
-function count_tokens_in_text(text2) {
+function countTokens(text2) {
   const tokens = encode(text2);
   if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
     const num_tokens = tokens.length;
@@ -11344,7 +11344,7 @@ async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, e
       console_log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
       const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
       const chunk_embedding = await embedder.embedQuery(chunk_text);
-      const chunk_token_count = count_tokens_in_text(chunk_text);
+      const chunk_token_count = countTokens(chunk_text);
       const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
       console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
       return chunk_json;
@@ -11366,7 +11366,7 @@ async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embe
     console_log(`[process_chapter] Found document_cdn: ${JSON.stringify(chapter_cdn)} in the DB under id: ${chapter_id}. Skipping chunking...`);
     try {
       chapter_json = await get_json_from_cdn(ctx, chapter_cdn);
-    } catch (error2) {
+    } catch (error) {
       console.warn(`[process_chapter] WARNING: could not get document_json from cdn`);
       chapter_cdn = null;
     }
@@ -11438,9 +11438,6 @@ function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size
   return splitter;
 }
 
-// utils/embedder.js
-import { error } from "console";
-
 // node_modules/langchain/dist/embeddings/base.js
 var Embeddings = class {
   constructor(params) {
@@ -11509,9 +11506,9 @@ var BaseRetriever = class extends Runnable {
       const results = await this._getRelevantDocuments(query, runManager);
       await runManager?.handleRetrieverEnd(results);
       return results;
-    } catch (error2) {
-      await runManager?.handleRetrieverError(error2);
-      throw error2;
+    } catch (error) {
+      await runManager?.handleRetrieverError(error);
+      throw error;
     }
   }
 };
@@ -11730,7 +11727,7 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
   }
 };
 
-// utils/vectorstoreMemory.js
+// utils/vectorstore_Memory.js
 async function memory_from_texts(texts, text_ids, embedder) {
   return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
 }
@@ -11786,8 +11783,8 @@ function clean_vectorstore_name(vectorstore_name) {
   return clean_name;
 }
 
-// utils/embeddings.js
-var CachedEmbeddings = class extends Embeddings {
+// utils/embedding_Cached.js
+var Embedding_Cached = class extends Embeddings {
   // A db-cached version of the embeddings
   // NOTE: This is a general purpose "cached embeddings" class
   // that can wrap any langchain embeddings model
@@ -11847,8 +11844,8 @@ var CachedEmbeddings = class extends Embeddings {
         console_log(`[embeddings] Saved to DB`);
       }
       return embedding;
-    } catch (error2) {
-      throw new Error(`[embeddings] Error generating embedding: ${error2}`);
+    } catch (error) {
+      throw new Error(`[embeddings] Error generating embedding: ${error}`);
     }
   }
 };
@@ -11871,8 +11868,8 @@ async function runBlock(ctx, block_name, args, outputs3 = {}) {
   }
 }
 
-// utils/embeddingsOmniOpenAI.js
-var OmniOpenAIEmbeddings = class extends Embeddings {
+// utils/embedding_Openai.js
+var Embedding_Openai = class extends Embeddings {
   constructor(ctx, params = null) {
     super(params);
     this.ctx = ctx;
@@ -11900,9 +11897,9 @@ var OmniOpenAIEmbeddings = class extends Embeddings {
       console_log(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
       const embedding = response;
       return embedding;
-    } catch (error2) {
+    } catch (error) {
       console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text2}
-Error: ${error2}`);
+Error: ${error}`);
       return null;
     }
   }
@@ -11935,25 +11932,24 @@ Error: ${error2}`);
   }
 };
 
-// utils/embedder.js
+// utils/embeddings.js
 var EMBEDDER_MODEL_OPENAI = "openai";
 var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
 var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
 function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false) {
   let raw_embedder = null;
   if (embedder_model == EMBEDDER_MODEL_OPENAI) {
-    console_log("Using embedder: EMBEDDER_MODEL_OPENAI <------------------");
-    raw_embedder = new OmniOpenAIEmbeddings(ctx);
+    raw_embedder = new Embedding_Openai(ctx);
   } else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) {
-    throw new error("tensorflow embedding not supported at the moment");
+    throw new Error("tensorflow embedding not supported at the moment");
   }
-  const embedder = new CachedEmbeddings(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
+  const embedder = new Embedding_Cached(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
   if (embedder == null || embedder == void 0)
     throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
   return embedder;
 }
 
-// ChunkFilesComponent.js
+// component_ChunkFiles.js
 var NS_ONMI = "document_processing";
 var chunk_files_component = OAIBaseComponent.create(NS_ONMI, "chunk_files").fromScratch().set("title", "Chunk Files").set("category", "text manipulation").set("description", "Chunk files").setMethod("X-CUSTOM").setMeta({
   source: {
@@ -12062,7 +12058,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
 }
 var ChunkFilesComponent = chunk_files_component.toJSON();
 
-// GptIXPComponent.js
+// component_GptIxP.js
 import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
 
 // utils/llm.js
@@ -13425,16 +13421,16 @@ var descriptors = {};
 });
 Object.defineProperties(AxiosError, descriptors);
 Object.defineProperty(prototype, "isAxiosError", { value: true });
-AxiosError.from = (error2, code, config, request, response, customProps) => {
+AxiosError.from = (error, code, config, request, response, customProps) => {
   const axiosError = Object.create(prototype);
-  utils_default.toFlatObject(error2, axiosError, function filter2(obj) {
+  utils_default.toFlatObject(error, axiosError, function filter2(obj) {
     return obj !== Error.prototype;
   }, (prop) => {
     return prop !== "isAxiosError";
   });
-  AxiosError.call(axiosError, error2.message, code, config, request, response);
-  axiosError.cause = error2;
-  axiosError.name = error2.name;
+  AxiosError.call(axiosError, error.message, code, config, request, response);
+  axiosError.cause = error;
+  axiosError.name = error.name;
   customProps && Object.assign(axiosError, customProps);
   return axiosError;
 };
@@ -14769,15 +14765,15 @@ var Axios = class {
       const onRejected = requestInterceptorChain[i++];
       try {
         newConfig = onFulfilled(newConfig);
-      } catch (error2) {
-        onRejected.call(this, error2);
+      } catch (error) {
+        onRejected.call(this, error);
         break;
       }
     }
     try {
       promise = dispatchRequest.call(this, newConfig);
-    } catch (error2) {
-      return Promise.reject(error2);
+    } catch (error) {
+      return Promise.reject(error);
     }
     i = 0;
     len = responseInterceptorChain.length;
@@ -16217,6 +16213,18 @@ function splitModelNameFromProvider(model_combined) {
     throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
   return { model_name: splits[0], model_provider: splits[1] };
 }
+async function isProviderAvailable(model_provider) {
+  const models_dir_json = await getModelsDirJson();
+  if (!models_dir_json)
+    return false;
+  const provider_model_dir = models_dir_json[model_provider];
+  if (!provider_model_dir)
+    return false;
+  const dir_exists = await validateDirectoryExists(provider_model_dir);
+  if (!dir_exists)
+    return false;
+  return true;
+}
 async function addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, model_type, model_provider) {
   const models_dir_json = await getModelsDirJson();
   if (!models_dir_json)
@@ -16260,108 +16268,33 @@ async function getModelsDirJson() {
   omnilog.warn(`[getModelsDirJson] json_path = ${json_path}, models_dir_json = ${JSON.stringify(models_dir_json)}`);
   return models_dir_json;
 }
-
-// utils/llmOpenai.js
-var LLM_PROVIDER_OPENAI_SERVER = "openai";
-var LLM_MODEL_TYPE_OPENAI = "openai";
-var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
-var LLM_CONTEXT_SIZE_MARGIN = 500;
-var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
-var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
-var GPT3_SIZE_CUTOFF = 4096 - LLM_CONTEXT_SIZE_MARGIN;
-var GPT4_MODEL_SMALL = "gpt-4";
-var GPT4_MODEL_LARGE = "gpt-4-32k";
-var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
-var ICON_OPENAI = "\u{1F4B0}";
-var llm_openai_models = [
-  { model_name: "gpt-3.5-turbo", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 4096, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: "gpt-3.5-turbo-16k", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 16384, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: "gpt-4", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 8192, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: "gpt-4-32k", model_type: LLM_MODEL_TYPE_OPENAI, context_size: 32768, provider: LLM_PROVIDER_OPENAI_SERVER }
-];
-async function addLlmChoicesOpenai(choices, llm_model_types2, llm_context_sizes2) {
-  const remote_models = Object.values(llm_openai_models);
-  for (const model of remote_models) {
-    let model_name = model.model_name;
-    let provider = model.provider;
-    let combined = combineModelNameAndProvider(model_name, provider);
-    const title = model.title || deduceLlmTitle(model_name, provider, ICON_OPENAI);
-    const description = model.description || deduceLlmDescription(model_name, model.context_size);
-    llm_model_types2[model_name] = model.type;
-    llm_context_sizes2[model_name] = model.context_size;
-    const choice = { value: combined, title, description };
-    choices.push(choice);
-  }
-}
-async function runChatGPTBlock(ctx, args) {
-  const prompt3 = args.prompt;
-  const instruction = args.instruction;
-  const model = args.model;
-  const prompt_cost = count_tokens_in_text(prompt3);
-  const instruction_cost = count_tokens_in_text(instruction);
-  const cost = prompt_cost + instruction_cost;
-  args.model = adjustOpenaiModel(cost, model);
+async function fixJsonWithLlm(llm, json_string_to_fix) {
+  const ctx = llm.ctx;
   let response = null;
-  try {
-    response = await runBlock(ctx, BLOCK_OPENAI_ADVANCED_CHATGPT, args);
-  } catch (err) {
-    let error_message = `Error running openai.advancedChatGPT: ${err.message}`;
-    console.error(error_message);
-    throw err;
-  }
-  return response;
-}
-function adjustOpenaiModel(text_size, model_name) {
-  if (typeof text_size !== "number") {
-    throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
-  }
-  if (model_name == GPT3_MODEL_SMALL)
-    return model_name;
-  if (model_name == GPT3_MODEL_LARGE) {
-    if (text_size < GPT3_SIZE_CUTOFF)
-      return GPT3_MODEL_SMALL;
-    else
-      return model_name;
-  }
-  if (model_name == GPT4_MODEL_SMALL)
-    return model_name;
-  if (model_name == GPT4_MODEL_LARGE) {
-    if (text_size < GPT4_SIZE_CUTOFF)
-      return GPT3_MODEL_SMALL;
-    else
-      return model_name;
-  }
-  throw new Error(`pick_model: Unknown model: ${model_name}`);
-}
-async function fix_with_llm(ctx, json_string_to_fix) {
-  console_log(`[FIXING] fix_with_llm: Fixing JSON string with LLM: ${json_string_to_fix}`);
-  let response = null;
-  let args = {};
+  const args = {};
   args.user = ctx.userId;
   args.prompt = json_string_to_fix;
   args.instruction = "Fix the JSON string below. Do not output anything else but the carefully fixed JSON string.";
   ;
   args.temperature = 0;
-  args.top_p = 1;
   try {
-    response = await runChatGPTBlock(ctx, args);
-    console_log(`Response from advncedChatGPT: ${JSON.stringify(response)}`);
+    response = await llm.runLlmBlock(ctx, args);
   } catch (err) {
-    console.error(`[FIXING] fix_with_llm: Error fixing json with GPT-3: ${err}`);
+    console.error(`[FIXING] fixJsonWithLlm: Error fixing json: ${err}`);
     return null;
   }
   let text2 = response?.answer_text || "";
-  console_log(`[FIXING] fix_with_llm: text: ${text2}`);
+  console_log(`[FIXING] fixJsonWithLlm: text: ${text2}`);
   if (is_valid(text2) === false)
     return null;
   return text2;
 }
-async function fix_json_string(ctx, passed_string) {
+async function fixJsonString(llm, passed_string) {
   if (is_valid(passed_string) === false) {
-    throw new Error(`[FIXING] fix_json_string: passed string is not valid: ${passed_string}`);
+    throw new Error(`[FIXING] fixJsonString: passed string is not valid: ${passed_string}`);
   }
   if (typeof passed_string !== "string") {
-    throw new Error(`[FIXING] fix_json_string: passed string is not a string: ${passed_string}, type = ${typeof passed_string}`);
+    throw new Error(`[FIXING] fixJsonString: passed string is not a string: ${passed_string}, type = ${typeof passed_string}`);
   }
   let cleanedString = passed_string.replace(/\\n/g, "\n");
   let jsonObject = null;
@@ -16383,7 +16316,7 @@ async function fix_json_string(ctx, passed_string) {
 `);
       return jsonObject;
     }
-    let response = await fix_with_llm(ctx, passed_string);
+    let response = await fixJsonWithLlm(llm, passed_string);
     if (response !== null && response !== void 0) {
       attempt_at_cleaned_string = response;
     }
@@ -16395,42 +16328,200 @@ cleanedString: ${cleanedString})`);
   }
   return "{}";
 }
-async function queryOpenaiLlm(ctx, prompt3, instruction, model = GPT3_MODEL_SMALL, llm_functions = null, temperature = 0, top_p = 1) {
-  let args = {};
-  args.user = ctx.userId;
-  args.prompt = prompt3;
-  args.instruction = instruction;
-  args.temperature = temperature;
-  args.top_p = top_p;
-  args.model = model;
-  if (is_valid(llm_functions))
-    args.functions = llm_functions;
-  console_log(`[query_advanced_chatgpt] args: ${JSON.stringify(args)}`);
-  const response = await runChatGPTBlock(ctx, args);
-  if (response.error)
-    throw new Error(response.error);
-  const total_tokens = response?.usage?.total_tokens || 0;
-  let text2 = response?.answer_text || "";
-  const function_arguments_string = response?.function_arguments_string || "";
-  let function_arguments = null;
-  if (is_valid(function_arguments_string) == true)
-    function_arguments = await fix_json_string(ctx, function_arguments_string);
-  if (is_valid(text2) == true)
-    text2 = clean_string(text2);
-  const return_value = {
-    text: text2,
-    function_arguments_string,
-    function_arguments,
-    total_tokens
-  };
-  return return_value;
-}
+var Llm = class {
+  constructor(tokenizer, params = null) {
+    this.tokenizer = tokenizer;
+    this.context_sizes = {};
+  }
+  countTextTokens(text2) {
+    return this.tokenizer.countTextTokens(text2);
+  }
+  getModelContextSize(model_name) {
+    return this.context_sizes[model_name];
+  }
+  // -----------------------------------------------------------------------
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    return { answer: "You have to implement this method", args: null };
+  }
+  async runLlmBlock(ctx, args) {
+    return { answer: "You have to implement this method", args: null };
+  }
+  getProvider() {
+    return "You have to implement this method";
+  }
+  getModelType() {
+    return "You have to implement this method";
+  }
+  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+    throw new Error("You have to implement this method");
+  }
+};
 
-// utils/llmOobabooga.js
-var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
+// utils/tokenizer.js
+var Tokenizer = class {
+  constructor(params = null) {
+  }
+  encodeText(text2) {
+    throw new Error("You have to implement the method: encode");
+  }
+  textIsWithinTokenLimit(text2, token_limit) {
+    throw new Error("You have to implement the method: isWithinTokenLimit");
+  }
+  countTextTokens(text2) {
+    throw new Error("You have to implement the method: countTextTokens");
+  }
+};
+
+// utils/tokenizer_Openai.js
+var Tokenizer_Openai = class extends Tokenizer {
+  constructor() {
+    super();
+  }
+  encodeText(text2) {
+    return encode(text2);
+  }
+  countTextTokens(text2) {
+    const tokens = encode(text2);
+    if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
+      const num_tokens = tokens.length;
+      return num_tokens;
+    } else {
+      return 0;
+    }
+  }
+  textIsWithinTokenLimit(text2, token_limit) {
+    return isWithinTokenLimit(text2, token_limit);
+  }
+};
+
+// utils/llm_Openai.js
+var LLM_PROVIDER_OPENAI_SERVER = "openai";
+var LLM_MODEL_TYPE_OPENAI = "openai";
+var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
+var LLM_CONTEXT_SIZE_MARGIN = 500;
+var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
+var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
+var GPT3_SIZE_CUTOFF = 4096 - LLM_CONTEXT_SIZE_MARGIN;
+var GPT4_MODEL_SMALL = "gpt-4";
+var GPT4_MODEL_LARGE = "gpt-4-32k";
+var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
+var ICON_OPENAI = "\u{1F4B0}";
+var llm_openai_models = [
+  { model_name: GPT3_MODEL_SMALL, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 4096, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: GPT3_MODEL_LARGE, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 16384, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: GPT4_MODEL_SMALL, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 8192, provider: LLM_PROVIDER_OPENAI_SERVER },
+  { model_name: GPT4_MODEL_LARGE, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 32768, provider: LLM_PROVIDER_OPENAI_SERVER }
+];
+var Llm_Openai = class extends Llm {
+  constructor() {
+    const tokenizer_Openai = new Tokenizer_Openai();
+    super(tokenizer_Openai);
+    this.context_sizes[GPT3_MODEL_SMALL] = 4096;
+    this.context_sizes[GPT3_MODEL_LARGE] = 16384;
+    this.context_sizes[GPT4_MODEL_SMALL] = 8192;
+    this.context_sizes[GPT4_MODEL_LARGE] = 16384;
+  }
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    const functions = args?.functions || null;
+    const top_p = args?.top_p || 1;
+    let block_args = {};
+    block_args.user = ctx.userId;
+    block_args.prompt = prompt3;
+    block_args.instruction = instruction;
+    block_args.temperature = temperature || 0;
+    block_args.top_p = top_p || 1;
+    block_args.model = model_name;
+    if (is_valid(functions))
+      block_args.functions = functions;
+    const response = await this.runLlmBlock(ctx, block_args);
+    if (response.error)
+      throw new Error(response.error);
+    const total_tokens = response?.usage?.total_tokens || 0;
+    let text2 = response?.answer_text || "";
+    const function_arguments_string = response?.function_arguments_string || "";
+    let function_arguments = null;
+    if (is_valid(function_arguments_string) == true)
+      function_arguments = await fixJsonString(ctx, function_arguments_string);
+    if (is_valid(text2) == true)
+      text2 = clean_string(text2);
+    let returned_args = {};
+    returned_args["function_arguments_string"] = function_arguments_string;
+    returned_args["function_arguments"] = function_arguments;
+    returned_args["total_tokens"] = total_tokens;
+    const return_value = {
+      answer: text2,
+      args: returned_args
+    };
+    return return_value;
+  }
+  getProvider() {
+    return LLM_PROVIDER_OPENAI_SERVER;
+  }
+  getModelType() {
+    return LLM_MODEL_TYPE_OPENAI;
+  }
+  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+    const models = Object.values(llm_openai_models);
+    for (const model of models) {
+      let model_name = model.model_name;
+      let provider = model.provider;
+      let combined = combineModelNameAndProvider(model_name, provider);
+      const title = model.title || deduceLlmTitle(model_name, provider, ICON_OPENAI);
+      const description = model.description || deduceLlmDescription(model_name, model.context_size);
+      llm_model_types2[model_name] = model.type;
+      llm_context_sizes2[model_name] = model.context_size;
+      const choice = { value: combined, title, description };
+      choices.push(choice);
+    }
+  }
+  async runLlmBlock(ctx, args) {
+    const prompt3 = args.prompt;
+    const instruction = args.instruction;
+    const model = args.model;
+    const prompt_cost = this.tokenizer.countTextTokens(prompt3);
+    const instruction_cost = this.tokenizer.countTextTokens(instruction);
+    const cost = prompt_cost + instruction_cost;
+    args.model = this.adjustModel(cost, model);
+    let response = null;
+    try {
+      response = await runBlock(ctx, BLOCK_OPENAI_ADVANCED_CHATGPT, args);
+    } catch (err) {
+      let error_message = `Error running openai.advancedChatGPT: ${err.message}`;
+      console.error(error_message);
+      throw err;
+    }
+    return response;
+  }
+  adjustModel(text_size, model_name) {
+    if (typeof text_size !== "number") {
+      throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
+    }
+    if (model_name == GPT3_MODEL_SMALL)
+      return model_name;
+    if (model_name == GPT3_MODEL_LARGE) {
+      if (text_size < GPT3_SIZE_CUTOFF)
+        return GPT3_MODEL_SMALL;
+      else
+        return model_name;
+    }
+    if (model_name == GPT4_MODEL_SMALL)
+      return model_name;
+    if (model_name == GPT4_MODEL_LARGE) {
+      if (text_size < GPT4_SIZE_CUTOFF)
+        return GPT3_MODEL_SMALL;
+      else
+        return model_name;
+    }
+    throw new Error(`pick_model: Unknown model: ${model_name}`);
+  }
+};
+
+// utils/llm_Oobabooga.js
 var LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
+var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
 var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
 var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
+var ICON_OOBABOOGA = "\u{1F4C1}";
 function parseOobaboogaModelResponse(model_response) {
   let nestedResult = JSON.parse(model_response);
   if (nestedResult["shared.settings"]) {
@@ -16443,125 +16534,112 @@ function parseOobaboogaModelResponse(model_response) {
   }
   return nestedResult;
 }
-async function addLlmChoicesOobabooga(choices, llm_model_types2, llm_context_sizes2) {
-  await addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, LLM_MODEL_TYPE_OOBABOOGA, LLM_PROVIDER_OOBABOOGA_LOCAL);
-  return;
-}
-async function queryOobaboogaLlm(ctx, prompt3, model_name, temperature = 0.3) {
-  let model_response = await getOobaboggaCurrentModelInfo(ctx);
-  let nestedResult = parseOobaboogaModelResponse(model_response);
-  let loaded_model = nestedResult?.model_name;
-  const context_size = nestedResult?.shared_settings?.max_new_tokens_max || 0;
-  if (loaded_model != model_name) {
-    model_response = await loadOobaboogaModel(ctx, model_name);
-    nestedResult = parseOobaboogaModelResponse(model_response);
-    loaded_model = nestedResult?.model_name;
+var Llm_Oobabooga = class extends Llm {
+  constructor() {
+    const tokenizer_Openai = new Tokenizer_Openai();
+    super(tokenizer_Openai);
   }
-  if (loaded_model != model_name)
-    throw new Error(`Failed to load model ${model_name} into oobabooga`);
-  let args = {};
-  args.prompt = prompt3;
-  args.temperature = temperature;
-  console_log(`[queryOobaboogaLlm] args: ${JSON.stringify(args)}`);
-  const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
-  if (response.error)
-    throw new Error(response.error);
-  const results = response?.results || [];
-  if (results.length == 0)
-    throw new Error("No results returned from oobabooga");
-  const text2 = results[0].text || null;
-  if (!text2)
-    throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
-  const return_value = {
-    text: text2,
-    function_arguments_string: "",
-    function_arguments: null,
-    total_tokens: 0,
-    context_size
-  };
-  return return_value;
-}
-async function getOobaboggaCurrentModelInfo(ctx) {
-  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
-  return response?.result;
-}
-async function loadOobaboogaModel(ctx, model_name) {
-  const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
-  return response.result;
-}
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    let model_response = await this.getCurrentModelInfo();
+    let nestedResult = parseOobaboogaModelResponse(model_response);
+    let loaded_model = nestedResult?.model_name;
+    const context_size = nestedResult?.shared_settings?.max_new_tokens_max || 0;
+    this.context_sizes[model_name] = context_size;
+    if (loaded_model != model_name) {
+      model_response = await this.loadModel(model_name);
+      nestedResult = parseOobaboogaModelResponse(model_response);
+      loaded_model = nestedResult?.model_name;
+    }
+    if (loaded_model != model_name)
+      throw new Error(`Failed to load model ${model_name} into oobabooga`);
+    let block_args = { ...args };
+    block_args.user = ctx.userId;
+    block_args.prompt = `${instruction}
 
-// utils/llmLmStudio.js
-var LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
-var LLM_MODEL_TYPE_LM_STUDIO = "lm-studio";
-var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
-var ICON_LM_STUDIO = "\u{1F5A5}";
-var DEFAULT_MODEL_NAME_LM_STUDIO = "loaded_model";
-async function addLlmChoicesLmStudio(choices, llm_model_types2, llm_context_sizes2) {
-  const models_dir_json = await getModelsDirJson();
-  if (!models_dir_json)
-    return;
-  const provider_model_dir = models_dir_json[LLM_PROVIDER_LM_STUDIO_LOCAL];
-  if (!provider_model_dir)
-    return;
-  const dir_exists = await validateDirectoryExists(provider_model_dir);
-  if (!dir_exists)
-    return;
-  choices.push({ value: combineModelNameAndProvider(DEFAULT_MODEL_NAME_LM_STUDIO, LLM_PROVIDER_LM_STUDIO_LOCAL), title: ICON_LM_STUDIO + "model currently loaded in (LM-Studio)", description: "Use the model currently loaded in LM-Studio if that model's server is running." });
-  llm_model_types2[DEFAULT_MODEL_NAME_LM_STUDIO] = LLM_MODEL_TYPE_LM_STUDIO;
-  llm_context_sizes2[DEFAULT_MODEL_NAME_LM_STUDIO] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-  return;
-}
-async function queryLmStudioLlm(ctx, prompt3, instruction, temperature = 0.3) {
-  let args = {};
-  args.prompt = prompt3;
-  args.instruction = instruction;
-  args.temperature = temperature;
-  console_log(`[queryLmStudioLlm] args: ${JSON.stringify(args)}`);
-  const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
-  if (response.error)
-    throw new Error(response.error);
-  const choices = response?.choices || [];
-  if (choices.length == 0)
-    throw new Error("No results returned from lm_studio");
-  const text2 = choices[0].content;
-  if (!text2)
-    throw new Error(`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
-  const return_value = {
-    text: text2,
-    function_arguments_string: "",
-    function_arguments: null,
-    total_tokens: 0
-  };
-  return return_value;
-}
+${prompt3}`;
+    block_args.temperature = temperature;
+    block_args.model = model_name;
+    const response = await this.runLlmBlock(ctx, block_args);
+    return response;
+  }
+  async runLlmBlock(ctx, args) {
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
+    if (response.error)
+      throw new Error(response.error);
+    const results = response?.results || [];
+    if (results.length == 0)
+      throw new Error("No results returned from oobabooga");
+    const text2 = results[0].text || null;
+    if (!text2)
+      throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
+    const return_value = {
+      answer: text2,
+      args: null
+    };
+    return return_value;
+  }
+  getProvider() {
+    return LLM_PROVIDER_OOBABOOGA_LOCAL;
+  }
+  getModelType() {
+    return LLM_MODEL_TYPE_OOBABOOGA;
+  }
+  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+    await addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, LLM_MODEL_TYPE_OOBABOOGA, LLM_PROVIDER_OOBABOOGA_LOCAL);
+  }
+  // -------------------------------------------------
+  async getCurrentModelInfo(ctx) {
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
+    return response?.result;
+  }
+  async loadModel(ctx, model_name) {
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
+    return response?.result;
+  }
+  async getModelChoicesFromServer(ctx, choices, llm_model_types2, llm_context_sizes2) {
+    const model_names = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "list" });
+    for (const model_name in model_names) {
+      let title, description, model_type, context_size, memory_need;
+      const combined = combineModelNameAndProvider(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL);
+      title = deduceLlmTitle(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL, ICON_OOBABOOGA);
+      description = deduceLlmDescription(model_name);
+      llm_model_types2[model_name] = LLM_MODEL_TYPE_OOBABOOGA;
+      llm_context_sizes2[model_name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+      const choice = { value: model_name, title, description };
+      choices.push(choice);
+    }
+  }
+};
 
 // utils/llms.js
-var DEFAULT_LLM_MODEL = "gpt-3.5-turbo-16k|openai";
+var DEFAULT_LLM_MODEL = "gpt-3.5-turbo";
 var llm_model_types = {};
 var llm_context_sizes = {};
+var providers2 = [];
+var llm_Openai = new Llm_Openai();
+providers2.push(llm_Openai);
+if (isProviderAvailable("oobabooga"))
+  providers2.push(new Llm_Oobabooga());
+if (isProviderAvailable("lm-studio"))
+  providers2.push(new Llm_Oobabooga());
 async function getLlmChoices() {
   let choices = [];
-  await addLlmChoicesOpenai(choices, llm_model_types, llm_context_sizes);
-  await addLlmChoicesOobabooga(choices, llm_model_types, llm_context_sizes);
-  await addLlmChoicesLmStudio(choices, llm_model_types, llm_context_sizes);
+  for (const provider of providers2) {
+    await provider.getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes);
+  }
   return choices;
 }
-async function queryLlm(ctx, prompt3, instruction, combined = DEFAULT_LLM_MODEL, temperature = 0, llm_functions = null, top_p = 1) {
-  let response = null;
+async function queryLlm(ctx, prompt3, instruction, combined = DEFAULT_LLM_MODEL, temperature = 0, args = null) {
   const splits = splitModelNameFromProvider(combined);
   const model_name = splits.model_name;
   const model_provider = splits.model_provider;
-  if (model_provider == LLM_PROVIDER_OPENAI_SERVER) {
-    response = await queryOpenaiLlm(ctx, prompt3, instruction, model_name, llm_functions, temperature, top_p);
-  } else if (model_provider == LLM_PROVIDER_OOBABOOGA_LOCAL) {
-    const prompt_and_instructions = `${instruction}
-
-${prompt3}`;
-    response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
-  } else if (model_provider == LLM_PROVIDER_LM_STUDIO_LOCAL) {
-    response = await queryLmStudioLlm(ctx, prompt3, instruction, temperature);
+  for (const provider of providers2) {
+    if (model_provider == provider.getProvider()) {
+      const response = await llm_Openai.query(ctx, prompt3, instruction, model_name, temperature, args);
+      return response;
+    }
   }
-  return response;
+  throw new Error(`Unknown model provider: ${model_provider} with model: ${model_name}`);
 }
 function getModelMaxSize(model_name, use_a_margin = true) {
   const context_size = getModelContextSize(model_name);
@@ -16577,7 +16655,7 @@ function getModelContextSize(model_name) {
   return context_size;
 }
 
-// GptIXPComponent.js
+// component_GptIxP.js
 var NS_ONMI2 = "document_processing";
 async function async_get_gpt_IxP_component() {
   let component = OAIBaseComponent2.create(NS_ONMI2, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
@@ -16610,6 +16688,8 @@ async function async_get_gpt_IxP_component() {
 }
 async function gpt_IxP_parse(payload, ctx) {
   omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
+  if (!payload)
+    return { result: { "ok": false }, answers_text: "", answers_json: null };
   const instruction = payload.instruction;
   const prompt3 = payload.prompt;
   const llm_functions = payload.llm_functions;
@@ -16642,14 +16722,15 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
         id += `_p${p2 + 1}`;
       const prompt4 = prompts[p2];
       omnilog.log(`instruction = ${instruction2}, prompt = ${prompt4}, id = ${id}`);
-      const answer_object = await queryLlm(ctx, prompt4, instruction2, llm_model, temperature, llm_functions, top_p);
+      const query_args = { function: llm_functions, top_p };
+      const answer_object = await queryLlm(ctx, prompt4, instruction2, llm_model, temperature, query_args);
       if (!answer_object)
         continue;
       if (is_valid(answer_object) == false)
         continue;
-      const answer_text = answer_object.text;
-      const answer_fa = answer_object.function_arguments;
-      const answer_fa_string = answer_object.function_arguments_string;
+      const answer_text = answer_object.answer;
+      const answer_fa = answer_object.args?.function_arguments;
+      const answer_fa_string = answer_object.args?.function_arguments_string;
       if (is_valid(answer_text)) {
         answers_json[id] = answer_text;
         answer_string += answer_text + "\n";
@@ -16664,10 +16745,10 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
   return answers_json;
 }
 
-// LoopGPTComponent.js
+// component_LoopGPT.js
 import { OAIBaseComponent as OAIBaseComponent3, WorkerContext as WorkerContext3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "mercs_rete";
 var NS_ONMI3 = "document_processing";
-async function async_get_loop_gpt_component() {
+async function async_getLoopGptComponent() {
   let component = OAIBaseComponent3.create(NS_ONMI3, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
     source: {
       summary: "chunk text files and save the chunks to the CDN using OpenAI embeddings and Langchain",
@@ -16733,7 +16814,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
       const chunk = chunks[chunk_index];
       if (is_valid(chunk) && is_valid(chunk.text)) {
         const text2 = chunk.text;
-        const token_cost = count_tokens_in_text(text2);
+        const token_cost = countTokens(text2);
         omnilog.log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
         const can_fit = total_token_cost + token_cost <= max_size;
         const is_last_index = chunk_index == chunks.length - 1;
@@ -16742,10 +16823,12 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
           total_token_cost += token_cost;
         }
         if (!can_fit || is_last_index) {
-          const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, llm_functions, top_p);
+          const query_args = { function: llm_functions, top_p };
+          const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, query_args);
           const sanetized_results = sanitizeJSON(gpt_results);
+          const chunk_result = { text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments };
           omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
-          chunks_results.push(sanetized_results);
+          chunks_results.push(chunk_result);
           combined_text = text2;
           total_token_cost = token_cost;
         }
@@ -16772,7 +16855,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
   return response;
 }
 
-// QueryChunksComponent.js
+// component_QueryChunks.js
 import { OAIBaseComponent as OAIBaseComponent4, WorkerContext as WorkerContext4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
 
 // utils/smartquery.js
@@ -16792,7 +16875,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const text2 = `[...] ${raw_text} [...]
 
 `;
-    const token_cost = count_tokens_in_text(text2);
+    const token_cost = countTokens(text2);
     const metadata = vectorstore_response?.metadata;
     console_log(`vectorstore_responses[${i}] metadata = ${JSON.stringify(metadata)}`);
     if (total_tokens + token_cost > max_size)
@@ -16803,13 +16886,13 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
   const instruction = `Here are some quotes. ${combined_text}`;
   const prompt3 = `Based on the quotes, answer this question: ${query}`;
   const query_answer_json = await queryLlm(ctx, prompt3, instruction, model);
-  const query_answer = query_answer_json?.text || null;
+  const query_answer = query_answer_json?.answer || null;
   if (is_valid(query_answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
   return query_answer;
 }
 
-// QueryChunksComponent.js
+// component_QueryChunks.js
 var NS_ONMI4 = "document_processing";
 async function async_GetQueryChunksComponent() {
   let query_chunk_component = OAIBaseComponent4.create(NS_ONMI4, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
@@ -16877,7 +16960,7 @@ chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model
   return response;
 }
 
-// ReadTextFilesComponent.js
+// component_ReadTextFiles.js
 import { OAIBaseComponent as OAIBaseComponent5, WorkerContext as WorkerContext5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "mercs_rete";
 var NS_ONMI5 = "document_processing";
 var read_text_files_component = OAIBaseComponent5.create(NS_ONMI5, "read_text_files").fromScratch().set("title", "Read text files").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
@@ -16931,10 +17014,10 @@ async function read_text_files_function(ctx, url_or_text) {
 }
 var ReadTextFilesComponent = read_text_files_component.toJSON();
 
-// DocsWithGPTComponent.js
+// component_DocsWithGPT.js
 import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 var NS_ONMI6 = "document_processing";
-async function async_get_docs_with_gpt_component() {
+async function async_getDocsWithGptComponent() {
   let component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
     source: {
       "summary": "Feed text document(s) to chatGPT",
@@ -16971,6 +17054,8 @@ async function async_get_docs_with_gpt_component() {
 }
 async function read_text_files_parse2(payload, ctx) {
   omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
+  if (!payload)
+    return { result: { "ok": false }, answer: "" };
   const documents = payload.documents;
   const url = payload.url;
   const usage = payload.usage;
@@ -17053,8 +17138,8 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
 // extension.js
 async function CreateComponents() {
   const GptIXPComponent = await async_get_gpt_IxP_component();
-  const LoopGPTComponent = await async_get_loop_gpt_component();
-  const DocsWithGPTComponent = await async_get_docs_with_gpt_component();
+  const LoopGPTComponent = await async_getLoopGptComponent();
+  const DocsWithGPTComponent = await async_getDocsWithGptComponent();
   const QueryChunksComponent = await async_GetQueryChunksComponent();
   const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
   return {

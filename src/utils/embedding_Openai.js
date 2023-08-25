@@ -2,7 +2,7 @@ import { Embeddings } from "langchain/embeddings/base";
 import { is_valid, console_log } from './utils.js';
 import { runBlock } from "./blocks.js";
 
-class OmniOpenAIEmbeddings extends Embeddings
+class Embedding_Openai extends Embeddings
 {
     constructor(ctx, params = null)
     {
@@ -82,4 +82,4 @@ class OmniOpenAIEmbeddings extends Embeddings
     }
 }
 
-export {OmniOpenAIEmbeddings}
+export {Embedding_Openai}

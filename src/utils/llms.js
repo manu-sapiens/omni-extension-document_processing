@@ -1,48 +1,51 @@
 //@ts-check
 //llms.js
-import { splitModelNameFromProvider, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
-import {LLM_PROVIDER_OPENAI_SERVER, addLlmChoicesOpenai, queryOpenaiLlm} from './llmOpenai.js'
-import {LLM_PROVIDER_OOBABOOGA_LOCAL, queryOobaboogaLlm, addLlmChoicesOobabooga} from './llmOobabooga.js'
-import {LLM_PROVIDER_LM_STUDIO_LOCAL, queryLmStudioLlm, addLlmChoicesLmStudio} from './llmLmStudio.js'
-
-export const DEFAULT_LLM_MODEL = 'gpt-3.5-turbo-16k|openai'
+import { splitModelNameFromProvider, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
+import { Llm_Openai } from './llm_Openai.js'
+import { Llm_LmStudio } from './llm_LmStudio.js'
+import { Llm_Oobabooga } from './llm_Oobabooga.js'
+export const DEFAULT_LLM_MODEL = 'gpt-3.5-turbo'
 
 const llm_model_types = {};
 const llm_context_sizes = {};
 
+const providers = []
+const llm_Openai = new Llm_Openai();
+providers.push(llm_Openai)
+
+if (isProviderAvailable('oobabooga')) providers.push(new Llm_Oobabooga()); 
+if (isProviderAvailable('lm-studio')) providers.push(new Llm_Oobabooga()); 
+// TBD: this does not scale as we would need to edit this script whenever a new provider is added
+
 export async function getLlmChoices()
 {
     let choices = [];
-    await addLlmChoicesOpenai(choices, llm_model_types, llm_context_sizes);
-    await addLlmChoicesOobabooga(choices, llm_model_types, llm_context_sizes);
-    await addLlmChoicesLmStudio(choices, llm_model_types,llm_context_sizes);
+
+    for (const provider of providers) 
+    {
+        await provider.getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes);
+    }
    
     return choices;
 }
 
-export async function queryLlm(ctx, prompt, instruction, combined= DEFAULT_LLM_MODEL, temperature = 0, llm_functions = null, top_p = 1)
+export async function queryLlm(ctx, prompt, instruction, combined= DEFAULT_LLM_MODEL, temperature = 0, args=null)
 {
-    let response = null;
     const splits = splitModelNameFromProvider(combined);
     const model_name = splits.model_name;
     const model_provider = splits.model_provider;
 
-    if (model_provider == LLM_PROVIDER_OPENAI_SERVER)
+    for (const provider of providers) 
     {
-        response = await queryOpenaiLlm(ctx, prompt, instruction, model_name, llm_functions, temperature, top_p);
+        if (model_provider == provider.getProvider())
+        {
+            const response = await llm_Openai.query(ctx, prompt, instruction, model_name, temperature, args);
+            return response;
+        }
     }
-    else if (model_provider == LLM_PROVIDER_OOBABOOGA_LOCAL)
-    {
-        const prompt_and_instructions = `${instruction}\n\n${prompt}`;
-        response = await queryOobaboogaLlm(ctx, prompt_and_instructions, model_name, temperature);
-    }
-    else if (model_provider == LLM_PROVIDER_LM_STUDIO_LOCAL)
-    {
-        response = await queryLmStudioLlm(ctx, prompt, instruction, temperature);
-    }
-    return response;
-}
 
+    throw new Error(`Unknown model provider: ${model_provider} with model: ${model_name}`);
+}
 
 export function getModelMaxSize(model_name, use_a_margin = true)
 {
@@ -52,7 +55,6 @@ export function getModelMaxSize(model_name, use_a_margin = true)
     const safe_size = Math.floor(context_size * 0.9);
     return safe_size;
 }
-
 
 function getModelContextSize(model_name)
 {

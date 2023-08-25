@@ -5,14 +5,14 @@ import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
 const NS_ONMI = 'document_processing';
 
-import { read_text_files_function } from "./ReadTextFilesComponent.js";
-import { chunk_files_function } from './ChunkFilesComponent.js';
-import { query_chunks_function } from './QueryChunksComponent.js';
-import { loop_gpt_function } from './LoopGPTComponent.js';
+import { read_text_files_function } from "./component_ReadTextFiles.js";
+import { chunk_files_function } from './component_ChunkFiles.js';
+import { query_chunks_function } from './component_QueryChunks.js';
+import { loop_gpt_function } from './component_LoopGPT.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL} from "./utils/llms.js"
 
 
-async function async_get_docs_with_gpt_component()
+async function async_getDocsWithGptComponent()
 {
     let component = OAIBaseComponent
         .create(NS_ONMI, "docs_with_gpt")
@@ -66,7 +66,7 @@ async function async_get_docs_with_gpt_component()
 
 async function read_text_files_parse(payload, ctx) {
     omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
-
+    if (!payload) return { result: { "ok": false }, answer: ""};
 
     const documents = payload.documents;
     const url = payload.url;
@@ -165,4 +165,4 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
     return answer;
 }
 
-export { async_get_docs_with_gpt_component, docs_with_gpt_function };
+export { async_getDocsWithGptComponent, docs_with_gpt_function };
