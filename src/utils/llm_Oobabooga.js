@@ -2,7 +2,7 @@
 //llmOobabooga.js
 
 import { runBlock } from './blocks.js';
-import { Llm, combineModelNameAndProvider, deduceLlmTitle, deduceLlmDescription, addLocalLlmChoices, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
+import { Llm, generateModelId, deduceLlmTitle, deduceLlmDescription, addLocalLlmChoices, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
 import { Tokenizer_Openai } from './tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
 const LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
 const LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
@@ -137,7 +137,7 @@ export class Llm_Oobabooga extends Llm
         {
             let title, description, model_type, context_size, memory_need;
     
-            const combined = combineModelNameAndProvider(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL)
+            const model_id = generateModelId(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL)
     
             title = deduceLlmTitle(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL, ICON_OOBABOOGA);
             description = deduceLlmDescription(model_name);
@@ -145,7 +145,7 @@ export class Llm_Oobabooga extends Llm
             llm_model_types[model_name] = LLM_MODEL_TYPE_OOBABOOGA;
             llm_context_sizes[model_name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
     
-            const choice = { value: model_name, title: title, description: description };
+            const choice = { value: model_id, title: title, description: description };
             choices.push(choice);
         }
     }

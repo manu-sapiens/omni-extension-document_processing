@@ -5369,7 +5369,7 @@ var require_lib6 = __commonJS({
 });
 
 // component_ChunkFiles.js
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
+import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
 
 // ../../../../../node_modules/consola/dist/index.mjs
 init_consola_36c0034f();
@@ -6325,7 +6325,7 @@ var BaseWorkflow = class _BaseWorkflow {
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta ?? { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
@@ -6382,7 +6382,14 @@ var _Workflow = class _Workflow2 extends BaseWorkflow {
     this.publishedTo = [];
   }
   toJSON() {
-    return { ...super.toJSON(), _id: this._id, _rev: this._rev, owner: this.owner, org: this.org, publishedTo: this.publishedTo };
+    return {
+      ...super.toJSON(),
+      _id: this._id,
+      _rev: this._rev,
+      owner: this.owner,
+      org: this.org,
+      publishedTo: this.publishedTo
+    };
   }
   static fromJSON(json) {
     let id = json._id?.replace("wf:", "") || json.id;
@@ -6516,17 +6523,18 @@ for (let i = 0; i < 256; ++i) {
 var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
 // utils/components_lib.js
+import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 function generateTitle(name) {
   const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
 function setComponentInputs(component, inputs3) {
   inputs3.forEach(function(input) {
-    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices;
+    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step;
     if (!title || title == "")
       title = generateTitle(name);
     component.addInput(
-      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).setDefault(defaultValue).toOmniIO()
+      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).set("minimum", minimum || null).set("maximum", maximum || null).set("step", step || null).setDefault(defaultValue).toOmniIO()
     );
   });
   return component;
@@ -6553,6 +6561,32 @@ function setComponentControls(component, controls) {
   });
   return component;
 }
+var Component = class {
+  constructor(group_id, id, title, category, description, summary, inputs3, outputs3, controls, payloadParser) {
+    this.group_id = group_id;
+    this.id = id;
+    this.title = title;
+    this.category = category;
+    this.description = description;
+    this.summary = summary;
+    this.inputs = inputs3;
+    this.outputs = outputs3;
+    this.controls = controls;
+    this.payloadParser = payloadParser;
+    let component = OAIBaseComponent.create(this.group_id, this.id).fromScratch().set("title", this.title).set("category", this.category).set("description", this.description).setMethod("X-CUSTOM").setMeta({
+      source: {
+        summary: this.summary,
+        links: {}
+      }
+    });
+    component = setComponentInputs(component, this.inputs);
+    component = setComponentOutputs(component, this.outputs);
+    if (this.controls)
+      component = setComponentControls(component, this.controls);
+    component.setMacro(OmniComponentMacroTypes.EXEC, this.payloadParser);
+    this.component = component.toJSON();
+  }
+};
 
 // utils/hasher.js
 var Hasher = class {
@@ -11951,7 +11985,7 @@ function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hashe
 
 // component_ChunkFiles.js
 var NS_ONMI = "document_processing";
-var chunk_files_component = OAIBaseComponent.create(NS_ONMI, "chunk_files").fromScratch().set("title", "Chunk Files").set("category", "text manipulation").set("description", "Chunk files").setMethod("X-CUSTOM").setMeta({
+var chunk_files_component = OAIBaseComponent2.create(NS_ONMI, "chunk_files").fromScratch().set("title", "Chunk Files").set("category", "text manipulation").set("description", "Chunk files").setMethod("X-CUSTOM").setMeta({
   source: {
     summary: "Chunk Files",
     links: {
@@ -12005,7 +12039,7 @@ var outputs = [
   { name: "documents", type: "array", customSocket: "documentArray", description: "The chunked texts documents" }
 ];
 chunk_files_component = setComponentOutputs(chunk_files_component, outputs);
-chunk_files_component.setMacro(OmniComponentMacroTypes.EXEC, chunk_files_parse);
+chunk_files_component.setMacro(OmniComponentMacroTypes2.EXEC, chunk_files_parse);
 async function chunk_files_parse(payload, ctx) {
   for (let key in payload.args) {
     payload[key] = payload.args[key];
@@ -12058,8 +12092,62 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
 }
 var ChunkFilesComponent = chunk_files_component.toJSON();
 
+// component_ReadTextFiles.js
+import { OAIBaseComponent as OAIBaseComponent3, WorkerContext as WorkerContext3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "mercs_rete";
+var NS_ONMI2 = "document_processing";
+var read_text_files_component = OAIBaseComponent3.create(NS_ONMI2, "read_text_files").fromScratch().set("title", "Read text files").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
+  source: {
+    summary: "Read text files"
+  }
+});
+var inputs2 = [
+  { name: "text_or_url", type: "string", title: "Text or URL(s)", customSocket: "text", description: "text or url(s) of text files" }
+];
+read_text_files_component = setComponentInputs(read_text_files_component, inputs2);
+var outputs2 = [
+  { name: "documents", type: "array", customSocket: "documentArray", description: "The read documents" }
+];
+read_text_files_component = setComponentOutputs(read_text_files_component, outputs2);
+read_text_files_component.setMacro(OmniComponentMacroTypes3.EXEC, read_text_files_parse);
+async function read_text_files_parse(payload, ctx) {
+  const text_or_url = payload.text_or_url;
+  const documents = await read_text_files_function(ctx, text_or_url);
+  return { result: { "ok": true }, documents, files: documents };
+}
+async function read_text_files_function(ctx, url_or_text) {
+  const returned_documents = [];
+  if (is_valid(url_or_text)) {
+    console.time("read_text_file_component_processTime");
+    const parsedArray = parse_text_to_array(url_or_text);
+    const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
+    if (!parsedArray)
+      return [];
+    if (cdn_tickets.length > 0) {
+      for (let i = 0; i < cdn_tickets.length; i++) {
+        const cdn_ticket = cdn_tickets[i];
+        returned_documents.push(cdn_ticket);
+      }
+    } else if (parsedArray.length === 1 && typeof parsedArray[0] === "string") {
+      const individual_text = parsedArray[0];
+      const buffer = Buffer.from(individual_text);
+      const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: "text/plain; charset=utf-8", userId: ctx.userId });
+      returned_documents.push(document_cdn);
+    } else {
+      for (let i = 0; i < cdn_tickets.length; i++) {
+        const cdn_ticket = cdn_tickets[i];
+        returned_documents.push(cdn_ticket);
+      }
+    }
+    if (is_valid(returned_documents) == false)
+      throw new Error(`ERROR: could not convert to documents`);
+    console.timeEnd("read_text_file_component_processTime");
+  }
+  return returned_documents;
+}
+var ReadTextFilesComponent = read_text_files_component.toJSON();
+
 // component_GptIxP.js
-import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
+import { OAIBaseComponent as OAIBaseComponent4, WorkerContext as WorkerContext4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
 
 // utils/llm.js
 import path2 from "path";
@@ -15972,7 +16060,7 @@ var BaseWorkflow2 = class _BaseWorkflow2 {
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    this.meta = meta ?? { name: "New Workflow", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta ?? { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
@@ -16029,7 +16117,14 @@ var _Workflow3 = class _Workflow22 extends BaseWorkflow2 {
     this.publishedTo = [];
   }
   toJSON() {
-    return { ...super.toJSON(), _id: this._id, _rev: this._rev, owner: this.owner, org: this.org, publishedTo: this.publishedTo };
+    return {
+      ...super.toJSON(),
+      _id: this._id,
+      _rev: this._rev,
+      owner: this.owner,
+      org: this.org,
+      publishedTo: this.publishedTo
+    };
   }
   static fromJSON(json) {
     let id = json._id?.replace("wf:", "") || json.id;
@@ -16204,13 +16299,13 @@ async function validateFileExists(path3) {
 // utils/llm.js
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
 var MODELS_DIR_JSON_PATH = ["..", "..", "user_files", "local_llms_directories.json"];
-function combineModelNameAndProvider(model_name, model_provider) {
+function generateModelId(model_name, model_provider) {
   return `${model_name}|${model_provider}`;
 }
-function splitModelNameFromProvider(model_combined) {
-  const splits = model_combined.split("|");
+function getModelNameAndProviderFromId(model_id) {
+  const splits = model_id.split("|");
   if (splits.length != 2)
-    throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
+    throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
   return { model_name: splits[0], model_provider: splits[1] };
 }
 async function isProviderAvailable(model_provider) {
@@ -16239,10 +16334,10 @@ async function addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2,
   filePaths = await walkDirForExtension(filePaths, provider_model_dir, ".bin");
   for (const filepath of filePaths) {
     const name = path2.basename(filepath);
-    const combined = combineModelNameAndProvider(name, model_provider);
+    const id = generateModelId(name, model_provider);
     const title = deduceLlmTitle(name, model_provider);
     const description = deduceLlmDescription(name);
-    const choice = { value: combined, title, description };
+    const choice = { value: id, title, description };
     llm_model_types2[name] = model_type;
     llm_context_sizes2[name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
     choices.push(choice);
@@ -16340,7 +16435,7 @@ var Llm = class {
     return this.context_sizes[model_name];
   }
   // -----------------------------------------------------------------------
-  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args) {
     return { answer: "You have to implement this method", args: null };
   }
   async runLlmBlock(ctx, args) {
@@ -16465,12 +16560,12 @@ var Llm_Openai = class extends Llm {
     for (const model of models) {
       let model_name = model.model_name;
       let provider = model.provider;
-      let combined = combineModelNameAndProvider(model_name, provider);
+      let model_id = generateModelId(model_name, provider);
       const title = model.title || deduceLlmTitle(model_name, provider, ICON_OPENAI);
       const description = model.description || deduceLlmDescription(model_name, model.context_size);
       llm_model_types2[model_name] = model.type;
       llm_context_sizes2[model_name] = model.context_size;
-      const choice = { value: combined, title, description };
+      const choice = { value: model_id, title, description };
       choices.push(choice);
     }
   }
@@ -16513,6 +16608,69 @@ var Llm_Openai = class extends Llm {
         return model_name;
     }
     throw new Error(`pick_model: Unknown model: ${model_name}`);
+  }
+};
+
+// utils/llm_LmStudio.js
+var LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
+var LLM_MODEL_TYPE_LM_STUDIO = "lm-studio";
+var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
+var ICON_LM_STUDIO = "\u{1F5A5}";
+var DEFAULT_MODEL_NAME_LM_STUDIO = "loaded_model";
+var Llm_LmStudio = class extends Llm {
+  constructor(tokenizer, params = null) {
+    const tokenizer_Openai = new Tokenizer_Openai();
+    super(tokenizer_Openai);
+  }
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    let return_value = {
+      answer: "",
+      args: null
+    };
+    let block_args = {};
+    block_args.user = ctx.userId;
+    block_args.prompt = prompt3;
+    block_args.instruction = instruction;
+    block_args.temperature = temperature;
+    const response = await this.runLlmBlock(ctx, block_args);
+    if (response.error)
+      throw new Error(response.error);
+    const choices = response?.choices || [];
+    if (choices.length == 0)
+      throw new Error("No results returned from lm_studio");
+    const text2 = choices[0].content;
+    if (!text2)
+      throw new Error(`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+    return_value = {
+      answer: text2,
+      args: null
+    };
+    return return_value;
+  }
+  async runLlmBlock(ctx, args) {
+    const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
+    return response;
+  }
+  getProvider() {
+    return LLM_PROVIDER_LM_STUDIO_LOCAL;
+  }
+  getModelType() {
+    return LLM_MODEL_TYPE_LM_STUDIO;
+  }
+  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+    const models_dir_json = await getModelsDirJson();
+    if (!models_dir_json)
+      return;
+    const provider_model_dir = models_dir_json[LLM_PROVIDER_LM_STUDIO_LOCAL];
+    if (!provider_model_dir)
+      return;
+    const dir_exists = await validateDirectoryExists(provider_model_dir);
+    if (!dir_exists)
+      return;
+    choices.push({ value: generateModelId(DEFAULT_MODEL_NAME_LM_STUDIO, LLM_PROVIDER_LM_STUDIO_LOCAL), title: ICON_LM_STUDIO + "model currently loaded in (LM-Studio)", description: "Use the model currently loaded in LM-Studio if that model's server is running." });
+    llm_model_types2[DEFAULT_MODEL_NAME_LM_STUDIO] = LLM_MODEL_TYPE_LM_STUDIO;
+    llm_context_sizes2[DEFAULT_MODEL_NAME_LM_STUDIO] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+    return;
   }
 };
 
@@ -16600,28 +16758,28 @@ ${prompt3}`;
     const model_names = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "list" });
     for (const model_name in model_names) {
       let title, description, model_type, context_size, memory_need;
-      const combined = combineModelNameAndProvider(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL);
+      const model_id = generateModelId(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL);
       title = deduceLlmTitle(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL, ICON_OOBABOOGA);
       description = deduceLlmDescription(model_name);
       llm_model_types2[model_name] = LLM_MODEL_TYPE_OOBABOOGA;
       llm_context_sizes2[model_name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-      const choice = { value: model_name, title, description };
+      const choice = { value: model_id, title, description };
       choices.push(choice);
     }
   }
 };
 
 // utils/llms.js
-var DEFAULT_LLM_MODEL = "gpt-3.5-turbo";
+var DEFAULT_LLM_MODEL_ID = "gpt-3.5-turbo|openai";
 var llm_model_types = {};
 var llm_context_sizes = {};
 var providers2 = [];
 var llm_Openai = new Llm_Openai();
 providers2.push(llm_Openai);
-if (isProviderAvailable("oobabooga"))
+if (await isProviderAvailable("oobabooga"))
   providers2.push(new Llm_Oobabooga());
-if (isProviderAvailable("lm-studio"))
-  providers2.push(new Llm_Oobabooga());
+if (await isProviderAvailable("lm-studio"))
+  providers2.push(new Llm_LmStudio());
 async function getLlmChoices() {
   let choices = [];
   for (const provider of providers2) {
@@ -16629,13 +16787,13 @@ async function getLlmChoices() {
   }
   return choices;
 }
-async function queryLlm(ctx, prompt3, instruction, combined = DEFAULT_LLM_MODEL, temperature = 0, args = null) {
-  const splits = splitModelNameFromProvider(combined);
+async function queryLlm(ctx, prompt3, instruction, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, args = null) {
+  const splits = getModelNameAndProviderFromId(model_id);
   const model_name = splits.model_name;
   const model_provider = splits.model_provider;
   for (const provider of providers2) {
     if (model_provider == provider.getProvider()) {
-      const response = await llm_Openai.query(ctx, prompt3, instruction, model_name, temperature, args);
+      const response = await provider.query(ctx, prompt3, instruction, model_name, temperature, args);
       return response;
     }
   }
@@ -16656,9 +16814,9 @@ function getModelContextSize(model_name) {
 }
 
 // component_GptIxP.js
-var NS_ONMI2 = "document_processing";
-async function async_get_gpt_IxP_component() {
-  let component = OAIBaseComponent2.create(NS_ONMI2, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
+var NS_ONMI3 = "document_processing";
+async function async_getGptIxPComponent() {
+  let component = OAIBaseComponent4.create(NS_ONMI3, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
     source: {
       summary: "Run GPT on every combination of instruction(s) and prompt(s)",
       links: {}
@@ -16671,7 +16829,7 @@ async function async_get_gpt_IxP_component() {
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL, choices: llm_choices }
+    { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16683,11 +16841,10 @@ async function async_get_gpt_IxP_component() {
     { name: "answers_json", type: "object", customSocket: "object", description: "Answers as a JSON", title: "JSON answers" }
   ];
   component = setComponentOutputs(component, outputs3);
-  component.setMacro(OmniComponentMacroTypes2.EXEC, gpt_IxP_parse);
+  component.setMacro(OmniComponentMacroTypes4.EXEC, parsePayload);
   return component.toJSON();
 }
-async function gpt_IxP_parse(payload, ctx) {
-  omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
+async function parsePayload(payload, ctx) {
   if (!payload)
     return { result: { "ok": false }, answers_text: "", answers_json: null };
   const instruction = payload.instruction;
@@ -16695,21 +16852,19 @@ async function gpt_IxP_parse(payload, ctx) {
   const llm_functions = payload.llm_functions;
   const temperature = payload.temperature;
   const top_p = payload.top_p;
-  const model = payload.model;
-  const answers_json = await gpt_IxP_function(ctx, instruction, prompt3, llm_functions, model, temperature, top_p);
+  const model_id = payload.model_id;
+  const answers_json = await gptIxP(ctx, instruction, prompt3, llm_functions, model_id, temperature, top_p);
   if (!answers_json)
     return { result: { "ok": false }, answers_text: "", answers_json: null };
   const return_value = { result: { "ok": true }, answers_text: answers_json["combined_answers"], answers_json };
   return return_value;
 }
-async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null, llm_model = DEFAULT_LLM_MODEL, temperature = 0, top_p = 1) {
+async function gptIxP(ctx, instruction, prompt3, llm_functions = null, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, top_p = 1) {
   console.time("advanced_llm_component_processTime");
-  omnilog.log(`--------------------------------`);
   const instructions = parse_text_to_array(instruction);
   const prompts = parse_text_to_array(prompt3);
   if (!instructions || !prompts)
     return null;
-  omnilog.log("[advanced_llm_component] llm_functions = " + JSON.stringify(llm_functions));
   const answers_json = {};
   let answer_string = "";
   for (let i = 0; i < instructions.length; i++) {
@@ -16723,7 +16878,7 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
       const prompt4 = prompts[p2];
       omnilog.log(`instruction = ${instruction2}, prompt = ${prompt4}, id = ${id}`);
       const query_args = { function: llm_functions, top_p };
-      const answer_object = await queryLlm(ctx, prompt4, instruction2, llm_model, temperature, query_args);
+      const answer_object = await queryLlm(ctx, prompt4, instruction2, model_id, temperature, query_args);
       if (!answer_object)
         continue;
       if (is_valid(answer_object) == false)
@@ -16746,10 +16901,10 @@ async function gpt_IxP_function(ctx, instruction, prompt3, llm_functions = null,
 }
 
 // component_LoopGPT.js
-import { OAIBaseComponent as OAIBaseComponent3, WorkerContext as WorkerContext3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "mercs_rete";
-var NS_ONMI3 = "document_processing";
+import { OAIBaseComponent as OAIBaseComponent5, WorkerContext as WorkerContext5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "mercs_rete";
+var NS_ONMI4 = "document_processing";
 async function async_getLoopGptComponent() {
-  let component = OAIBaseComponent3.create(NS_ONMI3, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
+  let component = OAIBaseComponent5.create(NS_ONMI4, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
     source: {
       summary: "chunk text files and save the chunks to the CDN using OpenAI embeddings and Langchain",
       links: {
@@ -16766,7 +16921,7 @@ async function async_getLoopGptComponent() {
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "top_p", type: "number", defaultValue: 1 },
-    { name: "model", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
+    { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
   component = setComponentInputs(component, inputs3);
   const controls = [
@@ -16777,27 +16932,29 @@ async function async_getLoopGptComponent() {
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
   component = setComponentOutputs(component, outputs3);
-  component.setMacro(OmniComponentMacroTypes3.EXEC, loop_gpt_parse);
+  component.setMacro(OmniComponentMacroTypes5.EXEC, parsePayload2);
   return component.toJSON();
 }
-async function loop_gpt_parse(payload, ctx) {
+async function parsePayload2(payload, ctx) {
   const llm_functions = payload.llm_functions;
   const documents = payload.documents;
   const instruction = payload.instruction;
   const temperature = payload.temperature;
   const top_p = payload.top_p;
-  const model = payload.model;
-  const response = await loop_gpt_function(ctx, documents, instruction, llm_functions, model, temperature, top_p);
+  const model_id = payload.model_id;
+  const response = await loopGpt(ctx, documents, instruction, llm_functions, model_id, temperature, top_p);
   const answer = response.answer;
   return { result: { "ok": true }, answer };
 }
-async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions, llm_model, temperature = 0, top_p = 1, chunk_size = 2e3) {
-  omnilog.log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
+async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id, temperature = 0, top_p = 1, chunk_size = 2e3) {
+  const splits = getModelNameAndProviderFromId(model_id);
+  const model_name = splits.model_name;
+  const model_provider = splits.model_provider;
   let max_size = chunk_size;
   if (chunk_size == -1) {
-    max_size = getModelMaxSize(llm_model);
+    max_size = getModelMaxSize(model_name);
   } else if (chunk_size > 0) {
-    max_size = Math.min(chunk_size, getModelMaxSize(llm_model));
+    max_size = Math.min(chunk_size, getModelMaxSize(model_name));
   }
   console.time("loop_llm_component_processTime");
   const chunks_results = [];
@@ -16824,7 +16981,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
         }
         if (!can_fit || is_last_index) {
           const query_args = { function: llm_functions, top_p };
-          const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, query_args);
+          const gpt_results = await queryLlm(ctx, combined_text, instruction, model_id, temperature, query_args);
           const sanetized_results = sanitizeJSON(gpt_results);
           const chunk_result = { text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments };
           omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
@@ -16856,16 +17013,19 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
 }
 
 // component_QueryChunks.js
-import { OAIBaseComponent as OAIBaseComponent4, WorkerContext as WorkerContext4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
+import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 
 // utils/smartquery.js
-async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model) {
+async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id) {
   console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
+  const splits = getModelNameAndProviderFromId(model_id);
+  const model_name = splits.model_name;
+  const model_provider = splits.model_provider;
   if (is_valid(query) == false)
     throw new Error(`ERROR: query is invalid`);
   let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
-  let max_size = getModelMaxSize(model);
+  let max_size = getModelMaxSize(model_id);
   let combined_text = "";
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
@@ -16885,7 +17045,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
   }
   const instruction = `Here are some quotes. ${combined_text}`;
   const prompt3 = `Based on the quotes, answer this question: ${query}`;
-  const query_answer_json = await queryLlm(ctx, prompt3, instruction, model);
+  const query_answer_json = await queryLlm(ctx, prompt3, instruction, model_id);
   const query_answer = query_answer_json?.answer || null;
   if (is_valid(query_answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
@@ -16893,9 +17053,9 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 }
 
 // component_QueryChunks.js
-var NS_ONMI4 = "document_processing";
-async function async_GetQueryChunksComponent() {
-  let query_chunk_component = OAIBaseComponent4.create(NS_ONMI4, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
+var NS_ONMI5 = "document_processing";
+async function async_getQueryChunksComponent() {
+  let query_chunk_component = OAIBaseComponent6.create(NS_ONMI5, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
     source: {
       summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
       links: {
@@ -16910,30 +17070,30 @@ async function async_GetQueryChunksComponent() {
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
-    { name: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
+    { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
   const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
   query_chunk_component = setComponentOutputs(query_chunk_component, outputs3);
-  query_chunk_component.setMacro(OmniComponentMacroTypes4.EXEC, query_chunk_parse);
+  query_chunk_component.setMacro(OmniComponentMacroTypes6.EXEC, parsePayload3);
   return query_chunk_component.toJSON();
 }
-async function query_chunk_parse(payload, ctx) {
-  let return_value = { result: { "ok": false }, answer: "" };
-  if (payload.documents) {
-    const documents_cdns = payload.documents;
-    const query = payload.query;
-    const model = payload.model;
-    const answer = await query_chunks_function(ctx, documents_cdns, query, model);
-    if (!answer)
-      return return_value;
-    return_value = { result: { "ok": true }, answer };
-  }
-  return return_value;
+async function parsePayload3(payload, ctx) {
+  const failure = { result: { "ok": false }, answer: "" };
+  const documents = payload?.documents;
+  if (!documents)
+    return failure;
+  const documents_cdns = payload.documents;
+  const query = payload.query;
+  const model_id = payload.model_id;
+  const answer = await queryChunks(ctx, documents_cdns, query, model_id);
+  if (!answer)
+    return failure;
+  return { result: { "ok": true }, answer };
 }
-async function query_chunks_function(ctx, document_cdns, query, model) {
+async function queryChunks(ctx, document_cdns, query, model_id) {
   console.time("query_chunks_component_processTime");
   let combined_answer = "";
   for (let i = 0; i < document_cdns.length; i++) {
@@ -16952,7 +17112,7 @@ chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model
     const hasher = initialize_hasher(hasher_model);
     const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
     const vectorstore = await compute_vectorstore(chunks, embedder);
-    const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model);
+    const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
     combined_answer += query_result + "\n\n";
   }
   const response = combined_answer;
@@ -16960,65 +17120,11 @@ chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model
   return response;
 }
 
-// component_ReadTextFiles.js
-import { OAIBaseComponent as OAIBaseComponent5, WorkerContext as WorkerContext5, OmniComponentMacroTypes as OmniComponentMacroTypes5 } from "mercs_rete";
-var NS_ONMI5 = "document_processing";
-var read_text_files_component = OAIBaseComponent5.create(NS_ONMI5, "read_text_files").fromScratch().set("title", "Read text files").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Read text files"
-  }
-});
-var inputs2 = [
-  { name: "text_or_url", type: "string", title: "Text or URL(s)", customSocket: "text", description: "text or url(s) of text files" }
-];
-read_text_files_component = setComponentInputs(read_text_files_component, inputs2);
-var outputs2 = [
-  { name: "documents", type: "array", customSocket: "documentArray", description: "The read documents" }
-];
-read_text_files_component = setComponentOutputs(read_text_files_component, outputs2);
-read_text_files_component.setMacro(OmniComponentMacroTypes5.EXEC, read_text_files_parse);
-async function read_text_files_parse(payload, ctx) {
-  const text_or_url = payload.text_or_url;
-  const documents = await read_text_files_function(ctx, text_or_url);
-  return { result: { "ok": true }, documents, files: documents };
-}
-async function read_text_files_function(ctx, url_or_text) {
-  const returned_documents = [];
-  if (is_valid(url_or_text)) {
-    console.time("read_text_file_component_processTime");
-    const parsedArray = parse_text_to_array(url_or_text);
-    const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
-    if (!parsedArray)
-      return [];
-    if (cdn_tickets.length > 0) {
-      for (let i = 0; i < cdn_tickets.length; i++) {
-        const cdn_ticket = cdn_tickets[i];
-        returned_documents.push(cdn_ticket);
-      }
-    } else if (parsedArray.length === 1 && typeof parsedArray[0] === "string") {
-      const individual_text = parsedArray[0];
-      const buffer = Buffer.from(individual_text);
-      const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: "text/plain; charset=utf-8", userId: ctx.userId });
-      returned_documents.push(document_cdn);
-    } else {
-      for (let i = 0; i < cdn_tickets.length; i++) {
-        const cdn_ticket = cdn_tickets[i];
-        returned_documents.push(cdn_ticket);
-      }
-    }
-    if (is_valid(returned_documents) == false)
-      throw new Error(`ERROR: could not convert to documents`);
-    console.timeEnd("read_text_file_component_processTime");
-  }
-  return returned_documents;
-}
-var ReadTextFilesComponent = read_text_files_component.toJSON();
-
 // component_DocsWithGPT.js
-import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
+import { OAIBaseComponent as OAIBaseComponent7, WorkerContext as WorkerContext7, OmniComponentMacroTypes as OmniComponentMacroTypes7 } from "mercs_rete";
 var NS_ONMI6 = "document_processing";
 async function async_getDocsWithGptComponent() {
-  let component = OAIBaseComponent6.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
+  let component = OAIBaseComponent7.create(NS_ONMI6, "docs_with_gpt").fromScratch().set("title", "Docs with GPT").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
     source: {
       "summary": "Feed text document(s) to chatGPT",
       links: {
@@ -17037,7 +17143,7 @@ async function async_getDocsWithGptComponent() {
     ] },
     { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
-    { name: "model", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL, choices: llm_choices },
+    { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
   component = setComponentInputs(component, inputs3);
@@ -17049,10 +17155,10 @@ async function async_getDocsWithGptComponent() {
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
   component = setComponentOutputs(component, outputs3);
-  component.setMacro(OmniComponentMacroTypes6.EXEC, read_text_files_parse2);
+  component.setMacro(OmniComponentMacroTypes7.EXEC, parsePayload4);
   return component.toJSON();
 }
-async function read_text_files_parse2(payload, ctx) {
+async function parsePayload4(payload, ctx) {
   omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
   if (!payload)
     return { result: { "ok": false }, answer: "" };
@@ -17061,14 +17167,14 @@ async function read_text_files_parse2(payload, ctx) {
   const usage = payload.usage;
   const prompt3 = payload.prompt;
   const temperature = payload.temperature;
-  const model = payload.model;
+  const model_id = payload.model_id;
   const overwrite = payload.overwrite;
-  const answer = await docs_with_gpt_function(ctx, documents, url, usage, prompt3, temperature, model, overwrite);
+  const answer = await docsWithGpt(ctx, documents, url, usage, prompt3, temperature, model_id, overwrite);
   if (!answer || answer == "")
     return { result: { "ok": false }, answer: "" };
   return { result: { "ok": true }, answer };
 }
-async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt3, temperature, model, overwrite) {
+async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt3, temperature, model_id, overwrite) {
   let passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
   if (passed_documents_are_valid) {
     omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -17105,12 +17211,12 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
   if (usage == "query_documents") {
     if (prompt3 === null || prompt3 === void 0 || prompt3.length == 0)
       throw new Error("No query specified in [prompt] field");
-    answer = await query_chunks_function(ctx, chunked_documents_cdns, prompt3, model);
+    answer = await queryChunks(ctx, chunked_documents_cdns, prompt3, model_id);
   } else if (usage == "run_prompt_on_documents") {
     if (prompt3 === null || prompt3 === void 0 || prompt3.length == 0)
       throw new Error("No prompt specified in [prompt] field");
     const instruction = default_instruction + "\n" + prompt3;
-    const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, null, model, temperature);
+    const response = await loopGpt(ctx, chunked_documents_cdns, instruction, null, model_id, temperature);
     answer = response.answer;
   } else if (usage == "run_functions_on_documents") {
     const instruction = "You are a helpful bot answering the user with their question to the best of your ability using the provided functions.";
@@ -17127,7 +17233,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
       llm_functions = [llm_functions];
       omnilog.log(`[DocsWithGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
     }
-    const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
+    const response = await loopGpt(ctx, chunked_documents_cdns, instruction, llm_functions, model_id, temperature);
     answer = response.answer;
   } else {
     throw new Error(`Unknown usage: ${usage}`);
@@ -17135,13 +17241,90 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
   return answer;
 }
 
+// component_LlmQuery.js
+var NS_ONMI7 = "document_processing";
+async function async_getLlmQueryComponent() {
+  const inputs3 = [
+    { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
+    { name: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
+    { name: "temperature", type: "number", defaultValue: 0.7, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text.", minimum: 0, maximum: 2, step: 0.01 },
+    { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID },
+    { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
+  ];
+  const outputs3 = [
+    { name: "answer_text", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" },
+    { name: "answer_args", type: "object", customSocket: "object", description: "Extra arguments returned by the LLM", title: "Args" },
+    { name: "model_id", type: "string", customSocket: "text", description: "The ID of the LLM model used" }
+  ];
+  const controls = [
+    { name: "temperature", placeholder: "AlpineNumWithSliderComponent" }
+  ];
+  let component = new Component(NS_ONMI7, "llm_query", "LLM Query", "Text Manipulation", "Query a LLM", "Query the specified LLM", inputs3, outputs3, controls, parsePayload5);
+  return component.component;
+}
+async function parsePayload5(payload, ctx) {
+  const failure = { result: { "ok": false }, answer_text: "", answer_args: null, model_id: null };
+  if (!payload)
+    return failure;
+  const instruction = payload.instruction;
+  const prompt3 = payload.prompt;
+  const temperature = payload.temperature;
+  const model_id = payload.model_id;
+  const args = payload.args;
+  const response = await llmQuery(ctx, instruction, prompt3, model_id, temperature, args);
+  if (!response)
+    return failure;
+  const answer_text = response.answer;
+  const answer_args = response.args;
+  const return_value = { result: { "ok": true }, answer_text, answer_args, model_id };
+  return return_value;
+}
+async function llmQuery(ctx, instruction, prompt3, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, args = null) {
+  console.time("advanced_llm_component_processTime");
+  if (!prompt3)
+    return null;
+  const response = await queryLlm(ctx, prompt3, instruction, model_id, temperature, args);
+  if (!response)
+    return null;
+  return response;
+}
+
+// component_LlmManager_Openai.js
+var NS_ONMI8 = "document_processing";
+async function async_getLlmManagerOpenaiComponent() {
+  const llm = new Llm_Openai();
+  const choices = [];
+  const llm_model_types2 = {};
+  const llm_context_sizes2 = {};
+  await llm.getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2);
+  const inputs3 = [
+    { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID, choices }
+  ];
+  const outputs3 = [
+    { name: "model_id", title: "string", customSocket: "text", description: "The ID of the selected LLM model" }
+  ];
+  const controls = null;
+  let component = new Component(NS_ONMI8, "llm_manager", "LLM Manager", "Text Manipulation", "Manage LLMs from a provider: openai", "Manage LLMs from a provider: openai", inputs3, outputs3, controls, parsePayload6);
+  return component.component;
+}
+async function parsePayload6(payload, ctx) {
+  const failure = { result: { "ok": false }, model_id: null };
+  if (!payload)
+    return failure;
+  const model_id = payload.model_id;
+  const return_value = { result: { "ok": true }, model_id };
+  return return_value;
+}
+
 // extension.js
 async function CreateComponents() {
-  const GptIXPComponent = await async_get_gpt_IxP_component();
+  const GptIXPComponent = await async_getGptIxPComponent();
   const LoopGPTComponent = await async_getLoopGptComponent();
   const DocsWithGPTComponent = await async_getDocsWithGptComponent();
-  const QueryChunksComponent = await async_GetQueryChunksComponent();
-  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent];
+  const QueryChunksComponent = await async_getQueryChunksComponent();
+  const LlmQueryComponent = await async_getLlmQueryComponent();
+  const LlmManagerOpenaiComponent = await async_getLlmManagerOpenaiComponent();
+  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmQueryComponent, LlmManagerOpenaiComponent];
   return {
     blocks: components,
     patches: []

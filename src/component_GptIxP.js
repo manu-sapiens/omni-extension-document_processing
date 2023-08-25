@@ -1,17 +1,13 @@
 //@ts-check
-// AdvancedLLMComponent.ts
+// component_GptIxP.ts
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
+import { is_valid, parse_text_to_array } from './utils/utils.js';
+import { queryLlm, getLlmChoices, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
 const NS_ONMI = 'document_processing';
 
-import { save_json_to_cdn, } from './utils/cdn.js';
-import { is_valid, parse_text_to_array } from './utils/utils.js';
-//import { countTokens } from './utils/tiktoken.js';
-import { queryLlm, getLlmChoices, DEFAULT_LLM_MODEL } from './utils/llms.js';
-
-
-async function async_get_gpt_IxP_component()
+async function async_getGptIxPComponent()
 {
     let component = OAIBaseComponent
         .create(NS_ONMI, "gpt_ixp")
@@ -36,7 +32,7 @@ async function async_get_gpt_IxP_component()
         { name: 'llm_functions', title: 'functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
         { name: 'temperature', title: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'top_p', title: 'top_p', type: 'number', defaultValue: 1 },
-        { name: 'model', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL, choices: llm_choices},
+        { name: 'model_id', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices},
     ];
     component = setComponentInputs(component, inputs);
 
@@ -54,14 +50,13 @@ async function async_get_gpt_IxP_component()
 
 
     // Adding _exec function
-    component.setMacro(OmniComponentMacroTypes.EXEC, gpt_IxP_parse);
+    component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 
     return component.toJSON();
 }
 
 
-async function gpt_IxP_parse(payload, ctx) {
-    omnilog.log(`[AdvancedLLMComponent]: payload = ${JSON.stringify(payload)}`);
+async function parsePayload(payload, ctx) {
 
     if (!payload) return { result: { "ok": false }, answers_text: "", answers_json: null};
     
@@ -70,25 +65,22 @@ async function gpt_IxP_parse(payload, ctx) {
     const llm_functions = payload.llm_functions;
     const temperature = payload.temperature;
     const top_p = payload.top_p;
-    const model = payload.model;
+    const model_id = payload.model_id;
 
-    const answers_json = await gpt_IxP_function(ctx, instruction, prompt, llm_functions, model, temperature, top_p);
+    const answers_json = await gptIxP(ctx, instruction, prompt, llm_functions, model_id, temperature, top_p);
     if (!answers_json) return { result: { "ok": false }, answers_text: "", answers_json: null };
     
     const return_value = { result: { "ok": true }, answers_text: answers_json["combined_answers"], answers_json: answers_json};
     return return_value;
 }
 
-async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, llm_model = DEFAULT_LLM_MODEL, temperature = 0, top_p = 1) {
+async function gptIxP(ctx, instruction, prompt, llm_functions = null, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, top_p = 1) {
     console.time("advanced_llm_component_processTime");
 
-    omnilog.log(`--------------------------------`);
     const instructions = parse_text_to_array(instruction);
     const prompts = parse_text_to_array(prompt);
 
     if (!instructions || !prompts) return null;
-
-    omnilog.log('[advanced_llm_component] llm_functions = ' + JSON.stringify(llm_functions));
 
     const answers_json = {};
     let answer_string = "";
@@ -104,7 +96,7 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
             omnilog.log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
             const query_args = {function: llm_functions, top_p : top_p}
-            const answer_object = await queryLlm(ctx, prompt, instruction, llm_model, temperature, query_args);
+            const answer_object = await queryLlm(ctx, prompt, instruction, model_id, temperature, query_args);
             if (!answer_object) continue;
             if (is_valid(answer_object) == false) continue;
 
@@ -128,4 +120,4 @@ async function gpt_IxP_function(ctx, instruction, prompt, llm_functions = null, 
     return answers_json;
 }
 
-export { async_get_gpt_IxP_component, gpt_IxP_function };
+export { async_getGptIxPComponent, gptIxP };

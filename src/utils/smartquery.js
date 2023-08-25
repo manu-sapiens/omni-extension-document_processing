@@ -5,10 +5,15 @@ import { query_vectorstore } from './vectorstore.js';
 import { queryLlm, getModelMaxSize } from './llms.js';
 import { console_log, is_valid } from './utils.js';
 import { countTokens } from './tiktoken.js';
+import { getModelNameAndProviderFromId } from './llm.js'
 
-async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model)
+async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id)
 {
     console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
+
+    const splits = getModelNameAndProviderFromId(model_id);
+    const model_name = splits.model_name;
+    const model_provider = splits.model_provider;
 
     if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
     let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
@@ -16,7 +21,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
     let total_tokens = 0;
 
-    let max_size = getModelMaxSize(model);
+    let max_size = getModelMaxSize(model_id);
 
 
     let combined_text = "";
@@ -41,7 +46,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const instruction = `Here are some quotes. ${combined_text}`;
     const prompt = `Based on the quotes, answer this question: ${query}`;
     
-    const query_answer_json = await queryLlm(ctx, prompt, instruction, model);
+    const query_answer_json = await queryLlm(ctx, prompt, instruction, model_id);
     const query_answer = query_answer_json?.answer || null;
     if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 

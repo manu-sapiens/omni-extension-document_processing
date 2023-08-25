@@ -1,10 +1,10 @@
 //@ts-check
 //llms.js
-import { splitModelNameFromProvider, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
+import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
 import { Llm_Openai } from './llm_Openai.js'
 import { Llm_LmStudio } from './llm_LmStudio.js'
 import { Llm_Oobabooga } from './llm_Oobabooga.js'
-export const DEFAULT_LLM_MODEL = 'gpt-3.5-turbo'
+export const DEFAULT_LLM_MODEL_ID = 'gpt-3.5-turbo|openai'
 
 const llm_model_types = {};
 const llm_context_sizes = {};
@@ -13,8 +13,8 @@ const providers = []
 const llm_Openai = new Llm_Openai();
 providers.push(llm_Openai)
 
-if (isProviderAvailable('oobabooga')) providers.push(new Llm_Oobabooga()); 
-if (isProviderAvailable('lm-studio')) providers.push(new Llm_Oobabooga()); 
+if (await isProviderAvailable('oobabooga')) providers.push(new Llm_Oobabooga()); 
+if (await isProviderAvailable('lm-studio')) providers.push(new Llm_LmStudio()); 
 // TBD: this does not scale as we would need to edit this script whenever a new provider is added
 
 export async function getLlmChoices()
@@ -29,9 +29,9 @@ export async function getLlmChoices()
     return choices;
 }
 
-export async function queryLlm(ctx, prompt, instruction, combined= DEFAULT_LLM_MODEL, temperature = 0, args=null)
+export async function queryLlm(ctx, prompt, instruction, model_id= DEFAULT_LLM_MODEL_ID, temperature = 0, args=null)
 {
-    const splits = splitModelNameFromProvider(combined);
+    const splits = getModelNameAndProviderFromId(model_id);
     const model_name = splits.model_name;
     const model_provider = splits.model_provider;
 
@@ -39,7 +39,7 @@ export async function queryLlm(ctx, prompt, instruction, combined= DEFAULT_LLM_M
     {
         if (model_provider == provider.getProvider())
         {
-            const response = await llm_Openai.query(ctx, prompt, instruction, model_name, temperature, args);
+            const response = await provider.query(ctx, prompt, instruction, model_name, temperature, args);
             return response;
         }
     }

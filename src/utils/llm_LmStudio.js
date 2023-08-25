@@ -3,7 +3,7 @@
 
 import { runBlock } from './blocks.js';
 import { console_log } from './utils.js';
-import { Llm, combineModelNameAndProvider, getModelsDirJson, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
+import { Llm, generateModelId, getModelsDirJson, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
 import { validateDirectoryExists } from './files.js';
 import { Tokenizer_Openai } from './tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
 const LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
@@ -82,7 +82,7 @@ export class Llm_LmStudio extends Llm
         const dir_exists = await validateDirectoryExists(provider_model_dir)
         if (!dir_exists) return;
     
-        choices.push({ value: combineModelNameAndProvider(DEFAULT_MODEL_NAME_LM_STUDIO, LLM_PROVIDER_LM_STUDIO_LOCAL), title: ICON_LM_STUDIO+ 'model currently loaded in (LM-Studio)', description: "Use the model currently loaded in LM-Studio if that model's server is running." });
+        choices.push({ value: generateModelId(DEFAULT_MODEL_NAME_LM_STUDIO, LLM_PROVIDER_LM_STUDIO_LOCAL), title: ICON_LM_STUDIO+ 'model currently loaded in (LM-Studio)', description: "Use the model currently loaded in LM-Studio if that model's server is running." });
         llm_model_types[DEFAULT_MODEL_NAME_LM_STUDIO] = LLM_MODEL_TYPE_LM_STUDIO
         llm_context_sizes[DEFAULT_MODEL_NAME_LM_STUDIO] = DEFAULT_UNKNOWN_CONTEXT_SIZE
     

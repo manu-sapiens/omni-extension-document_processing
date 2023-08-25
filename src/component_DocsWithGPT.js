@@ -7,9 +7,9 @@ const NS_ONMI = 'document_processing';
 
 import { read_text_files_function } from "./component_ReadTextFiles.js";
 import { chunk_files_function } from './component_ChunkFiles.js';
-import { query_chunks_function } from './component_QueryChunks.js';
-import { loop_gpt_function } from './component_LoopGPT.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL} from "./utils/llms.js"
+import { queryChunks } from './component_QueryChunks.js';
+import { loopGpt } from './component_LoopGPT.js';
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "./utils/llms.js"
 
 
 async function async_getDocsWithGptComponent()
@@ -40,7 +40,7 @@ async function async_getDocsWithGptComponent()
             {value:"run_functions_on_documents", title:"Run Functions on docs", description: "Force the LLM to return a structured output (aka function)"}] },
         { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
-        { name: 'model', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL, choices: llm_choices},
+        { name: 'model_id', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices},
         { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
     ];
     component = setComponentInputs(component, inputs);
@@ -59,12 +59,12 @@ async function async_getDocsWithGptComponent()
 
 
     // Adding _exec function
-    component.setMacro(OmniComponentMacroTypes.EXEC, read_text_files_parse);
+    component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 
     return component.toJSON();
 }
 
-async function read_text_files_parse(payload, ctx) {
+async function parsePayload(payload, ctx) {
     omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
     if (!payload) return { result: { "ok": false }, answer: ""};
 
@@ -73,16 +73,15 @@ async function read_text_files_parse(payload, ctx) {
     const usage = payload.usage;
     const prompt = payload.prompt;
     const temperature = payload.temperature;
-    const model = payload.model;
+    const model_id = payload.model_id;
     const overwrite = payload.overwrite;
 
-    const answer = await docs_with_gpt_function(ctx, documents, url, usage, prompt, temperature, model, overwrite)
+    const answer = await docsWithGpt(ctx, documents, url, usage, prompt, temperature, model_id, overwrite)
     if (!answer || answer == "")  return { result : { "ok": false}, answer: ""}  
     return { result: { "ok": true }, answer: answer};
 }
 
-
-async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, prompt, temperature, model, overwrite) {
+async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, temperature, model_id, overwrite) {
     let passed_documents_are_valid = (passed_documents_cdns != null && passed_documents_cdns != undefined && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0);
     if (passed_documents_are_valid) {
         omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -127,13 +126,13 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
 
     if (usage == "query_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
-        answer = await query_chunks_function(ctx, chunked_documents_cdns, prompt, model);
+        answer = await queryChunks(ctx, chunked_documents_cdns, prompt, model_id);
     }
     else if (usage == "run_prompt_on_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");
 
         const instruction = default_instruction + "\n" + prompt;
-        const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, null, model, temperature);
+        const response = await loopGpt(ctx, chunked_documents_cdns, instruction, null, model_id, temperature);
         answer = response.answer;
     }
     else if (usage == "run_functions_on_documents") {
@@ -154,7 +153,7 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
             omnilog.log(`[DocsWithGPTComponent]: object -> array: llm_functions = ${JSON.stringify(llm_functions)}`);
         }
 
-        const response = await loop_gpt_function(ctx, chunked_documents_cdns, instruction, llm_functions, model, temperature);
+        const response = await loopGpt(ctx, chunked_documents_cdns, instruction, llm_functions, model_id, temperature);
 
         answer = response.answer;
     }
@@ -165,4 +164,4 @@ async function docs_with_gpt_function(ctx, passed_documents_cdns, url, usage, pr
     return answer;
 }
 
-export { async_getDocsWithGptComponent, docs_with_gpt_function };
+export { async_getDocsWithGptComponent, docsWithGpt };

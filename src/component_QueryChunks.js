@@ -11,9 +11,9 @@ import { is_valid } from './utils/utils.js';
 import { compute_vectorstore } from './utils/vectorstore.js';
 import { initialize_embedder } from './utils/embeddings.js';
 import { smartquery_from_vectorstore } from './utils/smartquery.js';
-import { getLlmChoices } from "./utils/llms.js"
+import { getLlmChoices , DEFAULT_LLM_MODEL_ID} from "./utils/llms.js"
 
-async function async_GetQueryChunksComponent()
+async function async_getQueryChunksComponent()
 {
   let query_chunk_component = OAIBaseComponent
       .create(NS_ONMI, "query_chunks")
@@ -39,7 +39,7 @@ async function async_GetQueryChunksComponent()
   const inputs = [
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked'  },
     { name: 'query', type: 'string', customSocket: 'text' },
-    { name: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
+    { name: 'model_id', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices},
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs);
 
@@ -51,59 +51,60 @@ async function async_GetQueryChunksComponent()
 
 
   // Adding _exec function
-  query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, query_chunk_parse);
+  query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 
   return query_chunk_component.toJSON();
 }
 
-async function query_chunk_parse(payload, ctx) {
+async function parsePayload(payload, ctx) {
 
-  let return_value = { result: { "ok": false }, answer : "" };
-  if (payload.documents)
-  {
+  const failure = { result: { "ok": false }, answer : "" };
 
-    const documents_cdns = payload.documents;
-    const query = payload.query;
-    const model = payload.model;
-    
-    const answer =  await query_chunks_function(ctx, documents_cdns, query, model);
-    if (!answer) return return_value;
-    return_value = { result: { "ok": true }, answer: answer };
-  }
+  const documents = payload?.documents;
+  if (!documents) return failure;
 
-  return return_value;
+  const documents_cdns = payload.documents;
+  const query = payload.query;
+  const model_id = payload.model_id;
+  
+  const answer =  await queryChunks(ctx, documents_cdns, query, model_id);
+  if (!answer) return failure;
+
+  return { result: { "ok": true }, answer: answer };
 }
-  
-  async function query_chunks_function(ctx, document_cdns, query, model)
-  {
-      console.time("query_chunks_component_processTime");
-      let combined_answer = "";
-      for (let i = 0; i < document_cdns.length; i++)
-      {
-          const document_cdn = document_cdns[i];
-          const document_json = await get_json_from_cdn(ctx, document_cdn);
-          if (is_valid(document_json) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
-  
-          const vectorstore_name = document_json.vectorstore_name;
-          const hasher_model = document_json.hasher_model;
-          const embedder_model = document_json.embedder_model;
-          const chunks = document_json.chunks;
-          if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
-  
-          omnilog.log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
-  
-          const hasher = initialize_hasher(hasher_model);
-          const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
-  
-          const vectorstore = await compute_vectorstore(chunks, embedder);
-          const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model);
-          combined_answer += query_result + "\n\n";
-      }
-  
-      const response = combined_answer;
-      console.timeEnd("query_chunks_component_processTime");
-      return response;
-  }
+
   
 
-export {async_GetQueryChunksComponent, query_chunks_function};
+async function queryChunks(ctx, document_cdns, query, model_id)
+{
+    console.time("query_chunks_component_processTime");
+    let combined_answer = "";
+    for (let i = 0; i < document_cdns.length; i++)
+    {
+        const document_cdn = document_cdns[i];
+        const document_json = await get_json_from_cdn(ctx, document_cdn);
+        if (is_valid(document_json) == false) throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
+
+        const vectorstore_name = document_json.vectorstore_name;
+        const hasher_model = document_json.hasher_model;
+        const embedder_model = document_json.embedder_model;
+        const chunks = document_json.chunks;
+        if (is_valid(chunks) == false) throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
+
+        omnilog.log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
+
+        const hasher = initialize_hasher(hasher_model);
+        const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
+
+        const vectorstore = await compute_vectorstore(chunks, embedder);
+        const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
+        combined_answer += query_result + "\n\n";
+    }
+
+    const response = combined_answer;
+    console.timeEnd("query_chunks_component_processTime");
+    return response;
+}
+
+
+export {async_getQueryChunksComponent, queryChunks };

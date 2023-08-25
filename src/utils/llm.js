@@ -9,15 +9,15 @@ import { is_valid, console_log, pauseForSeconds } from './utils.js';
 export const DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
 const MODELS_DIR_JSON_PATH = ["..", "..", "user_files", "local_llms_directories.json"]; // from process.cwd(), which is ./packages/server/
 
-export function combineModelNameAndProvider(model_name, model_provider)
+export function generateModelId(model_name, model_provider)
 {
     return `${model_name}|${model_provider}`;
 }
 
-export function splitModelNameFromProvider(model_combined)
+export function getModelNameAndProviderFromId(model_id)
 {
-    const splits = model_combined.split('|');
-    if (splits.length != 2) throw new Error(`splitModelNameFromType: model_combined is not valid: ${model_combined}`);
+    const splits = model_id.split('|');
+    if (splits.length != 2) throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
     return { model_name: splits[0], model_provider: splits[1] };
 }
 
@@ -52,10 +52,10 @@ export async function addLocalLlmChoices(choices, llm_model_types, llm_context_s
     for (const filepath of filePaths)
     {
         const name = path.basename(filepath);
-        const combined = combineModelNameAndProvider(name, model_provider);
+        const id = generateModelId(name, model_provider);
         const title = deduceLlmTitle(name, model_provider);
         const description = deduceLlmDescription(name);
-        const choice = { value: combined, title: title, description: description };
+        const choice = { value: id, title: title, description: description };
 
         llm_model_types[name] = model_type;
         llm_context_sizes[name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
@@ -199,7 +199,7 @@ class Llm
 
     // -----------------------------------------------------------------------
 
-    async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
+    async query(ctx, prompt, instruction, model_name, temperature=0, args)
     {
         return { answer: "You have to implement this method", args:null }
     }

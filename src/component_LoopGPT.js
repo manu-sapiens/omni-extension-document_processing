@@ -9,6 +9,7 @@ import { get_chunks_from_cdn } from './utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
 import { queryLlm, getLlmChoices, getModelMaxSize } from './utils/llms.js';
 import { countTokens } from './utils/tiktoken.js';
+import { getModelNameAndProviderFromId } from './utils/llm.js'
 
 async function async_getLoopGptComponent()
 {
@@ -38,7 +39,7 @@ async function async_getLoopGptComponent()
         { name: 'llm_functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'top_p', type: 'number', defaultValue: 1 },
-        { name: 'model', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
+        { name: 'model_id', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices},
     ];
     component = setComponentInputs(component, inputs);
 
@@ -56,40 +57,42 @@ async function async_getLoopGptComponent()
 
 
     // Adding _exec function
-    component.setMacro(OmniComponentMacroTypes.EXEC, loop_gpt_parse);
+    component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 
     return component.toJSON();
 }
 
-async function loop_gpt_parse(payload, ctx) {
+async function parsePayload(payload, ctx) {
 
   const llm_functions = payload.llm_functions;
   const documents = payload.documents;
   const instruction = payload.instruction;
   const temperature = payload.temperature;
   const top_p = payload.top_p;
-  const model = payload.model;
+  const model_id = payload.model_id;
 
-  const response = await loop_gpt_function(ctx, documents, instruction, llm_functions, model, temperature, top_p);
+  const response = await loopGpt(ctx, documents, instruction, llm_functions, model_id, temperature, top_p);
   const answer = response.answer;
   
   return { result: { "ok": true }, answer: answer };
 
 }
 
-async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions, llm_model, temperature = 0, top_p = 1, chunk_size = 2000)
+async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id, temperature = 0, top_p = 1, chunk_size = 2000)
 {
-    omnilog.log(`[loop_llm_component] type of llm_functions = ${typeof llm_functions}, llm_functions = ${JSON.stringify(llm_functions)}<------------------`);
+    const splits = getModelNameAndProviderFromId(model_id);
+    const model_name = splits.model_name;
+    const model_provider = splits.model_provider;
 
     let max_size = chunk_size;
 
     if (chunk_size == -1) 
     {
-        max_size = getModelMaxSize(llm_model);
+        max_size = getModelMaxSize(model_name);
     }
     else if (chunk_size > 0)
     {
-        max_size = Math.min(chunk_size, getModelMaxSize(llm_model));
+        max_size = Math.min(chunk_size, getModelMaxSize(model_name));
     }
     console.time("loop_llm_component_processTime");
 
@@ -129,7 +132,7 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
                 if (!can_fit || is_last_index)
                 {
                     const query_args = {function: llm_functions, top_p : top_p}
-                    const gpt_results = await queryLlm(ctx, combined_text, instruction, llm_model, temperature, query_args);
+                    const gpt_results = await queryLlm(ctx, combined_text, instruction, model_id, temperature, query_args);
                     const sanetized_results = sanitizeJSON(gpt_results);
                     const chunk_result = {text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments}
 
@@ -172,4 +175,4 @@ async function loop_gpt_function(ctx, chapters_cdns, instruction, llm_functions,
     return response;
 }
 
-export { async_getLoopGptComponent, loop_gpt_function};
+export { async_getLoopGptComponent, loopGpt };

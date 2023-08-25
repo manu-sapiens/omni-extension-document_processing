@@ -1,7 +1,7 @@
 //@ts-check
 //llmOpenai.js
 import { runBlock } from './blocks.js';
-import { Llm, fixJsonString, combineModelNameAndProvider, deduceLlmTitle, deduceLlmDescription} from './llm.js'
+import { Llm, fixJsonString, generateModelId, deduceLlmTitle, deduceLlmDescription} from './llm.js'
 import { is_valid, console_log, clean_string, pauseForSeconds } from './utils.js';
 import { Tokenizer_Openai } from './tokenizer_Openai.js'
 
@@ -65,6 +65,7 @@ class Llm_Openai extends Llm
         returned_args["function_arguments_string"] = function_arguments_string;
         returned_args["function_arguments"] = function_arguments;
         returned_args["total_tokens"] = total_tokens
+
         const return_value = {
             answer: text,
             args: returned_args
@@ -72,6 +73,7 @@ class Llm_Openai extends Llm
     
         return return_value;
     }
+    
     getProvider()
     {
         return LLM_PROVIDER_OPENAI_SERVER;
@@ -89,7 +91,7 @@ class Llm_Openai extends Llm
         {
             let model_name = model.model_name;
             let provider = model.provider;
-            let combined = combineModelNameAndProvider(model_name, provider);
+            let model_id = generateModelId(model_name, provider);
     
             const title = model.title || deduceLlmTitle(model_name, provider, ICON_OPENAI);
             const description = model.description || deduceLlmDescription(model_name, model.context_size);
@@ -97,7 +99,7 @@ class Llm_Openai extends Llm
             llm_model_types[model_name] = model.type;
             llm_context_sizes[model_name] = model.context_size;
     
-            const choice = { value: combined, title: title, description: description };
+            const choice = { value: model_id, title: title, description: description };
             choices.push(choice);
         }
     }
