@@ -8,6 +8,9 @@ import { async_getQueryChunksComponent } from "./component_QueryChunks.js";
 import { async_getDocsWithGptComponent } from "./component_DocsWithGPT.js";
 import { async_getLlmQueryComponent } from "./component_LlmQuery.js";
 import { async_getLlmManagerOpenaiComponent } from "./component_LlmManager_Openai.js";
+import { async_getLlmManagerOobaboogaComponent } from "./component_LlmManager_Oobabooga.js"; 
+// TBD: Move async_getLlmManagerOobaboogaComponent into its own extension
+// TBD: Creaate async_getLlmManagerLmStudioComponent
 
 async function CreateComponents() 
 {
@@ -17,7 +20,8 @@ async function CreateComponents()
   const QueryChunksComponent = await async_getQueryChunksComponent();
   const LlmQueryComponent = await async_getLlmQueryComponent();
   const LlmManagerOpenaiComponent = await async_getLlmManagerOpenaiComponent();
-  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmQueryComponent, LlmManagerOpenaiComponent];
+  const LlmManagerOobaboogaComponent = await async_getLlmManagerOobaboogaComponent();
+  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmQueryComponent, LlmManagerOpenaiComponent, LlmManagerOobaboogaComponent];
 
   return {
     blocks: components,

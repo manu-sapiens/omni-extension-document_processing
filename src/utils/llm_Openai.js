@@ -35,6 +35,16 @@ class Llm_Openai extends Llm
         this.context_sizes[GPT4_MODEL_LARGE] = 16384;
     }
 
+    // -----------------------------------------------------------------------
+    /**
+     * @param {any} ctx
+     * @param {string} prompt
+     * @param {string} instruction
+     * @param {string} model_name
+     * @param {number} [temperature=0]
+     * @param {any} [args=null]
+     * @returns {Promise<{ answer: string; args: any; }>}
+     */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
         const functions = args?.functions || null;
@@ -84,7 +94,7 @@ class Llm_Openai extends Llm
         return LLM_MODEL_TYPE_OPENAI;
     }
 
-    async getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes)
+    async getModelChoices(choices, llm_model_types, llm_context_sizes)
     {
         const models = Object.values(llm_openai_models);
         for (const model of models)

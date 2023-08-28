@@ -13,24 +13,45 @@ const providers = []
 const llm_Openai = new Llm_Openai();
 providers.push(llm_Openai)
 
-if (await isProviderAvailable('oobabooga')) providers.push(new Llm_Oobabooga()); 
-if (await isProviderAvailable('lm-studio')) providers.push(new Llm_LmStudio()); 
-// TBD: this does not scale as we would need to edit this script whenever a new provider is added
+let extraProvidersProcessed = false;
+
+async function processExtraProviders()
+{
+    if (extraProvidersProcessed == false)
+    {
+        // TBD: this does not scale as we would need to edit this script whenever a new provider is added
+        if (await isProviderAvailable('oobabooga')) providers.push(new Llm_Oobabooga()); 
+        if (await isProviderAvailable('lm-studio')) providers.push(new Llm_LmStudio()); 
+        extraProvidersProcessed = true;
+    }
+}
 
 export async function getLlmChoices()
 {
-    let choices = [];
+    await processExtraProviders();
 
+    let choices = [];
     for (const provider of providers) 
     {
-        await provider.getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes);
+        await provider.getModelChoices(choices, llm_model_types, llm_context_sizes);
     }
    
     return choices;
 }
 
+/**
+ * @param {any} ctx
+ * @param {any} prompt
+ * @param {any} instruction
+ * @param {any} model_id
+ * @param {number} [temperature=0]
+ * @param {any} [args=null]
+ * @returns {Promise<{ answer: string; args: { function_arguments_string?: any; function_arguments?: any; total_tokens?: number } | null; }>}
+ */
 export async function queryLlm(ctx, prompt, instruction, model_id= DEFAULT_LLM_MODEL_ID, temperature = 0, args=null)
 {
+    await processExtraProviders();
+
     const splits = getModelNameAndProviderFromId(model_id);
     const model_name = splits.model_name;
     const model_provider = splits.model_provider;

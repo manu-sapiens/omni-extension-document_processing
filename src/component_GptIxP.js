@@ -2,7 +2,7 @@
 // component_GptIxP.ts
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
 import { is_valid, parse_text_to_array } from './utils/utils.js';
 import { queryLlm, getLlmChoices, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
 const NS_ONMI = 'document_processing';

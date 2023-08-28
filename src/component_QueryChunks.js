@@ -2,7 +2,7 @@
 // QueryChunksComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/components_lib.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
 const NS_ONMI = 'document_processing';
 
 import { initialize_hasher } from './utils/hashers.js'

@@ -14,7 +14,7 @@ const DEFAULT_MODEL_NAME_LM_STUDIO = 'loaded_model'
 
 export class Llm_LmStudio extends Llm
 {
-    constructor(tokenizer, params = null)
+    constructor()
     {
         const tokenizer_Openai = new Tokenizer_Openai()
         // TBD: use Llama tokenizer
@@ -22,6 +22,16 @@ export class Llm_LmStudio extends Llm
         super(tokenizer_Openai);
     }
 
+    // -----------------------------------------------------------------------
+    /**
+     * @param {any} ctx
+     * @param {string} prompt
+     * @param {string} instruction
+     * @param {string} model_name
+     * @param {number} [temperature=0]
+     * @param {any} [args=null]
+     * @returns {Promise<{ answer: string; args: any; }>}
+     */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
         let return_value = {
@@ -71,7 +81,7 @@ export class Llm_LmStudio extends Llm
         return LLM_MODEL_TYPE_LM_STUDIO;
     }
 
-    async getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes)
+    async getModelChoices(choices, llm_model_types, llm_context_sizes)
     {
         const models_dir_json = await getModelsDirJson()
         if (!models_dir_json) return;

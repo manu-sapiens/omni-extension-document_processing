@@ -1,6 +1,6 @@
 //@ts-check
 // component_LlmQuery.ts
-import { Component } from './utils/components_lib.js';
+import { createComponent } from './utils/component.js';
 import { queryLlm, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
 const NS_ONMI = 'document_processing';
 
@@ -24,9 +24,11 @@ async function async_getLlmQueryComponent()
         { name: "temperature", placeholder: "AlpineNumWithSliderComponent" },
     ];
 
-    let component = new Component(NS_ONMI, 'llm_query','LLM Query', 'Text Manipulation','Query a LLM', 'Query the specified LLM', inputs, outputs, controls, parsePayload );
+    const links = {}
 
-    return component.component;
+    let component = createComponent(NS_ONMI, 'llm_query','LLM Query', 'Text Manipulation','Query a LLM', 'Query the specified LLM', links, inputs, outputs, controls, parsePayload );
+
+    return component;
 }
 
 

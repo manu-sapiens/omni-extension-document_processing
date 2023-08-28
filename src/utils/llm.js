@@ -192,16 +192,24 @@ class Llm
         return this.tokenizer.countTextTokens(text);
     }
 
-    getModelContextSize(model_name)
+    getModelContextSizeFromModelInfo(model_name)
     {
         return this.context_sizes[model_name];
     }
 
     // -----------------------------------------------------------------------
-
-    async query(ctx, prompt, instruction, model_name, temperature=0, args)
+    /**
+     * @param {any} ctx
+     * @param {string} prompt
+     * @param {string} instruction
+     * @param {string} model_name
+     * @param {number} [temperature=0]
+     * @param {any} args
+     * @returns {Promise<{ answer: string; args: any; }>}
+     */
+    async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
-        return { answer: "You have to implement this method", args:null }
+        return { answer: "You have to implement this method", args:args }
     }
 
     async runLlmBlock(ctx, args) 
@@ -219,7 +227,7 @@ class Llm
         return 'You have to implement this method';
     }
 
-    async getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes)
+    async getModelChoices(choices, llm_model_types, llm_context_sizes)
     {
         throw new Error('You have to implement this method');
     }

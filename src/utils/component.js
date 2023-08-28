@@ -12,7 +12,7 @@ function generateTitle(name)
   
 function setComponentInputs(component, inputs) {
     inputs.forEach(function (input) {
-        var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step;
+        var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, default_value = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step;
         
         if (!title || title == '') title = generateTitle(name);
         
@@ -24,7 +24,7 @@ function setComponentInputs(component, inputs) {
             .set('minimum', minimum || null)
             .set('maximum', maximum || null)
             .set('step', step || null)
-            .setDefault(defaultValue)
+            .setDefault(default_value)
             .toOmniIO()
         );
     });
@@ -64,43 +64,32 @@ function setComponentControls(component, controls) {
     return component;
 }
 
-class Component
+function createComponent(group_id, id, title, category, description, summary, links, inputs, outputs, controls, payloadParser)
 {
-    constructor(group_id, id, title, category, description, summary, inputs, outputs, controls, payloadParser)
-    {
-        this.group_id = group_id;
-        this.id = id;
-        this.title = title;
-        this.category = category
-        this.description = description;
-        this.summary = summary;
-        this.inputs = inputs;
-        this.outputs = outputs;
-        this.controls = controls;
-        this.payloadParser = payloadParser;
- 
-        let component = OAIBaseComponent
-            .create(this.group_id, this.id)
-            .fromScratch()
-            .set('title', this.title)
-            .set('category', this.category)
-            .set('description', this.description)
-            .setMethod('X-CUSTOM')
-            .setMeta({
-                source: {
-                    summary: this.summary,
-                    links: {
-                    },
-                }
-            });
-            
-        component = setComponentInputs(component, this.inputs);
-        component = setComponentOutputs(component, this.outputs);
-        if (this.controls) component = setComponentControls(component, this.controls);
-        component.setMacro(OmniComponentMacroTypes.EXEC, this.payloadParser);
+    if (!links) links = {}
 
-        this.component = component.toJSON();
-    }
+    let baseComponent = OAIBaseComponent
+        .create(group_id, id)
+        .fromScratch()
+        .set('title', title)
+        .set('category', category)
+        .set('description', description)
+        .setMethod('X-CUSTOM')
+        .setMeta({
+            source: {
+                summary: summary,
+                links: links,
+            }
+        });
+        
+    baseComponent = setComponentInputs(baseComponent, inputs);
+    baseComponent = setComponentOutputs(baseComponent, outputs);
+    if (controls) baseComponent = setComponentControls(baseComponent, controls);
+    baseComponent.setMacro(OmniComponentMacroTypes.EXEC, payloadParser);
+
+    const component = baseComponent.toJSON();
+    return component;
 }
 
-export { Component, setComponentInputs, setComponentOutputs, setComponentControls}
+
+export { createComponent, setComponentInputs, setComponentOutputs, setComponentControls}
