@@ -7,7 +7,7 @@ const NS_ONMI = 'document_processing';
 
 import { get_chunks_from_cdn } from './utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
-import { queryLlm, getLlmChoices, getModelMaxSize } from './utils/llms.js';
+import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from './utils/llms.js';
 import { countTokens } from './utils/tiktoken.js';
 import { getModelNameAndProviderFromId } from './utils/llm.js'
 
@@ -132,7 +132,7 @@ async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id,
                 if (!can_fit || is_last_index)
                 {
                     const query_args = {function: llm_functions, top_p : top_p}
-                    const gpt_results = await queryLlm(ctx, combined_text, instruction, model_id, temperature, query_args);
+                    const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, query_args);
                     const sanetized_results = sanitizeJSON(gpt_results);
                     const chunk_result = {text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments}
 

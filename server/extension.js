@@ -6316,22 +6316,24 @@ var App = class {
 App.STATES = STATE;
 var BaseWorkflow = class _BaseWorkflow {
   constructor(id, version, meta) {
-    this.id = id;
-    this.version = version;
-    this.setMeta(meta || null);
+    this.id = id || "";
+    this.version = version || "draft";
+    this.setMeta(meta);
     this.setRete(null);
     this.setAPI(null);
     this.ui = {};
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    this.meta = meta ?? { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    meta = JSON.parse(JSON.stringify(meta || {}));
+    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta;
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
     this.meta.updated = Date.now();
-    (_c = this.meta).author || (_c.author = meta?.author || "Anonymous");
-    (_d = this.meta).help || (_d.help = meta?.help || "");
+    (_c = this.meta).author || (_c.author = "Anonymous");
+    (_d = this.meta).help || (_d.help = "");
     this.meta.name = (0, import_insane.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
     this.meta.description = (0, import_insane.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
     this.meta.author = (0, import_insane.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
@@ -6522,25 +6524,25 @@ for (let i = 0; i < 256; ++i) {
 }
 var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
-// utils/components_lib.js
+// utils/component.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 function generateTitle(name) {
   const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
-function setComponentInputs(component, inputs3) {
-  inputs3.forEach(function(input) {
-    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, defaultValue = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step;
+function setComponentInputs(component, inputs4) {
+  inputs4.forEach(function(input) {
+    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, default_value = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step;
     if (!title || title == "")
       title = generateTitle(name);
     component.addInput(
-      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).set("minimum", minimum || null).set("maximum", maximum || null).set("step", step || null).setDefault(defaultValue).toOmniIO()
+      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).set("minimum", minimum || null).set("maximum", maximum || null).set("step", step || null).setDefault(default_value).toOmniIO()
     );
   });
   return component;
 }
-function setComponentOutputs(component, outputs3) {
-  outputs3.forEach(function(output) {
+function setComponentOutputs(component, outputs4) {
+  outputs4.forEach(function(output) {
     var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
     if (!title || title == "")
       title = generateTitle(name);
@@ -6550,8 +6552,8 @@ function setComponentOutputs(component, outputs3) {
   });
   return component;
 }
-function setComponentControls(component, controls) {
-  controls.forEach(function(control) {
+function setComponentControls(component, controls2) {
+  controls2.forEach(function(control) {
     var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
     if (!title || title == "")
       title = generateTitle(name);
@@ -6561,32 +6563,23 @@ function setComponentControls(component, controls) {
   });
   return component;
 }
-var Component = class {
-  constructor(group_id, id, title, category, description, summary, inputs3, outputs3, controls, payloadParser) {
-    this.group_id = group_id;
-    this.id = id;
-    this.title = title;
-    this.category = category;
-    this.description = description;
-    this.summary = summary;
-    this.inputs = inputs3;
-    this.outputs = outputs3;
-    this.controls = controls;
-    this.payloadParser = payloadParser;
-    let component = OAIBaseComponent.create(this.group_id, this.id).fromScratch().set("title", this.title).set("category", this.category).set("description", this.description).setMethod("X-CUSTOM").setMeta({
-      source: {
-        summary: this.summary,
-        links: {}
-      }
-    });
-    component = setComponentInputs(component, this.inputs);
-    component = setComponentOutputs(component, this.outputs);
-    if (this.controls)
-      component = setComponentControls(component, this.controls);
-    component.setMacro(OmniComponentMacroTypes.EXEC, this.payloadParser);
-    this.component = component.toJSON();
-  }
-};
+function createComponent(group_id, id, title, category, description, summary, links2, inputs4, outputs4, controls2, payloadParser) {
+  if (!links2)
+    links2 = {};
+  let baseComponent = OAIBaseComponent.create(group_id, id).fromScratch().set("title", title).set("category", category).set("description", description).setMethod("X-CUSTOM").setMeta({
+    source: {
+      summary,
+      links: links2
+    }
+  });
+  baseComponent = setComponentInputs(baseComponent, inputs4);
+  baseComponent = setComponentOutputs(baseComponent, outputs4);
+  if (controls2)
+    baseComponent = setComponentControls(baseComponent, controls2);
+  baseComponent.setMacro(OmniComponentMacroTypes.EXEC, payloadParser);
+  const component = baseComponent.toJSON();
+  return component;
+}
 
 // utils/hasher.js
 var Hasher = class {
@@ -7561,16 +7554,16 @@ var BaseTracer = class extends BaseCallbackHandler {
     }
     return parentRun.child_execution_order + 1;
   }
-  async handleLLMStart(llm, prompts, runId, parentRunId, extraParams, tags, metadata) {
+  async handleLLMStart(llm3, prompts, runId, parentRunId, extraParams, tags, metadata) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const finalExtraParams = metadata ? { ...extraParams, metadata } : extraParams;
     const run = {
       id: runId,
-      name: llm.id[llm.id.length - 1],
+      name: llm3.id[llm3.id.length - 1],
       parent_run_id: parentRunId,
       start_time,
-      serialized: llm,
+      serialized: llm3,
       events: [
         {
           name: "start",
@@ -7588,16 +7581,16 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onLLMStart?.(run);
   }
-  async handleChatModelStart(llm, messages, runId, parentRunId, extraParams, tags, metadata) {
+  async handleChatModelStart(llm3, messages, runId, parentRunId, extraParams, tags, metadata) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const finalExtraParams = metadata ? { ...extraParams, metadata } : extraParams;
     const run = {
       id: runId,
-      name: llm.id[llm.id.length - 1],
+      name: llm3.id[llm3.id.length - 1],
       parent_run_id: parentRunId,
       start_time,
-      serialized: llm,
+      serialized: llm3,
       events: [
         {
           name: "start",
@@ -7643,7 +7636,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMError?.(run);
     await this._endTrace(run);
   }
-  async handleChainStart(chain, inputs3, runId, parentRunId, tags, metadata, runType) {
+  async handleChainStart(chain, inputs4, runId, parentRunId, tags, metadata, runType) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const run = {
@@ -7658,7 +7651,7 @@ var BaseTracer = class extends BaseCallbackHandler {
           time: start_time
         }
       ],
-      inputs: inputs3,
+      inputs: inputs4,
       execution_order,
       child_execution_order: execution_order,
       run_type: runType ?? "chain",
@@ -7669,13 +7662,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs3, runId) {
+  async handleChainEnd(outputs4, runId) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = outputs3;
+    run.outputs = outputs4;
     run.events.push({
       name: "end",
       time: run.end_time
@@ -7930,8 +7923,8 @@ var ConsoleCallbackHandler = class extends BaseTracer {
   }
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
-    const inputs3 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
-    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs3, "[inputs]")}`);
+    const inputs4 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
+    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs4, "[inputs]")}`);
   }
   onLLMEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
@@ -8604,7 +8597,7 @@ var Client = class _Client {
     }
     await response.json();
   }
-  async createExample(inputs3, outputs3, { datasetId, datasetName, createdAt }) {
+  async createExample(inputs4, outputs4, { datasetId, datasetName, createdAt }) {
     let datasetId_ = datasetId;
     if (datasetId_ === void 0 && datasetName === void 0) {
       throw new Error("Must provide either datasetName or datasetId");
@@ -8617,8 +8610,8 @@ var Client = class _Client {
     const createdAt_ = createdAt || /* @__PURE__ */ new Date();
     const data = {
       dataset_id: datasetId_,
-      inputs: inputs3,
-      outputs: outputs3,
+      inputs: inputs4,
+      outputs: outputs4,
       created_at: createdAt_.toISOString()
     };
     const response = await this.caller.call(fetch, `${this.apiUrl}/examples`, {
@@ -9470,13 +9463,13 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
     this.inheritableHandlers = [];
     this._parentRunId = parentRunId;
   }
-  async handleLLMStart(llm, prompts, _runId = void 0, _parentRunId = void 0, extraParams = void 0) {
+  async handleLLMStart(llm3, prompts, _runId = void 0, _parentRunId = void 0, extraParams = void 0) {
     return Promise.all(prompts.map(async (prompt3) => {
       const runId = v4_default();
       await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
         if (!handler.ignoreLLM) {
           try {
-            await handler.handleLLMStart?.(llm, [prompt3], runId, this._parentRunId, extraParams, this.tags, this.metadata);
+            await handler.handleLLMStart?.(llm3, [prompt3], runId, this._parentRunId, extraParams, this.tags, this.metadata);
           } catch (err) {
             console.error(`Error in handler ${handler.constructor.name}, handleLLMStart: ${err}`);
           }
@@ -9485,17 +9478,17 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChatModelStart(llm, messages, _runId = void 0, _parentRunId = void 0, extraParams = void 0) {
+  async handleChatModelStart(llm3, messages, _runId = void 0, _parentRunId = void 0, extraParams = void 0) {
     return Promise.all(messages.map(async (messageGroup) => {
       const runId = v4_default();
       await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
         if (!handler.ignoreLLM) {
           try {
             if (handler.handleChatModelStart)
-              await handler.handleChatModelStart?.(llm, [messageGroup], runId, this._parentRunId, extraParams, this.tags, this.metadata);
+              await handler.handleChatModelStart?.(llm3, [messageGroup], runId, this._parentRunId, extraParams, this.tags, this.metadata);
             else if (handler.handleLLMStart) {
               const messageString = getBufferString(messageGroup);
-              await handler.handleLLMStart?.(llm, [messageString], runId, this._parentRunId, extraParams, this.tags, this.metadata);
+              await handler.handleLLMStart?.(llm3, [messageString], runId, this._parentRunId, extraParams, this.tags, this.metadata);
             }
           } catch (err) {
             console.error(`Error in handler ${handler.constructor.name}, handleLLMStart: ${err}`);
@@ -9505,11 +9498,11 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChainStart(chain, inputs3, runId = v4_default(), runType = void 0) {
+  async handleChainStart(chain, inputs4, runId = v4_default(), runType = void 0) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainStart?.(chain, inputs3, runId, this._parentRunId, this.tags, this.metadata, runType);
+          await handler.handleChainStart?.(chain, inputs4, runId, this._parentRunId, this.tags, this.metadata, runType);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainStart: ${err}`);
         }
@@ -9754,12 +9747,12 @@ var Runnable = class extends Serializable {
     }
     return Array.from({ length }, () => options3);
   }
-  async batch(inputs3, options3, batchOptions) {
-    const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
-    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs3.length;
+  async batch(inputs4, options3, batchOptions) {
+    const configList = this._getOptionsList(options3 ?? {}, inputs4.length);
+    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs4.length;
     const batchResults = [];
-    for (let i = 0; i < inputs3.length; i += batchSize) {
-      const batchPromises = inputs3.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
+    for (let i = 0; i < inputs4.length; i += batchSize) {
+      const batchPromises = inputs4.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
@@ -9894,11 +9887,11 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
     await runManager?.handleChainEnd(_coerceToDict(finalOutput, "output"));
     return finalOutput;
   }
-  async batch(inputs3, options3, batchOptions) {
-    const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
+  async batch(inputs4, options3, batchOptions) {
+    const configList = this._getOptionsList(options3 ?? {}, inputs4.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs3[i], "input"))));
-    let nextStepInputs = inputs3;
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs4[i], "input"))));
+    let nextStepInputs = inputs4;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
@@ -10107,12 +10100,12 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
   async invoke(input, options3) {
     return this.bound.invoke(input, { ...options3, ...this.kwargs });
   }
-  async batch(inputs3, options3, batchOptions) {
+  async batch(inputs4, options3, batchOptions) {
     const mergedOptions = Array.isArray(options3) ? options3.map((individualOption) => ({
       ...individualOption,
       ...this.kwargs
     })) : { ...options3, ...this.kwargs };
-    return this.bound.batch(inputs3, mergedOptions, batchOptions);
+    return this.bound.batch(inputs4, mergedOptions, batchOptions);
   }
   async stream(input, options3) {
     return this.bound.stream(input, { ...options3, ...this.kwargs });
@@ -11885,7 +11878,7 @@ var Embedding_Cached = class extends Embeddings {
 };
 
 // utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs3 = {}) {
+async function runBlock(ctx, block_name, args, outputs4 = {}) {
   try {
     const app = ctx.app;
     if (!app) {
@@ -11895,7 +11888,7 @@ async function runBlock(ctx, block_name, args, outputs3 = {}) {
     if (!blocks) {
       throw new Error(`[runBlock] blocks not found in app`);
     }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
+    const result = await blocks.runBlock(ctx, block_name, args, outputs4);
     return result;
   } catch (err) {
     throw new Error(`Error running block ${block_name}: ${err}`);
@@ -16051,22 +16044,24 @@ var App2 = class {
 App2.STATES = STATE2;
 var BaseWorkflow2 = class _BaseWorkflow2 {
   constructor(id, version, meta) {
-    this.id = id;
-    this.version = version;
-    this.setMeta(meta || null);
+    this.id = id || "";
+    this.version = version || "draft";
+    this.setMeta(meta);
     this.setRete(null);
     this.setAPI(null);
     this.ui = {};
   }
   setMeta(meta) {
     var _a, _b, _c, _d;
-    this.meta = meta ?? { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    meta = JSON.parse(JSON.stringify(meta || {}));
+    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta;
     this.meta.updated = Date.now();
     (_a = this.meta).created ?? (_a.created = Date.now());
     (_b = this.meta).tags ?? (_b.tags = []);
     this.meta.updated = Date.now();
-    (_c = this.meta).author || (_c.author = meta?.author || "Anonymous");
-    (_d = this.meta).help || (_d.help = meta?.help || "");
+    (_c = this.meta).author || (_c.author = "Anonymous");
+    (_d = this.meta).help || (_d.help = "");
     this.meta.name = (0, import_insane2.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
     this.meta.description = (0, import_insane2.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
     this.meta.author = (0, import_insane2.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
@@ -16303,22 +16298,13 @@ function generateModelId(model_name, model_provider) {
   return `${model_name}|${model_provider}`;
 }
 function getModelNameAndProviderFromId(model_id) {
+  if (!model_id)
+    throw new Error(`getModelNameAndProviderFromId: model_id is not valid: ${model_id}`);
+  debugger;
   const splits = model_id.split("|");
   if (splits.length != 2)
     throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
   return { model_name: splits[0], model_provider: splits[1] };
-}
-async function isProviderAvailable(model_provider) {
-  const models_dir_json = await getModelsDirJson();
-  if (!models_dir_json)
-    return false;
-  const provider_model_dir = models_dir_json[model_provider];
-  if (!provider_model_dir)
-    return false;
-  const dir_exists = await validateDirectoryExists(provider_model_dir);
-  if (!dir_exists)
-    return false;
-  return true;
 }
 async function addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, model_type, model_provider) {
   const models_dir_json = await getModelsDirJson();
@@ -16363,8 +16349,8 @@ async function getModelsDirJson() {
   omnilog.warn(`[getModelsDirJson] json_path = ${json_path}, models_dir_json = ${JSON.stringify(models_dir_json)}`);
   return models_dir_json;
 }
-async function fixJsonWithLlm(llm, json_string_to_fix) {
-  const ctx = llm.ctx;
+async function fixJsonWithLlm(llm3, json_string_to_fix) {
+  const ctx = llm3.ctx;
   let response = null;
   const args = {};
   args.user = ctx.userId;
@@ -16373,7 +16359,7 @@ async function fixJsonWithLlm(llm, json_string_to_fix) {
   ;
   args.temperature = 0;
   try {
-    response = await llm.runLlmBlock(ctx, args);
+    response = await llm3.runLlmBlock(ctx, args);
   } catch (err) {
     console.error(`[FIXING] fixJsonWithLlm: Error fixing json: ${err}`);
     return null;
@@ -16384,7 +16370,7 @@ async function fixJsonWithLlm(llm, json_string_to_fix) {
     return null;
   return text2;
 }
-async function fixJsonString(llm, passed_string) {
+async function fixJsonString(llm3, passed_string) {
   if (is_valid(passed_string) === false) {
     throw new Error(`[FIXING] fixJsonString: passed string is not valid: ${passed_string}`);
   }
@@ -16411,7 +16397,7 @@ async function fixJsonString(llm, passed_string) {
 `);
       return jsonObject;
     }
-    let response = await fixJsonWithLlm(llm, passed_string);
+    let response = await fixJsonWithLlm(llm3, passed_string);
     if (response !== null && response !== void 0) {
       attempt_at_cleaned_string = response;
     }
@@ -16431,23 +16417,37 @@ var Llm = class {
   countTextTokens(text2) {
     return this.tokenizer.countTextTokens(text2);
   }
-  getModelContextSize(model_name) {
+  getModelContextSizeFromModelInfo(model_name) {
     return this.context_sizes[model_name];
   }
   // -----------------------------------------------------------------------
-  async query(ctx, prompt3, instruction, model_name, temperature = 0, args) {
-    return { answer: "You have to implement this method", args: null };
+  /**
+   * @param {any} ctx
+   * @param {string} prompt
+   * @param {string} instruction
+   * @param {string} model_name
+   * @param {number} [temperature=0]
+   * @param {any} args
+   * @returns {Promise<{ answer: string; json: any; }>}
+   */
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    throw new Error("You have to implement this method");
   }
+  /**
+  * @param {any} ctx
+  * @param {any} args
+  * @returns {Promise<{ answer: string; json: any; }>}
+  */
   async runLlmBlock(ctx, args) {
-    return { answer: "You have to implement this method", args: null };
+    throw new Error("You have to implement this method");
   }
   getProvider() {
-    return "You have to implement this method";
+    throw new Error("You have to implement this method");
   }
   getModelType() {
-    return "You have to implement this method";
+    throw new Error("You have to implement this method");
   }
-  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+  async getModelChoices(choices, llm_model_types2, llm_context_sizes2) {
     throw new Error("You have to implement this method");
   }
 };
@@ -16516,6 +16516,16 @@ var Llm_Openai = class extends Llm {
     this.context_sizes[GPT4_MODEL_SMALL] = 8192;
     this.context_sizes[GPT4_MODEL_LARGE] = 16384;
   }
+  // -----------------------------------------------------------------------
+  /**
+   * @param {any} ctx
+   * @param {string} prompt
+   * @param {string} instruction
+   * @param {string} model_name
+   * @param {number} [temperature=0]
+   * @param {any} [args=null]
+   * @returns {Promise<{ answer: string; json: any; }>}
+   */
   async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
     const functions = args?.functions || null;
     const top_p = args?.top_p || 1;
@@ -16539,13 +16549,14 @@ var Llm_Openai = class extends Llm {
       function_arguments = await fixJsonString(ctx, function_arguments_string);
     if (is_valid(text2) == true)
       text2 = clean_string(text2);
-    let returned_args = {};
-    returned_args["function_arguments_string"] = function_arguments_string;
-    returned_args["function_arguments"] = function_arguments;
-    returned_args["total_tokens"] = total_tokens;
+    let json = {};
+    json["function_arguments_string"] = function_arguments_string;
+    json["function_arguments"] = function_arguments;
+    json["total_tokens"] = total_tokens;
+    json["answer"] = text2;
     const return_value = {
       answer: text2,
-      args: returned_args
+      json
     };
     return return_value;
   }
@@ -16555,7 +16566,7 @@ var Llm_Openai = class extends Llm {
   getModelType() {
     return LLM_MODEL_TYPE_OPENAI;
   }
-  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
+  async getModelChoices(choices, llm_model_types2, llm_context_sizes2) {
     const models = Object.values(llm_openai_models);
     for (const model of models) {
       let model_name = model.model_name;
@@ -16611,164 +16622,6 @@ var Llm_Openai = class extends Llm {
   }
 };
 
-// utils/llm_LmStudio.js
-var LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
-var LLM_MODEL_TYPE_LM_STUDIO = "lm-studio";
-var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
-var ICON_LM_STUDIO = "\u{1F5A5}";
-var DEFAULT_MODEL_NAME_LM_STUDIO = "loaded_model";
-var Llm_LmStudio = class extends Llm {
-  constructor(tokenizer, params = null) {
-    const tokenizer_Openai = new Tokenizer_Openai();
-    super(tokenizer_Openai);
-  }
-  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
-    let return_value = {
-      answer: "",
-      args: null
-    };
-    let block_args = {};
-    block_args.user = ctx.userId;
-    block_args.prompt = prompt3;
-    block_args.instruction = instruction;
-    block_args.temperature = temperature;
-    const response = await this.runLlmBlock(ctx, block_args);
-    if (response.error)
-      throw new Error(response.error);
-    const choices = response?.choices || [];
-    if (choices.length == 0)
-      throw new Error("No results returned from lm_studio");
-    const text2 = choices[0].content;
-    if (!text2)
-      throw new Error(`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
-    return_value = {
-      answer: text2,
-      args: null
-    };
-    return return_value;
-  }
-  async runLlmBlock(ctx, args) {
-    const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
-    return response;
-  }
-  getProvider() {
-    return LLM_PROVIDER_LM_STUDIO_LOCAL;
-  }
-  getModelType() {
-    return LLM_MODEL_TYPE_LM_STUDIO;
-  }
-  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
-    const models_dir_json = await getModelsDirJson();
-    if (!models_dir_json)
-      return;
-    const provider_model_dir = models_dir_json[LLM_PROVIDER_LM_STUDIO_LOCAL];
-    if (!provider_model_dir)
-      return;
-    const dir_exists = await validateDirectoryExists(provider_model_dir);
-    if (!dir_exists)
-      return;
-    choices.push({ value: generateModelId(DEFAULT_MODEL_NAME_LM_STUDIO, LLM_PROVIDER_LM_STUDIO_LOCAL), title: ICON_LM_STUDIO + "model currently loaded in (LM-Studio)", description: "Use the model currently loaded in LM-Studio if that model's server is running." });
-    llm_model_types2[DEFAULT_MODEL_NAME_LM_STUDIO] = LLM_MODEL_TYPE_LM_STUDIO;
-    llm_context_sizes2[DEFAULT_MODEL_NAME_LM_STUDIO] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-    return;
-  }
-};
-
-// utils/llm_Oobabooga.js
-var LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
-var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
-var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
-var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
-var ICON_OOBABOOGA = "\u{1F4C1}";
-function parseOobaboogaModelResponse(model_response) {
-  let nestedResult = JSON.parse(model_response);
-  if (nestedResult["shared.settings"]) {
-    nestedResult.shared_settings = nestedResult["shared.settings"];
-    delete nestedResult["shared.settings"];
-  }
-  if (nestedResult["shared.args"]) {
-    nestedResult.shared_args = nestedResult["shared.args"];
-    delete nestedResult["shared.args"];
-  }
-  return nestedResult;
-}
-var Llm_Oobabooga = class extends Llm {
-  constructor() {
-    const tokenizer_Openai = new Tokenizer_Openai();
-    super(tokenizer_Openai);
-  }
-  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
-    let model_response = await this.getCurrentModelInfo();
-    let nestedResult = parseOobaboogaModelResponse(model_response);
-    let loaded_model = nestedResult?.model_name;
-    const context_size = nestedResult?.shared_settings?.max_new_tokens_max || 0;
-    this.context_sizes[model_name] = context_size;
-    if (loaded_model != model_name) {
-      model_response = await this.loadModel(model_name);
-      nestedResult = parseOobaboogaModelResponse(model_response);
-      loaded_model = nestedResult?.model_name;
-    }
-    if (loaded_model != model_name)
-      throw new Error(`Failed to load model ${model_name} into oobabooga`);
-    let block_args = { ...args };
-    block_args.user = ctx.userId;
-    block_args.prompt = `${instruction}
-
-${prompt3}`;
-    block_args.temperature = temperature;
-    block_args.model = model_name;
-    const response = await this.runLlmBlock(ctx, block_args);
-    return response;
-  }
-  async runLlmBlock(ctx, args) {
-    const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
-    if (response.error)
-      throw new Error(response.error);
-    const results = response?.results || [];
-    if (results.length == 0)
-      throw new Error("No results returned from oobabooga");
-    const text2 = results[0].text || null;
-    if (!text2)
-      throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
-    const return_value = {
-      answer: text2,
-      args: null
-    };
-    return return_value;
-  }
-  getProvider() {
-    return LLM_PROVIDER_OOBABOOGA_LOCAL;
-  }
-  getModelType() {
-    return LLM_MODEL_TYPE_OOBABOOGA;
-  }
-  async getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2) {
-    await addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, LLM_MODEL_TYPE_OOBABOOGA, LLM_PROVIDER_OOBABOOGA_LOCAL);
-  }
-  // -------------------------------------------------
-  async getCurrentModelInfo(ctx) {
-    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
-    return response?.result;
-  }
-  async loadModel(ctx, model_name) {
-    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "load", model_name });
-    return response?.result;
-  }
-  async getModelChoicesFromServer(ctx, choices, llm_model_types2, llm_context_sizes2) {
-    const model_names = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "list" });
-    for (const model_name in model_names) {
-      let title, description, model_type, context_size, memory_need;
-      const model_id = generateModelId(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL);
-      title = deduceLlmTitle(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL, ICON_OOBABOOGA);
-      description = deduceLlmDescription(model_name);
-      llm_model_types2[model_name] = LLM_MODEL_TYPE_OOBABOOGA;
-      llm_context_sizes2[model_name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
-      const choice = { value: model_id, title, description };
-      choices.push(choice);
-    }
-  }
-};
-
 // utils/llms.js
 var DEFAULT_LLM_MODEL_ID = "gpt-3.5-turbo|openai";
 var llm_model_types = {};
@@ -16776,28 +16629,27 @@ var llm_context_sizes = {};
 var providers2 = [];
 var llm_Openai = new Llm_Openai();
 providers2.push(llm_Openai);
-if (await isProviderAvailable("oobabooga"))
-  providers2.push(new Llm_Oobabooga());
-if (await isProviderAvailable("lm-studio"))
-  providers2.push(new Llm_LmStudio());
 async function getLlmChoices() {
   let choices = [];
   for (const provider of providers2) {
-    await provider.getModelChoicesFromDisk(choices, llm_model_types, llm_context_sizes);
+    await provider.getModelChoices(choices, llm_model_types, llm_context_sizes);
   }
   return choices;
 }
-async function queryLlm(ctx, prompt3, instruction, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, args = null) {
+async function queryLlmByModelId(ctx, prompt3, instruction, model_id, temperature = 0, args = null) {
   const splits = getModelNameAndProviderFromId(model_id);
-  const model_name = splits.model_name;
   const model_provider = splits.model_provider;
-  for (const provider of providers2) {
-    if (model_provider == provider.getProvider()) {
-      const response = await provider.query(ctx, prompt3, instruction, model_name, temperature, args);
-      return response;
-    }
-  }
-  throw new Error(`Unknown model provider: ${model_provider} with model: ${model_name}`);
+  const blockName = `omni-extension-document_processing:${model_provider}.llm_query`;
+  const blockArgs = { prompt: prompt3, instruction, model_id, temperature, args };
+  const response = await runBlock(ctx, blockName, blockArgs);
+  debugger;
+  omnilog.warn(`queryLlmByModelId: response = ${JSON.stringify(response)}`);
+  const answer = response?.answer_text || "";
+  const json = response?.answer_json || null;
+  if (answer == "")
+    throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
+  const return_value = { answer, json };
+  return return_value;
 }
 function getModelMaxSize(model_name, use_a_margin = true) {
   const context_size = getModelContextSize(model_name);
@@ -16823,7 +16675,7 @@ async function async_getGptIxPComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -16831,16 +16683,16 @@ async function async_getGptIxPComponent() {
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs3);
-  const controls = [
+  component = setComponentInputs(component, inputs4);
+  const controls2 = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
-  component = setComponentControls(component, controls);
-  const outputs3 = [
+  component = setComponentControls(component, controls2);
+  const outputs4 = [
     { name: "answers_text", type: "string", customSocket: "text", description: "combined answers", title: "Combined answers" },
     { name: "answers_json", type: "object", customSocket: "object", description: "Answers as a JSON", title: "JSON answers" }
   ];
-  component = setComponentOutputs(component, outputs3);
+  component = setComponentOutputs(component, outputs4);
   component.setMacro(OmniComponentMacroTypes4.EXEC, parsePayload);
   return component.toJSON();
 }
@@ -16878,14 +16730,14 @@ async function gptIxP(ctx, instruction, prompt3, llm_functions = null, model_id 
       const prompt4 = prompts[p2];
       omnilog.log(`instruction = ${instruction2}, prompt = ${prompt4}, id = ${id}`);
       const query_args = { function: llm_functions, top_p };
-      const answer_object = await queryLlm(ctx, prompt4, instruction2, model_id, temperature, query_args);
+      const answer_object = await queryLlmByModelId(ctx, prompt4, instruction2, model_id, temperature, query_args);
       if (!answer_object)
         continue;
       if (is_valid(answer_object) == false)
         continue;
       const answer_text = answer_object.answer;
-      const answer_fa = answer_object.args?.function_arguments;
-      const answer_fa_string = answer_object.args?.function_arguments_string;
+      const answer_fa = answer_object.json?.function_arguments;
+      const answer_fa_string = answer_object.json?.function_arguments_string;
       if (is_valid(answer_text)) {
         answers_json[id] = answer_text;
         answer_string += answer_text + "\n";
@@ -16915,7 +16767,7 @@ async function async_getLoopGptComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -16923,15 +16775,15 @@ async function async_getLoopGptComponent() {
     { name: "top_p", type: "number", defaultValue: 1 },
     { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs3);
-  const controls = [
+  component = setComponentInputs(component, inputs4);
+  const controls2 = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
-  component = setComponentControls(component, controls);
-  const outputs3 = [
+  component = setComponentControls(component, controls2);
+  const outputs4 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
-  component = setComponentOutputs(component, outputs3);
+  component = setComponentOutputs(component, outputs4);
   component.setMacro(OmniComponentMacroTypes5.EXEC, parsePayload2);
   return component.toJSON();
 }
@@ -16981,7 +16833,7 @@ async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id,
         }
         if (!can_fit || is_last_index) {
           const query_args = { function: llm_functions, top_p };
-          const gpt_results = await queryLlm(ctx, combined_text, instruction, model_id, temperature, query_args);
+          const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, query_args);
           const sanetized_results = sanitizeJSON(gpt_results);
           const chunk_result = { text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments };
           omnilog.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
@@ -17045,7 +16897,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
   }
   const instruction = `Here are some quotes. ${combined_text}`;
   const prompt3 = `Based on the quotes, answer this question: ${query}`;
-  const query_answer_json = await queryLlm(ctx, prompt3, instruction, model_id);
+  const query_answer_json = await queryLlmByModelId(ctx, prompt3, instruction, model_id);
   const query_answer = query_answer_json?.answer || null;
   if (is_valid(query_answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
@@ -17067,16 +16919,16 @@ async function async_getQueryChunksComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
   ];
-  query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
-  const outputs3 = [
+  query_chunk_component = setComponentInputs(query_chunk_component, inputs4);
+  const outputs4 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
-  query_chunk_component = setComponentOutputs(query_chunk_component, outputs3);
+  query_chunk_component = setComponentOutputs(query_chunk_component, outputs4);
   query_chunk_component.setMacro(OmniComponentMacroTypes6.EXEC, parsePayload3);
   return query_chunk_component.toJSON();
 }
@@ -17133,7 +16985,7 @@ async function async_getDocsWithGptComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "documents", type: "array", customSocket: "documentArray", title: "Text document(s) to process", defaultValue: [] },
     { name: "url", type: "string", title: "or some Texts to process (text or url(s))", customSocket: "text" },
     { name: "usage", type: "string", defaultValue: "query_documents", choices: [
@@ -17146,15 +16998,15 @@ async function async_getDocsWithGptComponent() {
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
-  component = setComponentInputs(component, inputs3);
-  const controls = [
+  component = setComponentInputs(component, inputs4);
+  const controls2 = [
     { name: "documents", placeholder: "AlpineCodeMirrorComponent" }
   ];
-  component = setComponentControls(component, controls);
-  const outputs3 = [
+  component = setComponentControls(component, controls2);
+  const outputs4 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
-  component = setComponentOutputs(component, outputs3);
+  component = setComponentOutputs(component, outputs4);
   component.setMacro(OmniComponentMacroTypes7.EXEC, parsePayload4);
   return component.toJSON();
 }
@@ -17244,26 +17096,25 @@ async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt3, temp
 // component_LlmQuery.js
 var NS_ONMI7 = "document_processing";
 async function async_getLlmQueryComponent() {
-  const inputs3 = [
+  const inputs4 = [
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
-    { name: "temperature", type: "number", defaultValue: 0.7, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text.", minimum: 0, maximum: 2, step: 0.01 },
+    { name: "temperature", type: "number", defaultValue: 0.07, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text.", minimum: 0, maximum: 2, step: 0.01 },
     { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID },
     { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
-  const outputs3 = [
+  const outputs4 = [
     { name: "answer_text", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" },
-    { name: "answer_args", type: "object", customSocket: "object", description: "Extra arguments returned by the LLM", title: "Args" },
+    { name: "answer_json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" },
     { name: "model_id", type: "string", customSocket: "text", description: "The ID of the LLM model used" }
   ];
-  const controls = [
-    { name: "temperature", placeholder: "AlpineNumWithSliderComponent" }
-  ];
-  let component = new Component(NS_ONMI7, "llm_query", "LLM Query", "Text Manipulation", "Query a LLM", "Query the specified LLM", inputs3, outputs3, controls, parsePayload5);
-  return component.component;
+  const controls2 = null;
+  const links2 = {};
+  let component = createComponent(NS_ONMI7, "llm_query", "LLM Query", "Text Manipulation", "Query a LLM", "Query the specified LLM", links2, inputs4, outputs4, controls2, parsePayload5);
+  return component;
 }
 async function parsePayload5(payload, ctx) {
-  const failure = { result: { "ok": false }, answer_text: "", answer_args: null, model_id: null };
+  const failure = { result: { "ok": false }, answer_text: "", answer_json: null, model_id: "" };
   if (!payload)
     return failure;
   const instruction = payload.instruction;
@@ -17271,19 +17122,20 @@ async function parsePayload5(payload, ctx) {
   const temperature = payload.temperature;
   const model_id = payload.model_id;
   const args = payload.args;
-  const response = await llmQuery(ctx, instruction, prompt3, model_id, temperature, args);
+  const response = await universalLlmQuery(ctx, instruction, prompt3, model_id, temperature, args);
   if (!response)
     return failure;
   const answer_text = response.answer;
-  const answer_args = response.args;
-  const return_value = { result: { "ok": true }, answer_text, answer_args, model_id };
+  const answer_json = response.json;
+  debugger;
+  const return_value = { result: { "ok": true }, answer_text, answer_json, model_id };
   return return_value;
 }
-async function llmQuery(ctx, instruction, prompt3, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, args = null) {
+async function universalLlmQuery(ctx, instruction, prompt3, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, args = null) {
   console.time("advanced_llm_component_processTime");
   if (!prompt3)
     return null;
-  const response = await queryLlm(ctx, prompt3, instruction, model_id, temperature, args);
+  const response = await queryLlmByModelId(ctx, prompt3, instruction, model_id, temperature, args);
   if (!response)
     return null;
   return response;
@@ -17292,20 +17144,25 @@ async function llmQuery(ctx, instruction, prompt3, model_id = DEFAULT_LLM_MODEL_
 // component_LlmManager_Openai.js
 var NS_ONMI8 = "document_processing";
 async function async_getLlmManagerOpenaiComponent() {
-  const llm = new Llm_Openai();
+  const llm3 = new Llm_Openai();
   const choices = [];
   const llm_model_types2 = {};
   const llm_context_sizes2 = {};
-  await llm.getModelChoicesFromDisk(choices, llm_model_types2, llm_context_sizes2);
-  const inputs3 = [
-    { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID, choices }
+  await llm3.getModelChoices(choices, llm_model_types2, llm_context_sizes2);
+  const inputs4 = [
+    { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID, choices },
+    { name: "functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
+    { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
-  const outputs3 = [
+  const outputs4 = [
     { name: "model_id", title: "string", customSocket: "text", description: "The ID of the selected LLM model" }
   ];
-  const controls = null;
-  let component = new Component(NS_ONMI8, "llm_manager", "LLM Manager", "Text Manipulation", "Manage LLMs from a provider: openai", "Manage LLMs from a provider: openai", inputs3, outputs3, controls, parsePayload6);
-  return component.component;
+  const controls2 = [
+    { name: "functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
+  ];
+  const links2 = {};
+  let component = createComponent(NS_ONMI8, "llm_manager_openai", "LLM Manager: OpenAI", "Text Manipulation", "Manage LLMs from a provider: openai", "Manage LLMs from a provider: openai", links2, inputs4, outputs4, controls2, parsePayload6);
+  return component;
 }
 async function parsePayload6(payload, ctx) {
   const failure = { result: { "ok": false }, model_id: null };
@@ -17316,6 +17173,227 @@ async function parsePayload6(payload, ctx) {
   return return_value;
 }
 
+// utils/llm_Oobabooga.js
+var LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
+var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
+var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
+var BLOCK_OOBABOOGA_MANAGE_MODEL = "oobabooga.manageModelComponent";
+var ICON_OOBABOOGA = "\u{1F4C1}";
+function parseModelResponse(model_response) {
+  if (!model_response)
+    return null;
+  let nestedResult = JSON.parse(model_response);
+  if (nestedResult["shared.settings"]) {
+    nestedResult.shared_settings = nestedResult["shared.settings"];
+    delete nestedResult["shared.settings"];
+  }
+  if (nestedResult["shared.args"]) {
+    nestedResult.shared_args = nestedResult["shared.args"];
+    delete nestedResult["shared.args"];
+  }
+  return nestedResult;
+}
+var Llm_Oobabooga = class extends Llm {
+  constructor() {
+    const tokenizer_Openai = new Tokenizer_Openai();
+    super(tokenizer_Openai);
+  }
+  // -----------------------------------------------------------------------
+  /**
+   * @param {any} ctx
+   * @param {string} prompt
+   * @param {string} instruction
+   * @param {string} model_name
+   * @param {number} [temperature=0]
+   * @param {any} [args=null]
+   * @returns {Promise<{ answer: string; json: any; }>}
+   */
+  async query(ctx, prompt3, instruction, model_name, temperature = 0, args = null) {
+    const model_info = await this.loadModelIfNeeded(ctx, model_name);
+    let block_args = { ...args };
+    block_args.user = ctx.userId;
+    block_args.prompt = `${instruction}
+
+${prompt3}`;
+    block_args.temperature = temperature;
+    block_args.model = model_name;
+    const response = await this.runLlmBlock(ctx, block_args);
+    return response;
+  }
+  async runLlmBlock(ctx, args) {
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
+    if (response.error)
+      throw new Error(response.error);
+    const results = response?.results || [];
+    if (results.length == 0)
+      throw new Error("No results returned from oobabooga");
+    const text2 = results[0].text || null;
+    if (!text2)
+      throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
+    const json = {};
+    json["answer"] = text2;
+    const return_value = {
+      answer: text2,
+      json
+    };
+    return return_value;
+  }
+  getProvider() {
+    return LLM_PROVIDER_OOBABOOGA_LOCAL;
+  }
+  getModelType() {
+    return LLM_MODEL_TYPE_OOBABOOGA;
+  }
+  async getModelChoices(choices, llm_model_types2, llm_context_sizes2) {
+    await addLocalLlmChoices(choices, llm_model_types2, llm_context_sizes2, LLM_MODEL_TYPE_OOBABOOGA, LLM_PROVIDER_OOBABOOGA_LOCAL);
+  }
+  // -------------------------------------------------
+  async getCurrentModelInfoFromServer(ctx) {
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "info" });
+    const model_response = response?.result;
+    const model_info = parseModelResponse(model_response);
+    return model_info;
+  }
+  async loadModelOnServer(ctx, model_name, loading_args) {
+    const block_args = { ...loading_args };
+    block_args.model_name = model_name;
+    block_args.action = "load";
+    const response = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, block_args);
+    const model_response = response?.result;
+    const model_info = parseModelResponse(model_response);
+    return model_info;
+  }
+  async getModelChoicesFromServer(ctx, choices, llm_model_types2, llm_context_sizes2) {
+    const model_names = await runBlock(ctx, BLOCK_OOBABOOGA_MANAGE_MODEL, { action: "list" });
+    for (const model_name in model_names) {
+      let title, description, model_type, context_size, memory_need;
+      const model_id = generateModelId(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL);
+      title = deduceLlmTitle(model_name, LLM_PROVIDER_OOBABOOGA_LOCAL, ICON_OOBABOOGA);
+      description = deduceLlmDescription(model_name);
+      llm_model_types2[model_name] = LLM_MODEL_TYPE_OOBABOOGA;
+      llm_context_sizes2[model_name] = DEFAULT_UNKNOWN_CONTEXT_SIZE;
+      const choice = { value: model_id, title, description };
+      choices.push(choice);
+    }
+  }
+  async loadModelIfNeeded(ctx, model_name, loading_args) {
+    let model_info = await this.getCurrentModelInfoFromServer(ctx);
+    let loaded_model = model_info?.model_name;
+    const context_size = this.getModelContextSizeFromModelInfo(model_info);
+    if (context_size)
+      this.context_sizes[model_name] = context_size;
+    if (loaded_model != model_name) {
+      model_info = await this.loadModelOnServer(ctx, model_name, loading_args);
+      loaded_model = model_info?.model_name;
+    }
+    if (loaded_model != model_name)
+      throw new Error(`Failed to load model ${model_name} into oobabooga`);
+    return model_info;
+  }
+  getModelContextSizeFromModelInfo(model_info) {
+    const context_size = model_info?.shared_settings?.max_new_tokens_max;
+    return context_size;
+  }
+};
+
+// component_LlmManager_Oobabooga.js
+var NS_ONMI9 = "document_processing";
+var llm = new Llm_Oobabooga();
+async function async_getLlmManagerOobaboogaComponent() {
+  const choices = [];
+  const llm_model_types2 = {};
+  const llm_context_sizes2 = {};
+  await llm.getModelChoices(choices, llm_model_types2, llm_context_sizes2);
+  const inputs4 = [
+    { name: "model_id", type: "string", customSocket: "text", defaultValue: DEFAULT_LLM_MODEL_ID, choices },
+    { name: "use_gpu", type: "boolean", defaultValue: false },
+    { name: "seed", type: "number", defaultValue: "-1", description: "A number used to determine the initial noise distribution for the text generation process. Different seed values will create unique text results. The special value, -1, will generate a random seed instead." },
+    { name: "negative_prompt", type: "string", customSocket: "text", description: "A text description that guides the text generation process, but with a negative connotation." },
+    { name: `max_new_tokens`, type: "number", defaultValue: 2e3, description: "The maximum number of tokens to generate." }
+  ];
+  const outputs4 = [
+    { name: "model_id", title: "string", customSocket: "text", description: "The ID of the selected LLM model" }
+  ];
+  const controls2 = null;
+  const links2 = {};
+  let component = createComponent(NS_ONMI9, "llm_manager_oobabooga", "LLM Manager: Oobabooga", "Text Manipulation", "Manage LLMs from a provider: Oobabooga", "Manage LLMs from a provider: Oobabooga", links2, inputs4, outputs4, controls2, parsePayload7);
+  return component;
+}
+async function parsePayload7(payload, ctx) {
+  const failure = { result: { "ok": false }, model_id: null };
+  if (!payload)
+    return failure;
+  const model_id = payload.model_id;
+  const use_gpu = payload.use_gpu;
+  const seed = payload.seed;
+  const negative_prompt = payload.negative_prompt;
+  const max_new_tokens = payload.max_new_tokens;
+  const splits = getModelNameAndProviderFromId(model_id);
+  const model_name = splits.model_name;
+  const model_provider = splits.model_provider;
+  const loading_args = {};
+  if (use_gpu)
+    loading_args.use_gpu = use_gpu;
+  if (seed)
+    loading_args.seed = seed;
+  if (negative_prompt)
+    loading_args.negative_prompt = negative_prompt;
+  if (max_new_tokens)
+    loading_args.max_new_tokens = max_new_tokens;
+  let model_info = await llm.loadModelIfNeeded(ctx, model_name, loading_args);
+  const return_value = { result: { "ok": true }, model_id };
+  return return_value;
+}
+
+// component_LlmQuery_Oobabooga.js
+var MODEL_PROVIDER = "oobabooga";
+var llm2 = new Llm_Oobabooga();
+var inputs3 = [
+  { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
+  { name: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
+  { name: "temperature", type: "number", defaultValue: 0.7, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text.", minimum: 0, maximum: 2, step: 0.01 },
+  { name: "model_id", type: "string", customSocket: "text" },
+  { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
+];
+var outputs3 = [
+  { name: "answer_text", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" },
+  { name: "answer_json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
+];
+var controls = null;
+var links = {};
+var LlmQueryComponent_Oobabooga = createComponent(MODEL_PROVIDER, "llm_query", "LLM Query: Oobabooga", "Text Manipulation", "Query a LLM with Oobabooga", "Query the specified LLM via Oobabooga", links, inputs3, outputs3, controls, parsePayload8);
+async function parsePayload8(payload, ctx) {
+  const failure = { result: { "ok": false }, answer_text: "", answer_json: null, model_id: null };
+  if (!payload)
+    return failure;
+  const instruction = payload.instruction;
+  const prompt3 = payload.prompt;
+  const temperature = payload.temperature;
+  const model_id = payload.model_id;
+  const json = payload.args;
+  const splits = getModelNameAndProviderFromId(model_id);
+  const model_name = splits.model_name;
+  const model_provider = splits.model_provider;
+  if (model_provider != MODEL_PROVIDER)
+    throw new Error(`ERROR: model_provider != ${MODEL_PROVIDER}`);
+  const response = await llmQuery_oobabooga(ctx, instruction, prompt3, model_name, temperature, json);
+  if (!response)
+    return failure;
+  const answer_text = response.answer;
+  const answer_json = response.json;
+  const return_value = { result: { "ok": true }, answer_text, answer_json };
+  return return_value;
+}
+async function llmQuery_oobabooga(ctx, instruction, prompt3, model_name, temperature = 0, json = null) {
+  console.time("advanced_llm_component_processTime");
+  if (!prompt3)
+    return null;
+  const response = await llm2.query(ctx, prompt3, instruction, model_name, temperature, json);
+  if (!response)
+    return null;
+  return response;
+}
+
 // extension.js
 async function CreateComponents() {
   const GptIXPComponent = await async_getGptIxPComponent();
@@ -17324,7 +17402,8 @@ async function CreateComponents() {
   const QueryChunksComponent = await async_getQueryChunksComponent();
   const LlmQueryComponent = await async_getLlmQueryComponent();
   const LlmManagerOpenaiComponent = await async_getLlmManagerOpenaiComponent();
-  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmQueryComponent, LlmManagerOpenaiComponent];
+  const LlmManagerOobaboogaComponent = await async_getLlmManagerOobaboogaComponent();
+  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmManagerOpenaiComponent, LlmManagerOobaboogaComponent, LlmQueryComponent, LlmQueryComponent_Oobabooga];
   return {
     blocks: components,
     patches: []

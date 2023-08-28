@@ -47,7 +47,7 @@ export class Llm_Oobabooga extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; args: any; }>}
+     * @returns {Promise<{ answer: string; json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
@@ -80,9 +80,12 @@ export class Llm_Oobabooga extends Llm
         const text = results[0].text || null;
         if (!text) throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
     
+        const json = {};
+        json["answer"] = text;
+
         const return_value = {
             answer: text,
-            args: null
+            json: json,
         };
     
         return return_value;

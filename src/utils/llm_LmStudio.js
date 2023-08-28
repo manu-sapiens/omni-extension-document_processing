@@ -30,13 +30,13 @@ export class Llm_LmStudio extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; args: any; }>}
+     * @returns {Promise<{ answer: string; json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
         let return_value = {
             answer: "",
-            args: null
+            json: null
         };
 
         let block_args = {};
@@ -57,7 +57,7 @@ export class Llm_LmStudio extends Llm
         
         return_value = {
             answer: text,
-            args: null
+            json: {answer: text},
         };
     
         return return_value;        

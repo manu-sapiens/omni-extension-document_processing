@@ -4,7 +4,7 @@ import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_
 import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
 import { is_valid, parse_text_to_array } from './utils/utils.js';
-import { queryLlm, getLlmChoices, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
+import { queryLlmByModelId, getLlmChoices, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
 const NS_ONMI = 'document_processing';
 
 async function async_getGptIxPComponent()
@@ -96,13 +96,13 @@ async function gptIxP(ctx, instruction, prompt, llm_functions = null, model_id =
             omnilog.log(`instruction = ${instruction}, prompt = ${prompt}, id = ${id}`);
 
             const query_args = {function: llm_functions, top_p : top_p}
-            const answer_object = await queryLlm(ctx, prompt, instruction, model_id, temperature, query_args);
+            const answer_object = await queryLlmByModelId(ctx, prompt, instruction, model_id, temperature, query_args);
             if (!answer_object) continue;
             if (is_valid(answer_object) == false) continue;
 
             const answer_text = answer_object.answer;
-            const answer_fa = answer_object.args?.function_arguments;
-            const answer_fa_string = answer_object.args?.function_arguments_string;
+            const answer_fa = answer_object.json?.function_arguments;
+            const answer_fa_string = answer_object.json?.function_arguments_string;
 
             if (is_valid(answer_text)) {
                 answers_json[id] = answer_text;

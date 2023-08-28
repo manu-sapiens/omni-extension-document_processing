@@ -43,7 +43,7 @@ class Llm_Openai extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; args: any; }>}
+     * @returns {Promise<{ answer: string; json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
@@ -71,14 +71,15 @@ class Llm_Openai extends Llm
         if (is_valid(function_arguments_string) == true) function_arguments = await fixJsonString(ctx, function_arguments_string);
         if (is_valid(text) == true) text = clean_string(text);
 
-        let returned_args = {};
-        returned_args["function_arguments_string"] = function_arguments_string;
-        returned_args["function_arguments"] = function_arguments;
-        returned_args["total_tokens"] = total_tokens
+        let json = {};
+        json["function_arguments_string"] = function_arguments_string;
+        json["function_arguments"] = function_arguments;
+        json["total_tokens"] = total_tokens
+        json["answer"] = text;
 
         const return_value = {
             answer: text,
-            args: returned_args
+            json: json
         };
     
         return return_value;

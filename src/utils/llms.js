@@ -2,8 +2,10 @@
 //llms.js
 import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
 import { Llm_Openai } from './llm_Openai.js'
-import { Llm_LmStudio } from './llm_LmStudio.js'
-import { Llm_Oobabooga } from './llm_Oobabooga.js'
+import { runBlock } from './blocks.js';
+import { omnilog } from 'mercs_shared'
+//import { Llm_LmStudio } from './llm_LmStudio.js'
+//import { Llm_Oobabooga } from './llm_Oobabooga.js'
 export const DEFAULT_LLM_MODEL_ID = 'gpt-3.5-turbo|openai'
 
 const llm_model_types = {};
@@ -15,6 +17,7 @@ providers.push(llm_Openai)
 
 let extraProvidersProcessed = false;
 
+/*
 async function processExtraProviders()
 {
     if (extraProvidersProcessed == false)
@@ -25,10 +28,11 @@ async function processExtraProviders()
         extraProvidersProcessed = true;
     }
 }
+*/
 
 export async function getLlmChoices()
 {
-    await processExtraProviders();
+    //await processExtraProviders();
 
     let choices = [];
     for (const provider of providers) 
@@ -46,26 +50,26 @@ export async function getLlmChoices()
  * @param {any} model_id
  * @param {number} [temperature=0]
  * @param {any} [args=null]
- * @returns {Promise<{ answer: string; args: { function_arguments_string?: any; function_arguments?: any; total_tokens?: number } | null; }>}
+ * @returns {Promise<{ answer: string; json: { function_arguments_string?: any; function_arguments?: any; total_tokens?: number; answer: string } | null; }>}
  */
-export async function queryLlm(ctx, prompt, instruction, model_id= DEFAULT_LLM_MODEL_ID, temperature = 0, args=null)
+export async function queryLlmByModelId(ctx, prompt, instruction, model_id, temperature = 0, args=null)
 {
-    await processExtraProviders();
-
     const splits = getModelNameAndProviderFromId(model_id);
-    const model_name = splits.model_name;
+    //const model_name = splits.model_name;
     const model_provider = splits.model_provider;
 
-    for (const provider of providers) 
-    {
-        if (model_provider == provider.getProvider())
-        {
-            const response = await provider.query(ctx, prompt, instruction, model_name, temperature, args);
-            return response;
-        }
-    }
+    const blockName = `omni-extension-document_processing:${model_provider}.llm_query`;
+    const blockArgs = { prompt, instruction, model_id, temperature, args };
+    const response = await runBlock(ctx, blockName, blockArgs);
+    debugger;
 
-    throw new Error(`Unknown model provider: ${model_provider} with model: ${model_name}`);
+    omnilog.warn(`queryLlmByModelId: response = ${JSON.stringify(response)}`);
+    const answer = response?.answer_text || "";
+    const json = response?.answer_json || null;
+    if (answer == "") throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
+    const return_value = {answer: answer, json: json};
+    return return_value;
+
 }
 
 export function getModelMaxSize(model_name, use_a_margin = true)

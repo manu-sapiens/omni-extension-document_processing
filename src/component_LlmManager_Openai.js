@@ -14,11 +14,15 @@ export async function async_getLlmManagerOpenaiComponent()
 
     const inputs = [
         { name: 'model_id', type: 'string', customSocket: 'text', defaultValue: DEFAULT_LLM_MODEL_ID, choices: choices},
+        { name: 'functions', title: 'functions', type: 'array', customSocket: 'objectArray', description: 'Optional functions to constrain the LLM output' },
+        { name: 'args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'},
     ];
     const outputs = [
         { name: 'model_id', title: 'string', customSocket: 'text', description: "The ID of the selected LLM model"}
     ]
-    const controls = null;
+    const controls = [
+        { name: "functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" },
+    ];
     const links = {}
 
     let component = createComponent(NS_ONMI, 'llm_manager_openai','LLM Manager: OpenAI', 'Text Manipulation','Manage LLMs from a provider: openai', 'Manage LLMs from a provider: openai', links, inputs, outputs, controls, parsePayload );

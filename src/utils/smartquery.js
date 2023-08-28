@@ -2,7 +2,7 @@
 // smartquery.js
 
 import { query_vectorstore } from './vectorstore.js';
-import { queryLlm, getModelMaxSize } from './llms.js';
+import { queryLlmByModelId, getModelMaxSize } from './llms.js';
 import { console_log, is_valid } from './utils.js';
 import { countTokens } from './tiktoken.js';
 import { getModelNameAndProviderFromId } from './llm.js'
@@ -46,7 +46,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const instruction = `Here are some quotes. ${combined_text}`;
     const prompt = `Based on the quotes, answer this question: ${query}`;
     
-    const query_answer_json = await queryLlm(ctx, prompt, instruction, model_id);
+    const query_answer_json = await queryLlmByModelId(ctx, prompt, instruction, model_id);
     const query_answer = query_answer_json?.answer || null;
     if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 

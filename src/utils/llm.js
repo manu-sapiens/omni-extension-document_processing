@@ -16,6 +16,8 @@ export function generateModelId(model_name, model_provider)
 
 export function getModelNameAndProviderFromId(model_id)
 {
+    if (!model_id) throw new Error(`getModelNameAndProviderFromId: model_id is not valid: ${model_id}`);
+    debugger;
     const splits = model_id.split('|');
     if (splits.length != 2) throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
     return { model_name: splits[0], model_provider: splits[1] };
@@ -205,26 +207,31 @@ class Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} args
-     * @returns {Promise<{ answer: string; args: any; }>}
+     * @returns {Promise<{ answer: string; json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
-        return { answer: "You have to implement this method", args:args }
+        throw new Error('You have to implement this method');
     }
 
+     /**
+     * @param {any} ctx
+     * @param {any} args
+     * @returns {Promise<{ answer: string; json: any; }>}
+     */
     async runLlmBlock(ctx, args) 
     {
-        return { answer: "You have to implement this method", args:null }
+        throw new Error('You have to implement this method');
     }
 
     getProvider()
     {
-        return 'You have to implement this method';
+        throw new Error('You have to implement this method');
     }
 
     getModelType()
     {
-        return 'You have to implement this method';
+        throw new Error('You have to implement this method');
     }
 
     async getModelChoices(choices, llm_model_types, llm_context_sizes)
