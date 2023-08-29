@@ -30,34 +30,36 @@ export class Llm_LmStudio extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; json: any; }>}
+     * @returns {Promise<{ answer_text: string; answer_json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
         let return_value = {
-            answer: "",
-            json: null
+            answer_text: "",
+            answer_json: {answer_text : ""}
         };
 
-        let block_args = {};
+        let block_args = {...args};
         block_args.user = ctx.userId;
-        block_args.prompt = prompt;
-        block_args.instruction = instruction;
+        if (prompt && prompt!="") block_args.prompt = prompt;
+        if (instruction && instruction!="") block_args.instruction = instruction;
         block_args.temperature = temperature;
-    
+
+        if ("seed" in block_args == false) block_args.seed = -1; // TBD: Check the API
+
         const response = await this.runLlmBlock(ctx, block_args);
         if (response.error) throw new Error(response.error);
     
         const choices = response?.choices || [];
         if (choices.length == 0) throw new Error("No results returned from lm_studio");
     
-        const text = choices[0].content;
+        const answer_text = choices[0].content;
     
-        if (!text) throw new Error (`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+        if (!answer_text) throw new Error (`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
         
         return_value = {
-            answer: text,
-            json: {answer: text},
+            answer_text: answer_text,
+            answer_json: {answer_text: answer_text},
         };
     
         return return_value;        

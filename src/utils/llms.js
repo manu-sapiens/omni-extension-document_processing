@@ -50,7 +50,7 @@ export async function getLlmChoices()
  * @param {any} model_id
  * @param {number} [temperature=0]
  * @param {any} [args=null]
- * @returns {Promise<{ answer: string; json: { function_arguments_string?: any; function_arguments?: any; total_tokens?: number; answer: string } | null; }>}
+ * @returns {Promise<{ answer_text: string; answer_json: { function_arguments_string?: any; function_arguments?: any; total_tokens?: number; answer: string } | null; }>}
  */
 export async function queryLlmByModelId(ctx, prompt, instruction, model_id, temperature = 0, args=null)
 {
@@ -58,17 +58,11 @@ export async function queryLlmByModelId(ctx, prompt, instruction, model_id, temp
     //const model_name = splits.model_name;
     const model_provider = splits.model_provider;
 
-    const blockName = `omni-extension-document_processing:${model_provider}.llm_query`;
-    const blockArgs = { prompt, instruction, model_id, temperature, args };
-    const response = await runBlock(ctx, blockName, blockArgs);
-    debugger;
-
-    omnilog.warn(`queryLlmByModelId: response = ${JSON.stringify(response)}`);
-    const answer = response?.answer_text || "";
-    const json = response?.answer_json || null;
-    if (answer == "") throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
-    const return_value = {answer: answer, json: json};
-    return return_value;
+    const block_name = `omni-extension-document_processing:${model_provider}.llm_query`;
+    const block_args = { prompt, instruction, model_id, temperature, args };
+    const response = await runBlock(ctx, block_name, block_args);
+    return response;
+    
 
 }
 

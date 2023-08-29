@@ -51,7 +51,9 @@ async function async_getLoopGptComponent()
 
     // Adding outpu(t)
     const outputs = [
-        { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+        { name: 'answer_text', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+        { name: 'answer_json', type: 'object', customSocket: 'object', description: 'The answer in json format, with possibly extra arguments returned by the LLM', title: 'Json' },
+
     ];
     component = setComponentOutputs(component, outputs);
 
@@ -64,18 +66,15 @@ async function async_getLoopGptComponent()
 
 async function parsePayload(payload, ctx) {
 
-  const llm_functions = payload.llm_functions;
-  const documents = payload.documents;
-  const instruction = payload.instruction;
-  const temperature = payload.temperature;
-  const top_p = payload.top_p;
-  const model_id = payload.model_id;
+    const llm_functions = payload.llm_functions;
+    const documents = payload.documents;
+    const instruction = payload.instruction;
+    const temperature = payload.temperature;
+    const top_p = payload.top_p;
+    const model_id = payload.model_id;
 
-  const response = await loopGpt(ctx, documents, instruction, llm_functions, model_id, temperature, top_p);
-  const answer = response.answer;
-  
-  return { result: { "ok": true }, answer: answer };
-
+    const response = await loopGpt(ctx, documents, instruction, llm_functions, model_id, temperature, top_p);
+    return response;
 }
 
 async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id, temperature = 0, top_p = 1, chunk_size = 2000)
@@ -134,7 +133,7 @@ async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id,
                     const query_args = {function: llm_functions, top_p : top_p}
                     const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, query_args);
                     const sanetized_results = sanitizeJSON(gpt_results);
-                    const chunk_result = {text: sanetized_results?.answer || "", function_arguments_string: sanetized_results?.args?.function_arguments_string, function_arguments: sanetized_results?.args?.function_arguments}
+                    const chunk_result = {text: sanetized_results?.answer_text || "", function_arguments_string: sanetized_results?.answer_json?.function_arguments_string, function_arguments: sanetized_results?.answer_json?.function_arguments}
 
                     omnilog.log('sanetized_results = ' + JSON.stringify(sanetized_results, null, 2) + '\n\n');
                     chunks_results.push(chunk_result);
@@ -170,7 +169,8 @@ async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id,
         combined_function_arguments = combined_function_arguments.concat(function_arguments);
     }
 
-    const response = { answer: combined_answer, function_arguments: combined_function_arguments };
+    const answer_json = {answer_text: combined_answer, function_arguments: combined_function_arguments}
+    const response = { result: { "ok": true }, answer_text: combined_answer, answer_json: answer_json };
     console.timeEnd("loop_llm_component_processTime");
     return response;
 }

@@ -53,7 +53,7 @@ async function async_getDocsWithGptComponent()
 
     // Adding outpu(t)
     const outputs = [
-        { name: 'answer', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
+        { name: 'answer_text', type: 'string', customSocket: 'text', description: 'The answer to the query or prompt', title: 'Answer' },
     ];
     component = setComponentOutputs(component, outputs);
 
@@ -66,7 +66,8 @@ async function async_getDocsWithGptComponent()
 
 async function parsePayload(payload, ctx) {
     omnilog.log(`[DocsWithGPTComponent]: payload = ${JSON.stringify(payload)}`);
-    if (!payload) return { result: { "ok": false }, answer: ""};
+    const failure = { result: { "ok": false }, answer_text: ""};
+    if (!payload) return failure;
 
     const documents = payload.documents;
     const url = payload.url;
@@ -76,9 +77,10 @@ async function parsePayload(payload, ctx) {
     const model_id = payload.model_id;
     const overwrite = payload.overwrite;
 
-    const answer = await docsWithGpt(ctx, documents, url, usage, prompt, temperature, model_id, overwrite)
-    if (!answer || answer == "")  return { result : { "ok": false}, answer: ""}  
-    return { result: { "ok": true }, answer: answer};
+    const answer_text = await docsWithGpt(ctx, documents, url, usage, prompt, temperature, model_id, overwrite)
+    if (!answer_text || answer_text == "")  return failure;
+
+    return { result: { "ok": true }, answer_text: answer_text};
 }
 
 async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, temperature, model_id, overwrite) {
@@ -121,19 +123,19 @@ async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, tempe
     }
 
     const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
-    let answer = "";
+    let answer_text = "";
     let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
 
     if (usage == "query_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
-        answer = await queryChunks(ctx, chunked_documents_cdns, prompt, model_id);
+        answer_text = await queryChunks(ctx, chunked_documents_cdns, prompt, model_id);
     }
     else if (usage == "run_prompt_on_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");
 
         const instruction = default_instruction + "\n" + prompt;
         const response = await loopGpt(ctx, chunked_documents_cdns, instruction, null, model_id, temperature);
-        answer = response.answer;
+        answer_text = response.answer_text;
     }
     else if (usage == "run_functions_on_documents") {
         const instruction = "You are a helpful bot answering the user with their question to the best of your ability using the provided functions.";
@@ -155,13 +157,13 @@ async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, tempe
 
         const response = await loopGpt(ctx, chunked_documents_cdns, instruction, llm_functions, model_id, temperature);
 
-        answer = response.answer;
+        answer_text = response.answer_text;
     }
     else {
         throw new Error(`Unknown usage: ${usage}`);
     }
 
-    return answer;
+    return answer_text;
 }
 
 export { async_getDocsWithGptComponent, docsWithGpt };

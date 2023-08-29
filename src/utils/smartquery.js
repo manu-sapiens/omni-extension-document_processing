@@ -21,7 +21,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
     let total_tokens = 0;
 
-    let max_size = getModelMaxSize(model_id);
+    let max_size = getModelMaxSize(model_name);
 
 
     let combined_text = "";
@@ -46,11 +46,11 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const instruction = `Here are some quotes. ${combined_text}`;
     const prompt = `Based on the quotes, answer this question: ${query}`;
     
-    const query_answer_json = await queryLlmByModelId(ctx, prompt, instruction, model_id);
-    const query_answer = query_answer_json?.answer || null;
-    if (is_valid(query_answer) == false) throw new Error(`ERROR: query_answer is invalid`);
+    const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
+    const answer_text = response?.answer_text || null;
+    if (is_valid(answer_text) == false) throw new Error(`ERROR: query_answer is invalid`);
 
-    return query_answer;
+    return answer_text;
 }
 
 export {smartquery_from_vectorstore}

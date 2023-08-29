@@ -6,13 +6,16 @@ import { async_getGptIxPComponent } from "./component_GptIxP.js";
 import { async_getLoopGptComponent } from "./component_LoopGPT.js";
 import { async_getQueryChunksComponent } from "./component_QueryChunks.js";
 import { async_getDocsWithGptComponent } from "./component_DocsWithGPT.js";
-import { async_getLlmQueryComponent } from "./component_LlmQuery.js";
+import { LlmQueryComponent } from "./component_LlmQuery.js";
 import { async_getLlmManagerOpenaiComponent } from "./component_LlmManager_Openai.js";
 import { async_getLlmManagerOobaboogaComponent } from "./component_LlmManager_Oobabooga.js"; 
+import { LlmManagerLmStudioComponent } from "./component_LlmManager_LmStudio.js";
 import { LlmQueryComponent_Oobabooga } from "./component_LlmQuery_Oobabooga.js";
+import { LlmQueryComponent_LmStudio } from "./component_LlmQuery_LmStudio.js";
+import { LlmQueryComponent_Openai } from "./component_LlmQuery_Openai.js";
 
-// TBD: Move async_getLlmManagerOobaboogaComponent into its own extension
-// TBD: Creaate async_getLlmManagerLmStudioComponent
+// TBD: Move async_getLlmManagerOobaboogaComponen and LlmManagerLmStudioComponent into their own extension
+
 
 async function CreateComponents() 
 {
@@ -20,10 +23,9 @@ async function CreateComponents()
   const LoopGPTComponent = await async_getLoopGptComponent();
   const DocsWithGPTComponent = await async_getDocsWithGptComponent();
   const QueryChunksComponent = await async_getQueryChunksComponent();
-  const LlmQueryComponent = await async_getLlmQueryComponent();
   const LlmManagerOpenaiComponent = await async_getLlmManagerOpenaiComponent();
   const LlmManagerOobaboogaComponent = await async_getLlmManagerOobaboogaComponent();
-  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmManagerOpenaiComponent, LlmManagerOobaboogaComponent, LlmQueryComponent, LlmQueryComponent_Oobabooga];
+  const components = [GptIXPComponent, ChunkFilesComponent, LoopGPTComponent, QueryChunksComponent, ReadTextFilesComponent, DocsWithGPTComponent, LlmManagerOpenaiComponent, LlmManagerOobaboogaComponent, LlmManagerLmStudioComponent, LlmQueryComponent, LlmQueryComponent_Openai, LlmQueryComponent_Oobabooga, LlmQueryComponent_LmStudio];
 
   return {
     blocks: components,

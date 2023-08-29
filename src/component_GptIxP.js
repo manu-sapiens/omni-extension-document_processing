@@ -100,9 +100,9 @@ async function gptIxP(ctx, instruction, prompt, llm_functions = null, model_id =
             if (!answer_object) continue;
             if (is_valid(answer_object) == false) continue;
 
-            const answer_text = answer_object.answer;
-            const answer_fa = answer_object.json?.function_arguments;
-            const answer_fa_string = answer_object.json?.function_arguments_string;
+            const answer_text = answer_object.answer_text;
+            const answer_fa = answer_object.answer_json?.function_arguments;
+            const answer_fa_string = answer_object.answer_json?.function_arguments_string;
 
             if (is_valid(answer_text)) {
                 answers_json[id] = answer_text;

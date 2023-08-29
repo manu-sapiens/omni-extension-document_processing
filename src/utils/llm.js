@@ -207,7 +207,7 @@ class Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} args
-     * @returns {Promise<{ answer: string; json: any; }>}
+     * @returns {Promise<{ answer_text: string; answer_json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
@@ -217,7 +217,7 @@ class Llm
      /**
      * @param {any} ctx
      * @param {any} args
-     * @returns {Promise<{ answer: string; json: any; }>}
+     * @returns {Promise<{ answer_text: string; answer_json: any; }>}
      */
     async runLlmBlock(ctx, args) 
     {

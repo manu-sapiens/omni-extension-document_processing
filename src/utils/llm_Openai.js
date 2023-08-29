@@ -43,43 +43,39 @@ class Llm_Openai extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; json: any; }>}
+     * @returns {Promise<{ answer_text: string; answer_json: any; }>}
      */
     async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
     {
-        const functions = args?.functions || null;
-        const top_p = args?.top_p || 1;
-
-        let block_args = {};
+   
+   
+        let block_args = {...args};
         block_args.user = ctx.userId;
-        block_args.prompt = prompt;
-        block_args.instruction = instruction;
-        block_args.temperature = temperature || 0;
-        block_args.top_p = top_p || 1;
+        if (prompt != "") block_args.prompt = prompt;
+        if (instruction != "") block_args.instruction = instruction;
+        block_args.temperature = temperature;
         block_args.model = model_name;
-
-        if (is_valid(functions)) block_args.functions = functions;
-      
+     
         const response = await this.runLlmBlock(ctx, block_args);
         if (response.error) throw new Error(response.error);
     
         const total_tokens = response?.usage?.total_tokens || 0;
-        let text = response?.answer_text || "";
+        let answer_text = response?.answer_text || "";
         const function_arguments_string = response?.function_arguments_string || "";
         let function_arguments = null;
     
         if (is_valid(function_arguments_string) == true) function_arguments = await fixJsonString(ctx, function_arguments_string);
-        if (is_valid(text) == true) text = clean_string(text);
+        if (is_valid(answer_text) == true) answer_text = clean_string(answer_text);
 
-        let json = {};
-        json["function_arguments_string"] = function_arguments_string;
-        json["function_arguments"] = function_arguments;
-        json["total_tokens"] = total_tokens
-        json["answer"] = text;
+        let answer_json = {};
+        answer_json["function_arguments_string"] = function_arguments_string;
+        answer_json["function_arguments"] = function_arguments;
+        answer_json["total_tokens"] = total_tokens
+        answer_json["answer_text"] = answer_text;
 
         const return_value = {
-            answer: text,
-            json: json
+            answer_text: answer_text,
+            answer_json: answer_json
         };
     
         return return_value;

@@ -1,11 +1,11 @@
 //@ts-check
 import { createLlmQueryComponent, extractPayload } from './component_LlmQuery.js';
-import { Llm_Oobabooga } from './utils/llm_Oobabooga.js'
-const MODEL_PROVIDER = 'oobabooga';
+import { Llm_Openai } from './utils/llm_Openai.js'
+const MODEL_PROVIDER = 'openai';
 
-const llm = new Llm_Oobabooga();
+const llm = new Llm_Openai();
 const links = {}; // TBD: provide proper links
-const LlmQueryComponent_Oobabooga =  createLlmQueryComponent(MODEL_PROVIDER, links, runProviderPayload );
+const LlmQueryComponent_Openai =  createLlmQueryComponent(MODEL_PROVIDER, links, runProviderPayload );
 
 async function runProviderPayload(payload, ctx) 
 {
@@ -14,4 +14,4 @@ async function runProviderPayload(payload, ctx)
     return response;
 }
 
-export { LlmQueryComponent_Oobabooga };
+export { LlmQueryComponent_Openai  };

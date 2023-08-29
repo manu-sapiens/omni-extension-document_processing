@@ -1,6 +1,6 @@
 //@ts-check
 //llmOobabooga.js
-
+import { omnilog } from 'mercs_shared'
 import { runBlock } from './blocks.js';
 import { Llm, generateModelId, deduceLlmTitle, deduceLlmDescription, addLocalLlmChoices, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
 import { Tokenizer_Openai } from './tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
@@ -47,23 +47,35 @@ export class Llm_Oobabooga extends Llm
      * @param {string} model_name
      * @param {number} [temperature=0]
      * @param {any} [args=null]
-     * @returns {Promise<{ answer: string; json: any; }>}
+     * @returns {Promise<{ answer_text: string; answer_json: any; }>}
      */
-    async query(ctx, prompt, instruction, model_name, temperature=0, args=null)
+    async query(ctx, prompt, instruction, model_name, temperature=0.7, args=null)
     {
         // for now, for this to work we need:
         // 1. at least one model manually copied into oobabbooga's models directory 
         // 2. in oobabooga session tab, options --api and --listen checked (or used as cmdline parameters when launching oobabooga)
       
         const model_info = await this.loadModelIfNeeded(ctx, model_name);
- 
-        let block_args = {...args};
-        block_args.user = ctx.userId;
-        block_args.prompt = `${instruction}\n\n${prompt}`;
-        block_args.temperature = temperature;
-        block_args.model = model_name;
-    
-        const response = await this.runLlmBlock(ctx, block_args);
+        
+        omnilog.log(`model_info = ${JSON.stringify(model_info)}`);
+
+        // debug
+        omnilog.warn(`model_info = ${JSON.stringify(model_info)}`);
+
+        const max_new_tokens = args?.max_new_tokens_max || 2000;
+        const negative_prompt = args?.negative_prompt || "";
+        const seed = args?.seed || -1;
+        
+
+        args.user = ctx.userId;
+        if ("max_new_tokens" in args == false) args.max_new_tokens = max_new_tokens;
+        if ("negative_prompt" in args == false) args.negative_prompt = negative_prompt;
+        if ("seed" in args == false) args.seed = seed;
+
+        if ("prompt" in args == false) args.prompt = `${instruction}\n\n${prompt}`; // It is possible to overwrite the prompt by passing it as a parameter in args
+        if ("temperature" in args == false) args.temperature = temperature;
+
+        const response = await this.runLlmBlock(ctx, args);
         return response;        
     }
 
@@ -71,21 +83,26 @@ export class Llm_Oobabooga extends Llm
     {
         // TBD ensure all the runLLM blocks have the same exact response format
         // or clean it up here for ooabooga
+
+
+
+        omnilog.warn(`block = ${BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT}, args = ${JSON.stringify(args)}`);
+
         const response = await runBlock(ctx, BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT, args);
         if (response.error) throw new Error(response.error);
     
         const results = response?.results || [];
         if (results.length == 0) throw new Error("No results returned from oobabooga");
     
-        const text = results[0].text || null;
-        if (!text) throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
+        const answer_text = results[0].text || null;
+        if (!answer_text) throw new Error("Empty text result returned from oobabooga. Did you load a model in oobabooga?");
     
-        const json = {};
-        json["answer"] = text;
+        const answer_json = {};
+        answer_json["answer_text"] = answer_text;
 
         const return_value = {
-            answer: text,
-            json: json,
+            answer_text: answer_text,
+            answer_json: answer_json,
         };
     
         return return_value;

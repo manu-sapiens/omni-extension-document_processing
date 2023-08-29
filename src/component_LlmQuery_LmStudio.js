@@ -1,11 +1,12 @@
 //@ts-check
 import { createLlmQueryComponent, extractPayload } from './component_LlmQuery.js';
-import { Llm_Oobabooga } from './utils/llm_Oobabooga.js'
-const MODEL_PROVIDER = 'oobabooga';
+import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './utils/llm.js';
+import { Llm_LmStudio } from './utils/llm_LmStudio.js'
+const MODEL_PROVIDER = 'lm-studio';
 
-const llm = new Llm_Oobabooga();
+const llm = new Llm_LmStudio();
 const links = {}; // TBD: provide proper links
-const LlmQueryComponent_Oobabooga =  createLlmQueryComponent(MODEL_PROVIDER, links, runProviderPayload );
+const LlmQueryComponent_LmStudio =  createLlmQueryComponent(MODEL_PROVIDER, links, runProviderPayload );
 
 async function runProviderPayload(payload, ctx) 
 {
@@ -14,4 +15,4 @@ async function runProviderPayload(payload, ctx)
     return response;
 }
 
-export { LlmQueryComponent_Oobabooga };
+export { LlmQueryComponent_LmStudio, extractPayload };
