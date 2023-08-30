@@ -1,6 +1,6 @@
 //@ts-check
 //llmLmStudio.js
-
+import { omnilog } from 'mercs_shared';
 import { runBlock } from './blocks.js';
 import { console_log } from './utils.js';
 import { Llm, generateModelId, getModelsDirJson, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
@@ -50,12 +50,17 @@ export class Llm_LmStudio extends Llm
         const response = await this.runLlmBlock(ctx, block_args);
         if (response.error) throw new Error(response.error);
     
-        const choices = response?.choices || [];
-        if (choices.length == 0) throw new Error("No results returned from lm_studio");
+        omnilog.warn(`response = ${JSON.stringify(response)}`);
+
+        const choices = response?.choices;
+        if (!choices) throw new Error("No choices returned from lm_studio");
+        if (choices.length == 0) throw new Error("Empty choices returned from lm_studio");
     
-        const answer_text = choices[0].content;
-    
-        if (!answer_text) throw new Error (`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+        const message = choices[0].message;
+        if (!message) throw new Error (`No message returned from lm_studio. response = ${JSON.stringify(response)}`);
+
+        const answer_text = message?.content;
+        if (!answer_text) throw new Error (`No content returned from lm_studio. response = ${JSON.stringify(response)}`);
         
         return_value = {
             answer_text: answer_text,

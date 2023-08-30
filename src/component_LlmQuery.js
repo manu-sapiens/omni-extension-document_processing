@@ -13,7 +13,6 @@ function get_llm_query_inputs(default_llm = "")
         { name: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
         { name: 'prompt', type: 'string', customSocket: 'text', description: 'Prompt(s)' },
         { name: 'temperature', type: 'number', defaultValue: 0.7, minimum: 0, maximum:2, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text."},
-        { name: 'args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'},
     ];   
 
     if (default_llm != "")
@@ -24,6 +23,9 @@ function get_llm_query_inputs(default_llm = "")
     {
         input.push({ name: 'model_id', type: 'string', customSocket: 'text', description: 'The provider of the LLM model to use'});
     }
+
+    input.push({ name: 'args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'});
+    
     return input;
 }
 

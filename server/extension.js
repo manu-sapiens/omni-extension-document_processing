@@ -17098,14 +17098,14 @@ function get_llm_query_inputs(default_llm = "") {
   const input = [
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
-    { name: "temperature", type: "number", defaultValue: 0.7, minimum: 0, maximum: 2, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text." },
-    { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
+    { name: "temperature", type: "number", defaultValue: 0.7, minimum: 0, maximum: 2, description: "The randomness regulator, higher for more creativity, lower for more structured, predictable text." }
   ];
   if (default_llm != "") {
     input.push({ name: "model_id", type: "string", customSocket: "text", defaultValue: default_llm, description: "The provider of the LLM model to use" });
   } else {
     input.push({ name: "model_id", type: "string", customSocket: "text", description: "The provider of the LLM model to use" });
   }
+  input.push({ name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" });
   return input;
 }
 var LLM_QUERY_OUTPUT = [
@@ -17397,8 +17397,8 @@ async function parsePayload6(payload, ctx) {
 // component_LlmManager_LmStudio.js
 var NS_ONMI10 = "document_processing";
 var inputs3 = [
-  { name: "read_me", type: "string", customSocket: "text", defaultValue: "Please ensure that in LM Studio, in the <-> menu, you have pressed the [Start Server] button" },
-  { name: "max_token", type: "number", defaultValue: -1, description: "The number of tokens to return. -1 == no limit" },
+  { name: "read_me", type: "string", customSocket: "text", defaultValue: "1) Run LM Studio\n2) <-> : [Start Server]" },
+  { name: `max_token`, type: "number", defaultValue: -1, minimum: -1, maximum: 32768, step: 1, description: "The maximum number of tokens to generate. -1: not specified" },
   { name: "args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
 ];
 var outputs3 = [
@@ -17409,12 +17409,11 @@ var controls = null;
 var links2 = {};
 var LlmManagerLmStudioComponent = createComponent(NS_ONMI10, "llm_manager_lm-studio", "LLM Manager: LM Studio", "Text Manipulation", "Manage LLMs from a provider: LM Studio", "Manage LLMs from a provider: LM Studio", links2, inputs3, outputs3, controls, parsePayload7);
 async function parsePayload7(payload, ctx) {
-  const args = payload.args;
-  const block_args = { ...args };
-  if (payload.max_token)
-    block_args["max_token"] = payload.max_token;
-  block_args["stream"] = false;
-  return { result: { "ok": true }, model_id: "currently_loaded_model_in_lm-studio|lm-studio", args: block_args };
+  const args = payload.args || {};
+  const max_token = payload.max_token || -1;
+  args.stream = false;
+  args.max_token = max_token;
+  return { result: { "ok": true }, model_id: "currently_loaded_model_in_lm-studio|lm-studio", args };
 }
 
 // component_LlmQuery_Oobabooga.js
@@ -17466,12 +17465,18 @@ var Llm_LmStudio = class extends Llm {
     const response = await this.runLlmBlock(ctx, block_args);
     if (response.error)
       throw new Error(response.error);
-    const choices = response?.choices || [];
+    omnilog.warn(`response = ${JSON.stringify(response)}`);
+    const choices = response?.choices;
+    if (!choices)
+      throw new Error("No choices returned from lm_studio");
     if (choices.length == 0)
-      throw new Error("No results returned from lm_studio");
-    const answer_text = choices[0].content;
+      throw new Error("Empty choices returned from lm_studio");
+    const message = choices[0].message;
+    if (!message)
+      throw new Error(`No message returned from lm_studio. response = ${JSON.stringify(response)}`);
+    const answer_text = message?.content;
     if (!answer_text)
-      throw new Error(`Empty result returned from lm_studio. response = ${JSON.stringify(response)}`);
+      throw new Error(`No content returned from lm_studio. response = ${JSON.stringify(response)}`);
     return_value = {
       answer_text,
       answer_json: { answer_text }

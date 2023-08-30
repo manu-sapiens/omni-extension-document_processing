@@ -3,8 +3,8 @@ import { createComponent } from './utils/component.js';
 const NS_ONMI = 'document_processing';
 
 const inputs = [
-    { name: 'read_me', type: 'string', customSocket: 'text', defaultValue: "Please ensure that in LM Studio, in the <-> menu, you have pressed the [Start Server] button"},
-    { name: 'max_token', type: 'number', defaultValue: -1, description: "The number of tokens to return. -1 == no limit"},
+    { name: 'read_me', type: 'string', customSocket: 'text', defaultValue: "1) Run LM Studio\n2) <-> : [Start Server]"},
+    { name: `max_token`, type: 'number', defaultValue: -1, minimum: -1, maximum: 32768, step:1, description: "The maximum number of tokens to generate. -1: not specified"},
     { name: 'args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'},
 
 ];
@@ -19,12 +19,13 @@ const LlmManagerLmStudioComponent = createComponent(NS_ONMI, 'llm_manager_lm-stu
 
 async function parsePayload(payload, ctx) 
 {
-    const args = payload.args;
-    const block_args = {...args}
-    if (payload.max_token) block_args['max_token'] = payload.max_token;
-    block_args['stream'] = false;
+    const args = payload.args || {};
+    const max_token = payload.max_token || -1;
+    
+    args.stream = false; // Streaming not supported yet
+    args.max_token = max_token;
 
-    return  { result: { "ok": true }, model_id: 'currently_loaded_model_in_lm-studio|lm-studio', args: block_args};
+    return  { result: { "ok": true }, model_id: 'currently_loaded_model_in_lm-studio|lm-studio', args: args};
 }
 
 export { LlmManagerLmStudioComponent }
