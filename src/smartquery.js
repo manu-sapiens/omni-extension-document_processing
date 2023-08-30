@@ -1,11 +1,11 @@
 //@ts-check
 // smartquery.js
 
-import { query_vectorstore } from './vectorstore.js';
-import { queryLlmByModelId, getModelMaxSize } from '../omni-llms/llms.js';
-import { console_log, is_valid } from '../omni-utils/utils.js';
-import { countTokens } from './tiktoken.js';
-import { getModelNameAndProviderFromId } from '../omni-llms/llm.js'
+import { query_vectorstore } from 'omnilib-docs/vectorstore.js';
+import { queryLlmByModelId, getModelMaxSize } from 'omnilib-llms/llms.js';
+import { console_log, is_valid } from 'omnilib-utils/utils.js';
+import { countTokens } from 'omnilib-docs/tiktoken.js';
+import { getModelNameAndProviderFromId } from 'omnilib-llms/llm.js'
 
 async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id)
 {

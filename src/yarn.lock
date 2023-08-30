@@ -1298,12 +1298,41 @@ __metadata:
   dependencies:
     esbuild: ^0.19.2
     esnext: ^3.3.1
+    omnilib-docs: "https://github.com/manu-sapiens/omnilib-docs.git#main"
+    omnilib-llms: "https://github.com/manu-sapiens/omnilib-llms.git#main"
+    omnilib-utils: "https://github.com/manu-sapiens/omnilib-utils.git#main"
+  languageName: unknown
+  linkType: soft
+
+"omnilib-docs@https://github.com/manu-sapiens/omnilib-docs.git#main":
+  version: 1.0.01
+  resolution: "omnilib-docs@https://github.com/manu-sapiens/omnilib-docs.git#commit=8af6ddc9b013d55876d3a5fcb9ca61e7d7aedd6e"
+  dependencies:
     gpt-tokenizer: ^2.1.1
     langchain: ^0.0.123
     node-loader: ^2.0.0
+    omnilib-utils: "https://github.com/manu-sapiens/omnilib-utils.git#main"
     tiktoken-node: ^0.0.6
-  languageName: unknown
-  linkType: soft
+  checksum: 07f8ab7951ff7cd7b78f0fdcd95c0d1dbf210ac175317bb21598e12020e4d183fbc26cf765d7fd961af3a03311bf567fa0ae2343c1e1ef2cd1f1bbf55200a499
+  languageName: node
+  linkType: hard
+
+"omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#main":
+  version: 1.0.0
+  resolution: "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#commit=8e6c3d19075ae4934066faf38315df04bb72744f"
+  dependencies:
+    gpt-tokenizer: ^2.1.1
+    omnilib-utils: "https://github.com/manu-sapiens/omnilib-utils.git#main"
+  checksum: a8b590fb20fd61bf3866708d68bd4eebfef7df8dbc2b791523fbd663b25af2c7d286da5b92a869a55528a9e183bb963b58a278b363af62f62698f0aaa8543014
+  languageName: node
+  linkType: hard
+
+"omnilib-utils@https://github.com/manu-sapiens/omnilib-utils.git#main":
+  version: 1.0.0
+  resolution: "omnilib-utils@https://github.com/manu-sapiens/omnilib-utils.git#commit=c3e9d003108073075745dc5bdbee6a2214ab87c2"
+  checksum: b733087847508f850a80760e845b0156f0bb0e2fd89feb4696e0903f4478a475b021ebff95b81eec24e0d907a658be7c285d89b87cb6c2c8c6f86221acefc464
+  languageName: node
+  linkType: hard
 
 "openai@npm:^3.3.0":
   version: 3.3.0

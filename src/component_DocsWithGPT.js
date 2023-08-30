@@ -2,14 +2,14 @@
 // DocsWithGPTComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './omni-utils/component.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
 const NS_ONMI = 'document_processing';
 
 import { read_text_files_function } from "./component_ReadTextFiles.js";
 import { chunk_files_function } from './component_ChunkFiles.js';
 import { queryChunks } from './component_QueryChunks.js';
 import { loopGpt } from './component_LoopGPT.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "./omni-llms/llms.js"
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "omnilib-llms/llms.js"
 
 
 async function async_getDocsWithGptComponent()
