@@ -1,8 +1,8 @@
 //@ts-check
 // component_LlmQuery.ts
-import { createComponent } from './utils/component.js';
-import { queryLlmByModelId, DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
-import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './utils/llm.js';
+import { createComponent } from './omni-utils/component.js';
+import { queryLlmByModelId, DEFAULT_LLM_MODEL_ID } from './omni-llms/llms.js';
+import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './omni-llms/llm.js';
 const NS_ONMI = 'document_processing';
 
 const links = {};
@@ -25,7 +25,7 @@ function get_llm_query_inputs(default_llm = "")
     }
 
     input.push({ name: 'args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'});
-    
+
     return input;
 }
 

@@ -2,8 +2,7 @@
 //llms.js
 import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './llm.js';
 import { Llm_Openai } from './llm_Openai.js'
-import { runBlock } from './blocks.js';
-import { omnilog } from 'mercs_shared'
+import { runBlock } from '../omni-utils/blocks.js';
 //import { Llm_LmStudio } from './llm_LmStudio.js'
 //import { Llm_Oobabooga } from './llm_Oobabooga.js'
 export const DEFAULT_LLM_MODEL_ID = 'gpt-3.5-turbo|openai'

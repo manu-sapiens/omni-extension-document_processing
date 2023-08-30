@@ -1,5 +1,5 @@
 //@ts-check
-import { createComponent } from './utils/component.js';
+import { createComponent } from './omni-utils/component.js';
 const NS_ONMI = 'document_processing';
 
 const inputs = [

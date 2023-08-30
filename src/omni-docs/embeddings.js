@@ -1,8 +1,7 @@
+//@ts-check
 import { Embedding_Cached } from './embedding_Cached.js';
 import { Embedding_Openai } from './embedding_Openai.js';
 //!!//import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
-
-import { console_log } from './utils.js';
 import { DEFAULT_VECTORSTORE_NAME } from './vectorstore.js';
 //import "@tensorflow/tfjs-backend-cpu";
 

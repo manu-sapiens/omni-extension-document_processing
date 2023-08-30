@@ -1,3 +1,4 @@
+//@ts-check
 import { encode } from 'gpt-tokenizer'
 
 // https://www.npmjs.com/package/gpt-tokenizer 

@@ -1,7 +1,7 @@
-// vectorstore.js
+//@ts-check
 //import { faiss_from_texts } from "./vectorstoreFaiss.js";
 import { memory_from_texts } from "./vectorstore_Memory.js";
-import { console_log,   is_valid } from "./utils.js";
+import { console_log,   is_valid } from "../omni-utils/utils.js";
 
 //const FAISS_VECTORSTORE = "FAISS";
 const MEMORY_VECTORSTORE = "MEMORY"

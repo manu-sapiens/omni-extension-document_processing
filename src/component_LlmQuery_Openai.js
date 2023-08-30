@@ -1,6 +1,6 @@
 //@ts-check
 import { createLlmQueryComponent, extractPayload } from './component_LlmQuery.js';
-import { Llm_Openai } from './utils/llm_Openai.js'
+import { Llm_Openai } from './omni-llms/llm_Openai.js'
 const MODEL_PROVIDER = 'openai';
 
 const llm = new Llm_Openai();

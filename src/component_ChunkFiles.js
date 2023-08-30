@@ -2,20 +2,20 @@
 // ChunkFilesComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './omni-utils/component.js';
 const NS_ONMI = 'document_processing';
 
-import { initialize_hasher, compute_document_id } from './utils/hashers.js';
-import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from './utils/cdn.js';
-import { initialize_splitter } from './utils/splitter.js';
-import { initialize_embedder } from './utils/embeddings.js';
-import { process_chapter } from './utils/chunking.js';
-import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from './utils/vectorstore.js';
-import { DEFAULT_HASHER_MODEL } from './utils/hashers.js';
-import { DEFAULT_EMBEDDER_MODEL } from './utils/embeddings.js';
-import { DEFAULT_SPLITTER_MODEL } from './utils/splitter.js';
-import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './utils/chunking.js';
-import { printObject } from './utils/utils.js';
+import { initialize_hasher, compute_document_id } from './omni-docs/hashers.js';
+import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from './omni-utils/cdn.js';
+import { initialize_splitter } from './omni-docs/splitter.js';
+import { initialize_embedder } from './omni-docs/embeddings.js';
+import { process_chapter } from './omni-docs/chunking.js';
+import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from './omni-docs/vectorstore.js';
+import { DEFAULT_HASHER_MODEL } from './omni-docs/hashers.js';
+import { DEFAULT_EMBEDDER_MODEL } from './omni-docs/embeddings.js';
+import { DEFAULT_SPLITTER_MODEL } from './omni-docs/splitter.js';
+import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './omni-docs/chunking.js';
+import { printObject } from './omni-utils/utils.js';
 
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")

@@ -2,16 +2,16 @@
 // QueryChunksComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './omni-utils/component.js';
 const NS_ONMI = 'document_processing';
 
-import { initialize_hasher } from './utils/hashers.js'
-import { save_json_to_cdn, get_json_from_cdn } from './utils/cdn.js';
-import { is_valid } from './utils/utils.js';
-import { compute_vectorstore } from './utils/vectorstore.js';
-import { initialize_embedder } from './utils/embeddings.js';
-import { smartquery_from_vectorstore } from './utils/smartquery.js';
-import { getLlmChoices , DEFAULT_LLM_MODEL_ID} from "./utils/llms.js"
+import { initialize_hasher } from './omni-docs/hashers.js'
+import { save_json_to_cdn, get_json_from_cdn } from './omni-utils/cdn.js';
+import { is_valid } from './omni-utils/utils.js';
+import { compute_vectorstore } from './omni-docs/vectorstore.js';
+import { initialize_embedder } from './omni-docs/embeddings.js';
+import { smartquery_from_vectorstore } from './omni-docs/smartquery.js';
+import { getLlmChoices , DEFAULT_LLM_MODEL_ID} from "./omni-llms/llms.js"
 
 async function async_getQueryChunksComponent()
 {

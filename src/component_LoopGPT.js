@@ -2,14 +2,14 @@
 // LoopGPTComponent.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
-import { setComponentInputs, setComponentOutputs, setComponentControls } from './utils/component.js';
+import { setComponentInputs, setComponentOutputs, setComponentControls } from './omni-utils/component.js';
 const NS_ONMI = 'document_processing';
 
-import { get_chunks_from_cdn } from './utils/cdn.js';
-import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './utils/utils.js';
-import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from './utils/llms.js';
-import { countTokens } from './utils/tiktoken.js';
-import { getModelNameAndProviderFromId } from './utils/llm.js'
+import { get_chunks_from_cdn } from './omni-utils/cdn.js';
+import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from './omni-utils/utils.js';
+import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from './omni-llms/llms.js';
+import { countTokens } from './omni-docs/tiktoken.js';
+import { getModelNameAndProviderFromId } from './omni-llms/llm.js'
 
 async function async_getLoopGptComponent()
 {

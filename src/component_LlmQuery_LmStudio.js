@@ -1,7 +1,6 @@
 //@ts-check
 import { createLlmQueryComponent, extractPayload } from './component_LlmQuery.js';
-import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './utils/llm.js';
-import { Llm_LmStudio } from './utils/llm_LmStudio.js'
+import { Llm_LmStudio } from './omni-llms/llm_LmStudio.js'
 const MODEL_PROVIDER = 'lm-studio';
 
 const llm = new Llm_LmStudio();

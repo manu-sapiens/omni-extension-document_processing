@@ -1,3 +1,4 @@
+//@ts-check
 // vectorstoreMemory.js
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 

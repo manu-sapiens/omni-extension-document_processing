@@ -1,11 +1,10 @@
 //@ts-check
 //llmLmStudio.js
 import { omnilog } from 'mercs_shared';
-import { runBlock } from './blocks.js';
-import { console_log } from './utils.js';
+import { runBlock } from '../omni-utils/blocks.js';
 import { Llm, generateModelId, getModelsDirJson, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
-import { validateDirectoryExists } from './files.js';
-import { Tokenizer_Openai } from './tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
+import { validateDirectoryExists } from '../omni-utils/files.js';
+import { Tokenizer_Openai } from '../omni-docs/tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
 const LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
 const LLM_MODEL_TYPE_LM_STUDIO = "lm-studio"
 const BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
@@ -48,10 +47,8 @@ export class Llm_LmStudio extends Llm
         if ("seed" in block_args == false) block_args.seed = -1; // TBD: Check the API
 
         const response = await this.runLlmBlock(ctx, block_args);
-        if (response.error) throw new Error(response.error);
-    
-        omnilog.warn(`response = ${JSON.stringify(response)}`);
-
+        if (!response) throw new Error("No response returned from lm_studio");
+        
         const choices = response?.choices;
         if (!choices) throw new Error("No choices returned from lm_studio");
         if (choices.length == 0) throw new Error("Empty choices returned from lm_studio");
@@ -75,6 +72,25 @@ export class Llm_LmStudio extends Llm
         // TBD ensure all the runLLM blocks have the same exact response format
         // or clean it up here for ooabooga
         const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
+
+        if (response?.error) 
+        {
+            const error = response.error;
+            const message = error.message;
+            if (message)
+            {
+                const message_json = JSON.parse(message);
+                const code = message_json?.error?.code;
+                if (code)
+                {
+                    if (code == "ECONNREFUSED") throw new Error(`Error code = ${code}\n[LM Studio] Server is NOT running.\nPlease start the server and try again.\nRun [LM Studio]\nClick [<->]\nLoad a Model\nPress [Start Server]`);
+                }
+                throw new Error(`ERROR! code: ${code}, response: ${JSON.stringify(response)}`);
+            }
+
+            throw new Error(`ERROR! response: ${JSON.stringify(response)}`);
+        }
+
         return response;        
     }
 

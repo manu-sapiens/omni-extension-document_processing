@@ -1,6 +1,6 @@
 //@ts-check
 import { createLlmQueryComponent, extractPayload } from './component_LlmQuery.js';
-import { Llm_Oobabooga } from './utils/llm_Oobabooga.js'
+import { Llm_Oobabooga } from './omni-llms/llm_Oobabooga.js'
 const MODEL_PROVIDER = 'oobabooga';
 
 const llm = new Llm_Oobabooga();

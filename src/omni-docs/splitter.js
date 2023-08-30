@@ -1,4 +1,4 @@
-// splitter.js
+//@ts-check
 
 // splitter.js
 

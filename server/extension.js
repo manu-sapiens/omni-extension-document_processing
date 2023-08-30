@@ -6527,7 +6527,7 @@ for (let i = 0; i < 256; ++i) {
 }
 var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
-// utils/component.js
+// omni-utils/component.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
 function generateTitle(name) {
   const title = name.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
@@ -6584,14 +6584,14 @@ function createComponent(group_id, id, title, category, description, summary, li
   return component;
 }
 
-// utils/hasher.js
+// omni-docs/hasher.js
 var Hasher = class {
   hash(text2) {
     throw new Error("You have to implement the method hash!");
   }
 };
 
-// utils/hasher_SHA256.js
+// omni-docs/hasher_SHA256.js
 import { createHash } from "crypto";
 var Hasher_SHA256 = class extends Hasher {
   constructor() {
@@ -6621,7 +6621,7 @@ var Hasher_SHA256 = class extends Hasher {
   }
 };
 
-// utils/utils.js
+// omni-utils/utils.js
 var VERBOSE = true;
 function printObject(obj, text2 = "") {
   if (text2 != "")
@@ -6772,7 +6772,7 @@ function parse_text_to_array(candidate_text) {
   return texts;
 }
 
-// utils/hashers.js
+// omni-docs/hashers.js
 var HASHER_MODEL_SHA256 = "SHA256";
 var DEFAULT_HASHER_MODEL = HASHER_MODEL_SHA256;
 function compute_chunk_id(ctx, text2, vectorstore_name, hasher) {
@@ -6809,7 +6809,7 @@ function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL) {
   return hasher;
 }
 
-// utils/database.js
+// omni-utils/database.js
 var OMNITOOL_DOCUMENT_TYPES_USERDOC = "udoc";
 function get_effective_key(ctx, key) {
   return `${ctx.userId}:${key}`;
@@ -6886,7 +6886,7 @@ async function user_db_get(ctx, key) {
   return json_value;
 }
 
-// utils/cdn.js
+// omni-utils/cdn.js
 async function get_json_from_cdn(ctx, cdn_response) {
   if ("ticket" in cdn_response == false)
     throw new Error(`get_json_from_cdn: cdn_response = ${JSON.stringify(cdn_response)} is invalid`);
@@ -11351,7 +11351,7 @@ var GptEncoding = class _GptEncoding {
 var api = GptEncoding.getEncodingApi("cl100k_base", () => convertTokenBytePairEncodingFromTuples(cl100k_base_default));
 var { decode, decodeAsyncGenerator, decodeGenerator, encode, encodeGenerator, isWithinTokenLimit, encodeChat, encodeChatGenerator } = api;
 
-// utils/tiktoken.js
+// omni-docs/tiktoken.js
 function countTokens(text2) {
   const tokens = encode(text2);
   if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
@@ -11362,7 +11362,7 @@ function countTokens(text2) {
   }
 }
 
-// utils/chunking.js
+// omni-docs/chunking.js
 var DEFAULT_CHUNK_SIZE = 512;
 var DEFAULT_CHUNK_OVERLAP = 64;
 async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, embedder, splitter) {
@@ -11417,7 +11417,7 @@ async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embe
   return { cdn: chapter_cdn, json: chapter_json };
 }
 
-// utils/splitter.js
+// omni-docs/splitter.js
 var SPLITTER_MODEL_RECURSIVE = "RecursiveCharacterTextSplitter";
 var SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
 var SPLITTER_MODEL_CODE = "CodeSplitter_";
@@ -11757,12 +11757,12 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
   }
 };
 
-// utils/vectorstore_Memory.js
+// omni-docs/vectorstore_Memory.js
 async function memory_from_texts(texts, text_ids, embedder) {
   return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
 }
 
-// utils/vectorstore.js
+// omni-docs/vectorstore.js
 var MEMORY_VECTORSTORE = "MEMORY";
 var DEFAULT_VECTORSTORE_NAME = "omnitool";
 var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
@@ -11813,7 +11813,7 @@ function clean_vectorstore_name(vectorstore_name) {
   return clean_name;
 }
 
-// utils/embedding_Cached.js
+// omni-docs/embedding_Cached.js
 var Embedding_Cached = class extends Embeddings {
   // A db-cached version of the embeddings
   // NOTE: This is a general purpose "cached embeddings" class
@@ -11880,7 +11880,7 @@ var Embedding_Cached = class extends Embeddings {
   }
 };
 
-// utils/blocks.js
+// omni-utils/blocks.js
 async function runBlock(ctx, block_name, args, outputs4 = {}) {
   try {
     const app = ctx.app;
@@ -11898,7 +11898,7 @@ async function runBlock(ctx, block_name, args, outputs4 = {}) {
   }
 }
 
-// utils/embedding_Openai.js
+// omni-docs/embedding_Openai.js
 var Embedding_Openai = class extends Embeddings {
   constructor(ctx, params = null) {
     super(params);
@@ -11962,7 +11962,7 @@ Error: ${error}`);
   }
 };
 
-// utils/embeddings.js
+// omni-docs/embeddings.js
 var EMBEDDER_MODEL_OPENAI = "openai";
 var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
 var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
@@ -12145,7 +12145,7 @@ var ReadTextFilesComponent = read_text_files_component.toJSON();
 // component_GptIxP.js
 import { OAIBaseComponent as OAIBaseComponent4, WorkerContext as WorkerContext4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
 
-// utils/llm.js
+// omni-llms/llm.js
 import path2 from "path";
 
 // ../../../../client/lib/index.js
@@ -16258,7 +16258,7 @@ for (let i = 0; i < 256; ++i) {
 }
 var randomUUID2 = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
 
-// utils/files.js
+// omni-utils/files.js
 import fs from "fs/promises";
 import path from "path";
 async function walkDirForExtension(filePaths, directory_path, extension) {
@@ -16297,7 +16297,7 @@ async function validateFileExists(path3) {
   }
 }
 
-// utils/llm.js
+// omni-llms/llm.js
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
 var MODELS_DIR_JSON_PATH = ["..", "..", "user_files", "local_llms_directories.json"];
 function generateModelId(model_name, model_provider) {
@@ -16458,7 +16458,7 @@ var Llm = class {
   }
 };
 
-// utils/tokenizer.js
+// omni-docs/tokenizer.js
 var Tokenizer = class {
   constructor(params = null) {
   }
@@ -16473,7 +16473,7 @@ var Tokenizer = class {
   }
 };
 
-// utils/tokenizer_Openai.js
+// omni-docs/tokenizer_Openai.js
 var Tokenizer_Openai = class extends Tokenizer {
   constructor() {
     super();
@@ -16495,7 +16495,7 @@ var Tokenizer_Openai = class extends Tokenizer {
   }
 };
 
-// utils/llm_Openai.js
+// omni-llms/llm_Openai.js
 var LLM_PROVIDER_OPENAI_SERVER = "openai";
 var LLM_MODEL_TYPE_OPENAI = "openai";
 var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
@@ -16625,7 +16625,7 @@ var Llm_Openai = class extends Llm {
   }
 };
 
-// utils/llms.js
+// omni-llms/llms.js
 var DEFAULT_LLM_MODEL_ID = "gpt-3.5-turbo|openai";
 var llm_model_types = {};
 var llm_context_sizes = {};
@@ -16864,7 +16864,7 @@ async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id,
 // component_QueryChunks.js
 import { OAIBaseComponent as OAIBaseComponent6, WorkerContext as WorkerContext6, OmniComponentMacroTypes as OmniComponentMacroTypes6 } from "mercs_rete";
 
-// utils/smartquery.js
+// omni-docs/smartquery.js
 async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id) {
   console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
   const splits = getModelNameAndProviderFromId(model_id);
@@ -17199,7 +17199,7 @@ async function parsePayload5(payload, ctx) {
   return return_value;
 }
 
-// utils/llm_Oobabooga.js
+// omni-llms/llm_Oobabooga.js
 var LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
 var LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
 var BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";
@@ -17427,7 +17427,7 @@ async function runProviderPayload(payload, ctx) {
   return response;
 }
 
-// utils/llm_LmStudio.js
+// omni-llms/llm_LmStudio.js
 var LLM_PROVIDER_LM_STUDIO_LOCAL = "lm-studio";
 var LLM_MODEL_TYPE_LM_STUDIO = "lm-studio";
 var BLOCK_LM_STUDIO_SIMPLE_CHATGPT = "lm-studio.simpleGenerateTextViaLmStudio";
@@ -17463,9 +17463,8 @@ var Llm_LmStudio = class extends Llm {
     if ("seed" in block_args == false)
       block_args.seed = -1;
     const response = await this.runLlmBlock(ctx, block_args);
-    if (response.error)
-      throw new Error(response.error);
-    omnilog.warn(`response = ${JSON.stringify(response)}`);
+    if (!response)
+      throw new Error("No response returned from lm_studio");
     const choices = response?.choices;
     if (!choices)
       throw new Error("No choices returned from lm_studio");
@@ -17485,6 +17484,26 @@ var Llm_LmStudio = class extends Llm {
   }
   async runLlmBlock(ctx, args) {
     const response = await runBlock(ctx, BLOCK_LM_STUDIO_SIMPLE_CHATGPT, args);
+    if (response?.error) {
+      const error = response.error;
+      const message = error.message;
+      if (message) {
+        const message_json = JSON.parse(message);
+        const code = message_json?.error?.code;
+        if (code) {
+          if (code == "ECONNREFUSED")
+            throw new Error(`Error code = ${code}
+[LM Studio] Server is NOT running.
+Please start the server and try again.
+Run [LM Studio]
+Click [<->]
+Load a Model
+Press [Start Server]`);
+        }
+        throw new Error(`ERROR! code: ${code}, response: ${JSON.stringify(response)}`);
+      }
+      throw new Error(`ERROR! response: ${JSON.stringify(response)}`);
+    }
     return response;
   }
   getProvider() {

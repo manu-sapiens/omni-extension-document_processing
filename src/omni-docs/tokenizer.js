@@ -1,3 +1,4 @@
+//@ts-check
 class Tokenizer
 {
     constructor(params = null)

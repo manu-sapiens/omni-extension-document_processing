@@ -1,8 +1,8 @@
 // chunking.js
 import { compute_chunk_id } from './hashers.js';
-import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer} from './cdn.js'
+import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer} from '../omni-utils/cdn.js'
 import { countTokens } from './tiktoken.js';
-import { is_valid, console_log } from './utils.js';
+import { is_valid, console_log } from '../omni-utils/utils.js';
 
 const DEFAULT_CHUNK_SIZE = 512;
 const DEFAULT_CHUNK_OVERLAP = 64;

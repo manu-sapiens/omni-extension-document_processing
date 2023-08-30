@@ -1,9 +1,9 @@
 //@ts-check
 //llmOobabooga.js
 import { omnilog } from 'mercs_shared'
-import { runBlock } from './blocks.js';
-import { Llm, generateModelId, deduceLlmTitle, deduceLlmDescription, addLocalLlmChoices, DEFAULT_UNKNOWN_CONTEXT_SIZE} from './llm.js'
-import { Tokenizer_Openai } from './tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
+import { runBlock } from '../omni-utils/blocks.js';
+import { Llm, generateModelId, deduceLlmTitle, deduceLlmDescription, addLocalLlmChoices, DEFAULT_UNKNOWN_CONTEXT_SIZE} from '../omni-llms/llm.js'
+import { Tokenizer_Openai } from '../omni-docs/tokenizer_Openai.js' // TBD: use llama tokenizer: https://github.com/belladoreai/llama-tokenizer-js
 const LLM_PROVIDER_OOBABOOGA_LOCAL = "oobabooga";
 const LLM_MODEL_TYPE_OOBABOOGA = "oobabooga";
 const BLOCK_OOBABOOGA_SIMPLE_GENERATE_TEXT = "oobabooga.simpleGenerateText";

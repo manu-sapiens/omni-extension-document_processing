@@ -2,10 +2,10 @@
 // smartquery.js
 
 import { query_vectorstore } from './vectorstore.js';
-import { queryLlmByModelId, getModelMaxSize } from './llms.js';
-import { console_log, is_valid } from './utils.js';
+import { queryLlmByModelId, getModelMaxSize } from '../omni-llms/llms.js';
+import { console_log, is_valid } from '../omni-utils/utils.js';
 import { countTokens } from './tiktoken.js';
-import { getModelNameAndProviderFromId } from './llm.js'
+import { getModelNameAndProviderFromId } from '../omni-llms/llm.js'
 
 async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id)
 {

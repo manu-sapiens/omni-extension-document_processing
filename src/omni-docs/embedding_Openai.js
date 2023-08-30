@@ -1,11 +1,13 @@
+//@ts-check
 import { Embeddings } from "langchain/embeddings/base";
-import { is_valid, console_log } from './utils.js';
-import { runBlock } from "./blocks.js";
+import { is_valid, console_log } from '../omni-utils/utils.js';
+import { runBlock } from "../omni-utils/blocks.js";
 
 class Embedding_Openai extends Embeddings
 {
     constructor(ctx, params = null)
     {
+        //@ts-ignore
         super(params);
         this.ctx = ctx;
     }

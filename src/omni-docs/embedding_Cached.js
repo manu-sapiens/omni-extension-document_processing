@@ -1,10 +1,11 @@
+//@ts-check
 // embeddings.js
 
 import { Embeddings } from "langchain/embeddings/base";
-import { is_valid, console_log } from './utils.js';
-import { DEFAULT_VECTORSTORE_NAME } from "./vectorstore.js";
-import { compute_chunk_id } from "./hashers.js";
-import { user_db_put, user_db_get, user_db_delete } from "./database.js"
+import { is_valid, console_log } from '../omni-utils/utils.js';
+import { DEFAULT_VECTORSTORE_NAME } from "../omni-docs/vectorstore.js";
+import { compute_chunk_id } from "../omni-docs/hashers.js";
+import { user_db_put, user_db_get, user_db_delete } from "../omni-utils/database.js"
 
 class Embedding_Cached extends Embeddings
 {
@@ -13,6 +14,7 @@ class Embedding_Cached extends Embeddings
     // that can wrap any langchain embeddings model
     constructor(ctx, embedder, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null)
     {
+        //@ts-ignore
         super(params);
         this.embedder = embedder;
 

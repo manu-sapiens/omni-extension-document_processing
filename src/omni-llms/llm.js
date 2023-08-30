@@ -2,8 +2,8 @@
 // llm.js
 import path from "path";
 import { omnilog } from 'mercs_shared';
-import { walkDirForExtension, validateDirectoryExists, validateFileExists, readJsonFromDisk, fetchJsonFromUrl } from './files.js';
-import { is_valid, console_log, pauseForSeconds } from './utils.js';
+import { walkDirForExtension, validateDirectoryExists, validateFileExists, readJsonFromDisk, fetchJsonFromUrl } from '../omni-utils/files.js';
+import { is_valid, console_log, pauseForSeconds } from '../omni-utils/utils.js';
 
 
 export const DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;

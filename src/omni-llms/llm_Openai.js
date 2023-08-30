@@ -1,9 +1,9 @@
 //@ts-check
 //llmOpenai.js
-import { runBlock } from './blocks.js';
+import { runBlock } from '../omni-utils/blocks.js';
 import { Llm, fixJsonString, generateModelId, deduceLlmTitle, deduceLlmDescription} from './llm.js'
-import { is_valid, console_log, clean_string, pauseForSeconds } from './utils.js';
-import { Tokenizer_Openai } from './tokenizer_Openai.js'
+import { is_valid, console_log, clean_string, pauseForSeconds } from '../omni-utils/utils.js';
+import { Tokenizer_Openai } from '../omni-docs/tokenizer_Openai.js'
 
 const LLM_PROVIDER_OPENAI_SERVER = "openai"; // we may need to support Azure and other providers (e.g. Poe)
 const LLM_MODEL_TYPE_OPENAI = "openai";

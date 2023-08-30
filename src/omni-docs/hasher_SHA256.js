@@ -1,5 +1,4 @@
-// hashersSHA256.js
-
+//@ts-check
 import { Hasher } from './hasher.js'
 import { createHash } from "crypto";
 

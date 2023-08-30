@@ -1,8 +1,8 @@
 //@ts-check
-import { createComponent } from './utils/component.js';
-import { DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
-import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './utils/llm.js';
-import { Llm_Oobabooga } from './utils/llm_Oobabooga.js'
+import { createComponent } from './omni-utils/component.js';
+import { DEFAULT_LLM_MODEL_ID } from './omni-llms/llms.js';
+import { getModelNameAndProviderFromId, isProviderAvailable, DEFAULT_UNKNOWN_CONTEXT_SIZE } from './omni-llms/llm.js';
+import { Llm_Oobabooga } from './omni-llms/llm_Oobabooga.js'
 const NS_ONMI = 'document_processing';
 
 const llm = new Llm_Oobabooga();

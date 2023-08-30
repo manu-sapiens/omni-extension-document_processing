@@ -1,7 +1,7 @@
 //@ts-check
-import { createComponent } from './utils/component.js';
-import { DEFAULT_LLM_MODEL_ID } from './utils/llms.js';
-import { Llm_Openai } from './utils/llm_Openai.js'
+import { createComponent } from './omni-utils/component.js';
+import { DEFAULT_LLM_MODEL_ID } from './omni-llms/llms.js';
+import { Llm_Openai } from './omni-llms/llm_Openai.js'
 const NS_ONMI = 'document_processing';
 
 export async function async_getLlmManagerOpenaiComponent()
