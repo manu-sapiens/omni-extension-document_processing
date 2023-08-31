@@ -9,13 +9,14 @@ import { initialize_hasher, compute_document_id } from 'omnilib-docs/hashers.js'
 import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from 'omnilib-utils/cdn.js';
 import { initialize_splitter } from 'omnilib-docs/splitter.js';
 import { initialize_embedder } from 'omnilib-docs/embeddings.js';
-import { process_chapter } from 'omnilib-docs/chunking.js';
+import { processChapter } from 'omnilib-docs/chunking.js';
 import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from 'omnilib-docs/vectorstore.js';
 import { DEFAULT_HASHER_MODEL } from 'omnilib-docs/hashers.js';
 import { DEFAULT_EMBEDDER_MODEL } from 'omnilib-docs/embeddings.js';
 import { DEFAULT_SPLITTER_MODEL } from 'omnilib-docs/splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from 'omnilib-docs/chunking.js';
 import { printObject } from 'omnilib-utils/utils.js';
+import { countTokens } from 'omnilib-llms/tiktoken.js';
 
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")
@@ -139,7 +140,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
     {
         const text = chapters[chapter_index];
         const chapter_id = compute_document_id(ctx, [text], vectorstore_name, hasher);
-        let response = await process_chapter(ctx, text, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model);
+        let response = await processChapter(ctx, text, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
 
         const document_json = response.json;
         all_texts += text + "\n\n";

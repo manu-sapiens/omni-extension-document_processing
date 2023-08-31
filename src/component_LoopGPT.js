@@ -8,7 +8,7 @@ const NS_ONMI = 'document_processing';
 import { get_chunks_from_cdn } from 'omnilib-utils/cdn.js';
 import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from 'omnilib-utils/utils.js';
 import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from 'omnilib-llms/llms.js';
-import { countTokens } from 'omnilib-docs/tiktoken.js';
+import { countTokens } from 'omnilib-llms/tiktoken.js';
 import { getModelNameAndProviderFromId } from 'omnilib-llms/llm.js'
 
 async function async_getLoopGptComponent()

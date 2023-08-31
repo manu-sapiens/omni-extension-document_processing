@@ -3792,156 +3792,6 @@ var require_ansi_styles = __commonJS({
   }
 });
 
-// node_modules/rfc4648/lib/index.js
-var require_lib = __commonJS({
-  "node_modules/rfc4648/lib/index.js"(exports) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", { value: true });
-    function parse3(string, encoding, opts) {
-      var _opts$out;
-      if (opts === void 0) {
-        opts = {};
-      }
-      if (!encoding.codes) {
-        encoding.codes = {};
-        for (var i = 0; i < encoding.chars.length; ++i) {
-          encoding.codes[encoding.chars[i]] = i;
-        }
-      }
-      if (!opts.loose && string.length * encoding.bits & 7) {
-        throw new SyntaxError("Invalid padding");
-      }
-      var end = string.length;
-      while (string[end - 1] === "=") {
-        --end;
-        if (!opts.loose && !((string.length - end) * encoding.bits & 7)) {
-          throw new SyntaxError("Invalid padding");
-        }
-      }
-      var out = new ((_opts$out = opts.out) != null ? _opts$out : Uint8Array)(end * encoding.bits / 8 | 0);
-      var bits = 0;
-      var buffer = 0;
-      var written = 0;
-      for (var _i = 0; _i < end; ++_i) {
-        var value = encoding.codes[string[_i]];
-        if (value === void 0) {
-          throw new SyntaxError("Invalid character " + string[_i]);
-        }
-        buffer = buffer << encoding.bits | value;
-        bits += encoding.bits;
-        if (bits >= 8) {
-          bits -= 8;
-          out[written++] = 255 & buffer >> bits;
-        }
-      }
-      if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
-        throw new SyntaxError("Unexpected end of data");
-      }
-      return out;
-    }
-    function stringify3(data, encoding, opts) {
-      if (opts === void 0) {
-        opts = {};
-      }
-      var _opts = opts, _opts$pad = _opts.pad, pad = _opts$pad === void 0 ? true : _opts$pad;
-      var mask = (1 << encoding.bits) - 1;
-      var out = "";
-      var bits = 0;
-      var buffer = 0;
-      for (var i = 0; i < data.length; ++i) {
-        buffer = buffer << 8 | 255 & data[i];
-        bits += 8;
-        while (bits > encoding.bits) {
-          bits -= encoding.bits;
-          out += encoding.chars[mask & buffer >> bits];
-        }
-      }
-      if (bits) {
-        out += encoding.chars[mask & buffer << encoding.bits - bits];
-      }
-      if (pad) {
-        while (out.length * encoding.bits & 7) {
-          out += "=";
-        }
-      }
-      return out;
-    }
-    var base16Encoding = {
-      chars: "0123456789ABCDEF",
-      bits: 4
-    };
-    var base32Encoding = {
-      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
-      bits: 5
-    };
-    var base32HexEncoding = {
-      chars: "0123456789ABCDEFGHIJKLMNOPQRSTUV",
-      bits: 5
-    };
-    var base64Encoding = {
-      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
-      bits: 6
-    };
-    var base64UrlEncoding = {
-      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
-      bits: 6
-    };
-    var base162 = {
-      parse: function parse$1(string, opts) {
-        return parse3(string.toUpperCase(), base16Encoding, opts);
-      },
-      stringify: function stringify$1(data, opts) {
-        return stringify3(data, base16Encoding, opts);
-      }
-    };
-    var base322 = {
-      parse: function parse$1(string, opts) {
-        if (opts === void 0) {
-          opts = {};
-        }
-        return parse3(opts.loose ? string.toUpperCase().replace(/0/g, "O").replace(/1/g, "L").replace(/8/g, "B") : string, base32Encoding, opts);
-      },
-      stringify: function stringify$1(data, opts) {
-        return stringify3(data, base32Encoding, opts);
-      }
-    };
-    var base32hex2 = {
-      parse: function parse$1(string, opts) {
-        return parse3(string, base32HexEncoding, opts);
-      },
-      stringify: function stringify$1(data, opts) {
-        return stringify3(data, base32HexEncoding, opts);
-      }
-    };
-    var base643 = {
-      parse: function parse$1(string, opts) {
-        return parse3(string, base64Encoding, opts);
-      },
-      stringify: function stringify$1(data, opts) {
-        return stringify3(data, base64Encoding, opts);
-      }
-    };
-    var base64url2 = {
-      parse: function parse$1(string, opts) {
-        return parse3(string, base64UrlEncoding, opts);
-      },
-      stringify: function stringify$1(data, opts) {
-        return stringify3(data, base64UrlEncoding, opts);
-      }
-    };
-    var codec2 = {
-      parse: parse3,
-      stringify: stringify3
-    };
-    exports.base16 = base162;
-    exports.base32 = base322;
-    exports.base32hex = base32hex2;
-    exports.base64 = base643;
-    exports.base64url = base64url2;
-    exports.codec = codec2;
-  }
-});
-
 // node_modules/ml-distance-euclidean/lib/euclidean.js
 var require_euclidean = __commonJS({
   "node_modules/ml-distance-euclidean/lib/euclidean.js"(exports) {
@@ -4960,7 +4810,7 @@ var require_num_sort = __commonJS({
 });
 
 // node_modules/ml-tree-similarity/lib/index.js
-var require_lib2 = __commonJS({
+var require_lib = __commonJS({
   "node_modules/ml-tree-similarity/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -5144,7 +4994,7 @@ var require_motyka2 = __commonJS({
 });
 
 // node_modules/is-any-array/lib/index.js
-var require_lib3 = __commonJS({
+var require_lib2 = __commonJS({
   "node_modules/is-any-array/lib/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -5159,10 +5009,10 @@ var require_lib3 = __commonJS({
 });
 
 // node_modules/ml-array-sum/lib/index.js
-var require_lib4 = __commonJS({
+var require_lib3 = __commonJS({
   "node_modules/ml-array-sum/lib/index.js"(exports, module) {
     "use strict";
-    var isAnyArray = require_lib3();
+    var isAnyArray = require_lib2();
     function sum(input) {
       if (!isAnyArray.isAnyArray(input)) {
         throw new TypeError("input must be an array");
@@ -5181,10 +5031,10 @@ var require_lib4 = __commonJS({
 });
 
 // node_modules/ml-array-mean/lib/index.js
-var require_lib5 = __commonJS({
+var require_lib4 = __commonJS({
   "node_modules/ml-array-mean/lib/index.js"(exports, module) {
     "use strict";
-    var sum = require_lib4();
+    var sum = require_lib3();
     function _interopDefaultLegacy(e) {
       return e && typeof e === "object" && "default" in e ? e : { "default": e };
     }
@@ -5204,7 +5054,7 @@ var require_pearson2 = __commonJS({
       return mod && mod.__esModule ? mod : { "default": mod };
     };
     Object.defineProperty(exports, "__esModule", { value: true });
-    var ml_array_mean_1 = __importDefault(require_lib5());
+    var ml_array_mean_1 = __importDefault(require_lib4());
     var cosine_1 = __importDefault(require_cosine());
     function pearson(a, b2) {
       let avgA = (0, ml_array_mean_1.default)(a);
@@ -5278,7 +5128,7 @@ var require_similarities = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.kumarHassebrook = exports.tanimoto = exports.squaredChord = exports.pearson = exports.motyka = exports.kulczynski = exports.intersection = exports.dice = exports.czekanowski = exports.cosine = exports.tree = void 0;
-    var tree = __importStar(require_lib2());
+    var tree = __importStar(require_lib());
     exports.tree = tree;
     var cosine_1 = require_cosine();
     Object.defineProperty(exports, "cosine", { enumerable: true, get: function() {
@@ -5324,7 +5174,7 @@ var require_similarities = __commonJS({
 });
 
 // node_modules/ml-distance/lib/index.js
-var require_lib6 = __commonJS({
+var require_lib5 = __commonJS({
   "node_modules/ml-distance/lib/index.js"(exports) {
     "use strict";
     var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m2, k, k2) {
@@ -5365,6 +5215,156 @@ var require_lib6 = __commonJS({
     exports.distance = distance;
     var similarity = __importStar(require_similarities());
     exports.similarity = similarity;
+  }
+});
+
+// node_modules/rfc4648/lib/index.js
+var require_lib6 = __commonJS({
+  "node_modules/rfc4648/lib/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    function parse3(string, encoding, opts) {
+      var _opts$out;
+      if (opts === void 0) {
+        opts = {};
+      }
+      if (!encoding.codes) {
+        encoding.codes = {};
+        for (var i = 0; i < encoding.chars.length; ++i) {
+          encoding.codes[encoding.chars[i]] = i;
+        }
+      }
+      if (!opts.loose && string.length * encoding.bits & 7) {
+        throw new SyntaxError("Invalid padding");
+      }
+      var end = string.length;
+      while (string[end - 1] === "=") {
+        --end;
+        if (!opts.loose && !((string.length - end) * encoding.bits & 7)) {
+          throw new SyntaxError("Invalid padding");
+        }
+      }
+      var out = new ((_opts$out = opts.out) != null ? _opts$out : Uint8Array)(end * encoding.bits / 8 | 0);
+      var bits = 0;
+      var buffer = 0;
+      var written = 0;
+      for (var _i = 0; _i < end; ++_i) {
+        var value = encoding.codes[string[_i]];
+        if (value === void 0) {
+          throw new SyntaxError("Invalid character " + string[_i]);
+        }
+        buffer = buffer << encoding.bits | value;
+        bits += encoding.bits;
+        if (bits >= 8) {
+          bits -= 8;
+          out[written++] = 255 & buffer >> bits;
+        }
+      }
+      if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
+        throw new SyntaxError("Unexpected end of data");
+      }
+      return out;
+    }
+    function stringify3(data, encoding, opts) {
+      if (opts === void 0) {
+        opts = {};
+      }
+      var _opts = opts, _opts$pad = _opts.pad, pad = _opts$pad === void 0 ? true : _opts$pad;
+      var mask = (1 << encoding.bits) - 1;
+      var out = "";
+      var bits = 0;
+      var buffer = 0;
+      for (var i = 0; i < data.length; ++i) {
+        buffer = buffer << 8 | 255 & data[i];
+        bits += 8;
+        while (bits > encoding.bits) {
+          bits -= encoding.bits;
+          out += encoding.chars[mask & buffer >> bits];
+        }
+      }
+      if (bits) {
+        out += encoding.chars[mask & buffer << encoding.bits - bits];
+      }
+      if (pad) {
+        while (out.length * encoding.bits & 7) {
+          out += "=";
+        }
+      }
+      return out;
+    }
+    var base16Encoding = {
+      chars: "0123456789ABCDEF",
+      bits: 4
+    };
+    var base32Encoding = {
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+      bits: 5
+    };
+    var base32HexEncoding = {
+      chars: "0123456789ABCDEFGHIJKLMNOPQRSTUV",
+      bits: 5
+    };
+    var base64Encoding = {
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+      bits: 6
+    };
+    var base64UrlEncoding = {
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+      bits: 6
+    };
+    var base162 = {
+      parse: function parse$1(string, opts) {
+        return parse3(string.toUpperCase(), base16Encoding, opts);
+      },
+      stringify: function stringify$1(data, opts) {
+        return stringify3(data, base16Encoding, opts);
+      }
+    };
+    var base322 = {
+      parse: function parse$1(string, opts) {
+        if (opts === void 0) {
+          opts = {};
+        }
+        return parse3(opts.loose ? string.toUpperCase().replace(/0/g, "O").replace(/1/g, "L").replace(/8/g, "B") : string, base32Encoding, opts);
+      },
+      stringify: function stringify$1(data, opts) {
+        return stringify3(data, base32Encoding, opts);
+      }
+    };
+    var base32hex2 = {
+      parse: function parse$1(string, opts) {
+        return parse3(string, base32HexEncoding, opts);
+      },
+      stringify: function stringify$1(data, opts) {
+        return stringify3(data, base32HexEncoding, opts);
+      }
+    };
+    var base643 = {
+      parse: function parse$1(string, opts) {
+        return parse3(string, base64Encoding, opts);
+      },
+      stringify: function stringify$1(data, opts) {
+        return stringify3(data, base64Encoding, opts);
+      }
+    };
+    var base64url2 = {
+      parse: function parse$1(string, opts) {
+        return parse3(string, base64UrlEncoding, opts);
+      },
+      stringify: function stringify$1(data, opts) {
+        return stringify3(data, base64UrlEncoding, opts);
+      }
+    };
+    var codec2 = {
+      parse: parse3,
+      stringify: stringify3
+    };
+    exports.base16 = base162;
+    exports.base32 = base322;
+    exports.base32hex = base32hex2;
+    exports.base64 = base643;
+    exports.base64url = base64url2;
+    exports.codec = codec2;
   }
 });
 
@@ -8282,7 +8282,7 @@ var Client = class _Client {
     }
     return run;
   }
-  async *listRuns({ projectId, projectName, parentRunId, referenceExampleId, datasetId, startTime, endTime, executionOrder, runType, error, id, limit, offset, query, filter: filter2, orderBy }) {
+  async *listRuns({ projectId, projectName, parentRunId, referenceExampleId, startTime, executionOrder, runType, error, id, limit, offset, query, filter: filter2 }) {
     const queryParams = new URLSearchParams();
     let projectId_ = projectId;
     if (projectName) {
@@ -8300,14 +8300,8 @@ var Client = class _Client {
     if (referenceExampleId) {
       queryParams.append("reference_example", referenceExampleId);
     }
-    if (datasetId) {
-      queryParams.append("dataset", datasetId);
-    }
     if (startTime) {
       queryParams.append("start_time", startTime.toISOString());
-    }
-    if (endTime) {
-      queryParams.append("end_time", endTime.toISOString());
     }
     if (executionOrder) {
       queryParams.append("execution_order", executionOrder.toString());
@@ -8335,20 +8329,9 @@ var Client = class _Client {
     if (filter2 !== void 0) {
       queryParams.append("filter", filter2);
     }
-    if (orderBy !== void 0) {
-      orderBy.map((order) => queryParams.append("order_by", order));
-    }
     for await (const runs of this._getPaginated("/runs", queryParams)) {
       yield* runs;
     }
-  }
-  async deleteRun(runId) {
-    const response = await this.caller.call(fetch, `${this.apiUrl}/runs/${runId}`, {
-      method: "DELETE",
-      headers: this.headers,
-      signal: AbortSignal.timeout(this.timeout_ms)
-    });
-    await raiseForStatus(response, "delete run");
   }
   async shareRun(runId, { shareId } = {}) {
     const data = {
@@ -8690,7 +8673,7 @@ var Client = class _Client {
       feedbackSourceType: "MODEL"
     });
   }
-  async createFeedback(runId, key, { score, value, correction, comment, sourceInfo, feedbackSourceType = "API" }) {
+  async createFeedback(runId, key, { score, value, correction, comment, sourceInfo, feedbackSourceType = "API", sourceRunId }) {
     let feedback_source;
     if (feedbackSourceType === "API") {
       feedback_source = { type: "api", metadata: sourceInfo ?? {} };
@@ -8698,6 +8681,9 @@ var Client = class _Client {
       feedback_source = { type: "model", metadata: sourceInfo ?? {} };
     } else {
       throw new Error(`Unknown feedback source type ${feedbackSourceType}`);
+    }
+    if (sourceRunId !== void 0 && feedback_source?.metadata !== void 0 && !feedback_source.metadata["__run"]) {
+      feedback_source.metadata["__run"] = { run_id: sourceRunId };
     }
     const feedback = {
       id: v4_default(),
@@ -10734,8 +10720,625 @@ var TokenTextSplitter = class extends TextSplitter {
   }
 };
 
+// node_modules/omnilib-docs/chunking.js
+var DEFAULT_CHUNK_SIZE = 512;
+var DEFAULT_CHUNK_OVERLAP = 64;
+async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, embedder, splitter, tokenCounterFunction) {
+  const splitted_texts = await splitter.splitText(text2);
+  console_log(`[break_chapter_into_chunks] splitted texts # = ${splitted_texts.length}`);
+  const embeddingPromises = splitted_texts.map(async (chunk_text) => {
+    const nb_of_chars = chunk_text.length;
+    if (nb_of_chars > 0) {
+      console_log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
+      const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
+      const chunk_embedding = await embedder.embedQuery(chunk_text);
+      const chunk_token_count = tokenCounterFunction(chunk_text);
+      const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
+      console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
+      return chunk_json;
+    }
+  });
+  const chunks = await Promise.all(embeddingPromises);
+  const total_nb_of_chars = chunks.reduce((total, chunk) => total + chunk.text.length, 0);
+  const average_nb_of_chars = total_nb_of_chars / splitted_texts.length;
+  console_log(`[break_chapter_into_chunks] average_nb_of_chars = ${average_nb_of_chars}`);
+  if (is_valid(chunks) === false) {
+    throw new Error(`ERROR could not chunk the documents`);
+  }
+  return { chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars, average_nb_of_chars };
+}
+async function processChapter(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, tokenCounterFunction) {
+  let chapter_cdn = await get_cached_cdn(ctx, chapter_id, overwrite);
+  let chapter_json = null;
+  if (is_valid(chapter_cdn)) {
+    console_log(`[processChapter] Found document_cdn: ${JSON.stringify(chapter_cdn)} in the DB under id: ${chapter_id}. Skipping chunking...`);
+    try {
+      chapter_json = await get_json_from_cdn(ctx, chapter_cdn);
+    } catch (error) {
+      console.warn(`[processChapter] WARNING: could not get document_json from cdn`);
+      chapter_cdn = null;
+    }
+  }
+  if (!is_valid(chapter_cdn)) {
+    console_log(`[processChapter] Found no records for document id = ${chapter_id} in the DB. Chunking now...`);
+    const chunker_results = await break_chapter_into_chunks(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, tokenCounterFunction);
+    const chapter_chunks = chunker_results.chunks;
+    chapter_json = { id: chapter_id, hasher_model, embedder_model, splitter_model, vectorstore_name, chunks: chapter_chunks, chapters: [chapter_text] };
+    chapter_cdn = await save_json_to_cdn_as_buffer(ctx, chapter_json);
+    if (is_valid(chapter_cdn) == false)
+      throw new Error(`ERROR: could not save document_cdn to cdn`);
+    console_log(`[processChapter] document_cdn: = ${JSON.stringify(chapter_cdn)}`);
+    const success = await save_chunks_cdn_to_db(ctx, chapter_cdn, chapter_id);
+    if (success == false)
+      throw new Error(`ERROR: could not save document_cdn to db`);
+  }
+  return { cdn: chapter_cdn, json: chapter_json };
+}
+
+// node_modules/omnilib-docs/splitter.js
+var SPLITTER_MODEL_RECURSIVE = "RecursiveCharacterTextSplitter";
+var SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
+var SPLITTER_MODEL_CODE = "CodeSplitter_";
+var DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
+var SPLITTER_TOKEN_ENCODING = "gpt2";
+function extractCodeLanguage(str) {
+  const pattern = new RegExp("^" + SPLITTER_MODEL_CODE + "(\\w+)$", "i");
+  const match = str.match(pattern);
+  if (match) {
+    const language = match[1].toLowerCase();
+    const validLanguages = SupportedTextSplitterLanguages;
+    if (validLanguages.includes(language)) {
+      return language;
+    }
+  }
+  return null;
+}
+function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
+  let splitter = null;
+  if (splitter_model == SPLITTER_MODEL_RECURSIVE) {
+    splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: chunk_size,
+      // in characters!
+      chunkOverlap: chunk_overlap
+      // in characters!
+    });
+  } else if (splitter_model == SPLITTER_MODEL_TOKEN) {
+    splitter = new TokenTextSplitter({
+      encodingName: SPLITTER_TOKEN_ENCODING,
+      chunkSize: chunk_size,
+      // in tokens!
+      chunkOverlap: chunk_overlap
+      // in tokens!
+    });
+  } else {
+    const code_language = extractCodeLanguage(splitter_model);
+    if (code_language) {
+      splitter = RecursiveCharacterTextSplitter.fromLanguage(code_language, {
+        chunkSize: chunk_size,
+        // in characters!
+        chunkOverlap: chunk_overlap
+        // in characters!
+      });
+    }
+  }
+  if (splitter == null || splitter == void 0)
+    throw new Error(`initialize_splitter: Failed to initialize splitter_model ${splitter_model}`);
+  return splitter;
+}
+
+// node_modules/langchain/dist/embeddings/base.js
+var Embeddings = class {
+  constructor(params) {
+    Object.defineProperty(this, "caller", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.caller = new AsyncCaller(params ?? {});
+  }
+};
+
+// node_modules/langchain/dist/vectorstores/memory.js
+var import_ml_distance = __toESM(require_lib5(), 1);
+
+// node_modules/langchain/dist/schema/retriever.js
+var BaseRetriever = class extends Runnable {
+  constructor(fields) {
+    super(fields);
+    Object.defineProperty(this, "callbacks", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "tags", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "metadata", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "verbose", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.callbacks = fields?.callbacks;
+    this.tags = fields?.tags ?? [];
+    this.metadata = fields?.metadata ?? {};
+    this.verbose = fields?.verbose ?? false;
+  }
+  /**
+   * TODO: This should be an abstract method, but we'd like to avoid breaking
+   * changes to people currently using subclassed custom retrievers.
+   * Change it on next major release.
+   */
+  _getRelevantDocuments(_query, _callbacks) {
+    throw new Error("Not implemented!");
+  }
+  async invoke(input, options3) {
+    return this.getRelevantDocuments(input, options3);
+  }
+  async getRelevantDocuments(query, config) {
+    const parsedConfig = parseCallbackConfigArg(config);
+    const callbackManager_ = await CallbackManager.configure(parsedConfig.callbacks, this.callbacks, parsedConfig.tags, this.tags, parsedConfig.metadata, this.metadata, { verbose: this.verbose });
+    const runManager = await callbackManager_?.handleRetrieverStart(this.toJSON(), query);
+    try {
+      const results = await this._getRelevantDocuments(query, runManager);
+      await runManager?.handleRetrieverEnd(results);
+      return results;
+    } catch (error) {
+      await runManager?.handleRetrieverError(error);
+      throw error;
+    }
+  }
+};
+
+// node_modules/langchain/dist/vectorstores/base.js
+var VectorStoreRetriever = class extends BaseRetriever {
+  get lc_namespace() {
+    return ["langchain", "retrievers", "base"];
+  }
+  _vectorstoreType() {
+    return this.vectorStore._vectorstoreType();
+  }
+  constructor(fields) {
+    super(fields);
+    Object.defineProperty(this, "vectorStore", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "k", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: 4
+    });
+    Object.defineProperty(this, "searchType", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: "similarity"
+    });
+    Object.defineProperty(this, "searchKwargs", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "filter", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.vectorStore = fields.vectorStore;
+    this.k = fields.k ?? this.k;
+    this.searchType = fields.searchType ?? this.searchType;
+    this.filter = fields.filter;
+    if (fields.searchType === "mmr") {
+      this.searchKwargs = fields.searchKwargs;
+    }
+  }
+  async _getRelevantDocuments(query, runManager) {
+    if (this.searchType === "mmr") {
+      if (typeof this.vectorStore.maxMarginalRelevanceSearch !== "function") {
+        throw new Error(`The vector store backing this retriever, ${this._vectorstoreType()} does not support max marginal relevance search.`);
+      }
+      return this.vectorStore.maxMarginalRelevanceSearch(query, {
+        k: this.k,
+        filter: this.filter,
+        ...this.searchKwargs
+      }, runManager?.getChild("vectorstore"));
+    }
+    return this.vectorStore.similaritySearch(query, this.k, this.filter, runManager?.getChild("vectorstore"));
+  }
+  async addDocuments(documents, options3) {
+    return this.vectorStore.addDocuments(documents, options3);
+  }
+};
+var VectorStore = class extends Serializable {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(embeddings, dbConfig) {
+    super(dbConfig);
+    Object.defineProperty(this, "lc_namespace", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: ["langchain", "vectorstores", this._vectorstoreType()]
+    });
+    Object.defineProperty(this, "embeddings", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.embeddings = embeddings;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async delete(_params) {
+    throw new Error("Not implemented.");
+  }
+  async similaritySearch(query, k = 4, filter2 = void 0, _callbacks = void 0) {
+    const results = await this.similaritySearchVectorWithScore(await this.embeddings.embedQuery(query), k, filter2);
+    return results.map((result) => result[0]);
+  }
+  async similaritySearchWithScore(query, k = 4, filter2 = void 0, _callbacks = void 0) {
+    return this.similaritySearchVectorWithScore(await this.embeddings.embedQuery(query), k, filter2);
+  }
+  static fromTexts(_texts, _metadatas, _embeddings, _dbConfig) {
+    throw new Error("the Langchain vectorstore implementation you are using forgot to override this, please report a bug");
+  }
+  static fromDocuments(_docs, _embeddings, _dbConfig) {
+    throw new Error("the Langchain vectorstore implementation you are using forgot to override this, please report a bug");
+  }
+  asRetriever(kOrFields, filter2, callbacks, tags, metadata, verbose) {
+    if (typeof kOrFields === "number") {
+      return new VectorStoreRetriever({
+        vectorStore: this,
+        k: kOrFields,
+        filter: filter2,
+        tags: [...tags ?? [], this._vectorstoreType()],
+        metadata,
+        verbose,
+        callbacks
+      });
+    } else {
+      const params = {
+        vectorStore: this,
+        k: kOrFields?.k,
+        filter: kOrFields?.filter,
+        tags: [...kOrFields?.tags ?? [], this._vectorstoreType()],
+        metadata: kOrFields?.metadata,
+        verbose: kOrFields?.verbose,
+        callbacks: kOrFields?.callbacks,
+        searchType: kOrFields?.searchType
+      };
+      if (kOrFields?.searchType === "mmr") {
+        return new VectorStoreRetriever({
+          ...params,
+          searchKwargs: kOrFields.searchKwargs
+        });
+      }
+      return new VectorStoreRetriever({ ...params });
+    }
+  }
+};
+
+// node_modules/langchain/dist/vectorstores/memory.js
+var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
+  _vectorstoreType() {
+    return "memory";
+  }
+  constructor(embeddings, { similarity, ...rest } = {}) {
+    super(embeddings, rest);
+    Object.defineProperty(this, "memoryVectors", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: []
+    });
+    Object.defineProperty(this, "similarity", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.similarity = similarity ?? import_ml_distance.similarity.cosine;
+  }
+  async addDocuments(documents) {
+    const texts = documents.map(({ pageContent }) => pageContent);
+    return this.addVectors(await this.embeddings.embedDocuments(texts), documents);
+  }
+  async addVectors(vectors, documents) {
+    const memoryVectors = vectors.map((embedding, idx) => ({
+      content: documents[idx].pageContent,
+      embedding,
+      metadata: documents[idx].metadata
+    }));
+    this.memoryVectors = this.memoryVectors.concat(memoryVectors);
+  }
+  async similaritySearchVectorWithScore(query, k, filter2) {
+    const filterFunction = (memoryVector) => {
+      if (!filter2) {
+        return true;
+      }
+      const doc = new Document({
+        metadata: memoryVector.metadata,
+        pageContent: memoryVector.content
+      });
+      return filter2(doc);
+    };
+    const filteredMemoryVectors = this.memoryVectors.filter(filterFunction);
+    const searches = filteredMemoryVectors.map((vector, index) => ({
+      similarity: this.similarity(query, vector.embedding),
+      index
+    })).sort((a, b2) => a.similarity > b2.similarity ? -1 : 0).slice(0, k);
+    const result = searches.map((search) => [
+      new Document({
+        metadata: filteredMemoryVectors[search.index].metadata,
+        pageContent: filteredMemoryVectors[search.index].content
+      }),
+      search.similarity
+    ]);
+    return result;
+  }
+  static async fromTexts(texts, metadatas, embeddings, dbConfig) {
+    const docs = [];
+    for (let i = 0; i < texts.length; i += 1) {
+      const metadata = Array.isArray(metadatas) ? metadatas[i] : metadatas;
+      const newDoc = new Document({
+        pageContent: texts[i],
+        metadata
+      });
+      docs.push(newDoc);
+    }
+    return _MemoryVectorStore.fromDocuments(docs, embeddings, dbConfig);
+  }
+  static async fromDocuments(docs, embeddings, dbConfig) {
+    const instance = new this(embeddings, dbConfig);
+    await instance.addDocuments(docs);
+    return instance;
+  }
+  static async fromExistingIndex(embeddings, dbConfig) {
+    const instance = new this(embeddings, dbConfig);
+    return instance;
+  }
+};
+
+// node_modules/omnilib-docs/vectorstore_Memory.js
+async function memory_from_texts(texts, text_ids, embedder) {
+  return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
+}
+
+// node_modules/omnilib-docs/vectorstore.js
+var MEMORY_VECTORSTORE = "MEMORY";
+var DEFAULT_VECTORSTORE_NAME = "omnitool";
+var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
+async function create_vectorstore_from_texts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
+  console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
+  let vectorstore;
+  switch (vectorstore_type) {
+    case MEMORY_VECTORSTORE:
+      vectorstore = await memory_from_texts(texts, text_ids, embedder);
+      break;
+    default:
+      throw new Error(`Vectorstore type ${vectorstore_type} not recognized`);
+  }
+  return vectorstore;
+}
+async function query_vectorstore(vector_store, query, nb_of_results = 1, embedder) {
+  const vector_query = await embedder.embedQuery(query);
+  const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
+  return results;
+}
+function get_texts_and_ids(chunks) {
+  if (is_valid(chunks) == false)
+    throw new Error(`get_texts_and_ids: chunks_list is invalid`);
+  let chunk_texts = [];
+  let chunk_ids = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const chunk_text = chunk.text;
+    const chunk_id = chunk.id;
+    chunk_ids.push({ id: chunk_id });
+    chunk_texts.push(chunk_text);
+  }
+  return [chunk_texts, chunk_ids];
+}
+async function compute_vectorstore(chunks, embedder) {
+  console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
+  if (is_valid(chunks) == false)
+    throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
+  const [all_texts, all_ids] = get_texts_and_ids(chunks);
+  console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
+  const vectorstore = await create_vectorstore_from_texts(all_texts, all_ids, embedder);
+  return vectorstore;
+}
+function clean_vectorstore_name(vectorstore_name) {
+  if (is_valid(vectorstore_name) == false)
+    throw new Error(`ERROR: vectorstore_name is invalid`);
+  const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
+  return clean_name;
+}
+
+// node_modules/omnilib-docs/embedding_Cached.js
+var Embedding_Cached = class extends Embeddings {
+  // A db-cached version of the embeddings
+  // NOTE: This is a general purpose "cached embeddings" class
+  // that can wrap any langchain embeddings model
+  constructor(ctx, embedder, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null) {
+    super(params);
+    this.embedder = embedder;
+    this.ctx = ctx;
+    this.db = ctx.app.services.get("db");
+    this.user = ctx.user;
+    this.vectorstore_name = vectorstore_name;
+    this.overwrite = false;
+    this.hasher = hasher;
+    if (!this.ctx) {
+      throw new Error(`[embeddings] Context not provided`);
+    }
+  }
+  async embedDocuments(texts) {
+    const embeddings = [];
+    if (is_valid(texts)) {
+      for (let i = 0; i < texts.length; i += 1) {
+        let text2 = texts[i];
+        const embedding = await this.embedQuery(text2);
+        embeddings.push(embedding);
+      }
+    }
+    return embeddings;
+  }
+  async embedQuery(text2) {
+    if (!is_valid(text2)) {
+      throw new Error(`[embeddings] passed text is invalid ${text2}`);
+    }
+    console_log(`[embeddings] embedQuery of: ${text2.slice(0, 128)}[...]`);
+    const embedding_id = compute_chunk_id(this.ctx, text2, this.vectorstore_name, this.hasher);
+    let embedding = null;
+    if (this.overwrite) {
+      await user_db_delete(this.ctx, embedding_id);
+    } else {
+      embedding = await user_db_get(this.ctx, embedding_id);
+    }
+    if (is_valid(embedding)) {
+      console_log(`[embeddings]: embedding found in DB - returning it`);
+      return embedding;
+    }
+    console_log(`[embeddings] Not found in DB. Generating embedding for ${text2.slice(0, 128)}[...]`);
+    try {
+      console_log(`[embeddings] Using embedded: ${this.embedder}`);
+      embedding = await this.embedder.embedQuery(text2);
+      if (!is_valid(embedding)) {
+        console_log(`[embeddings]: [WARNING] embedding ${embedding} is invalid - returning null <---------------`);
+        return null;
+      }
+      console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
+      const success = await user_db_put(this.ctx, embedding, embedding_id);
+      if (success == false) {
+        throw new Error(`[embeddings] Error saving embedding for text chunk: ${text2.slice(0, 128)}[...]`);
+      } else {
+        console_log(`[embeddings] Saved to DB`);
+      }
+      return embedding;
+    } catch (error) {
+      throw new Error(`[embeddings] Error generating embedding: ${error}`);
+    }
+  }
+};
+
+// node_modules/omnilib-utils/blocks.js
+async function runBlock(ctx, block_name, args, outputs3 = {}) {
+  try {
+    const app = ctx.app;
+    if (!app) {
+      throw new Error(`[runBlock] app not found in ctx`);
+    }
+    const blocks = app.blocks;
+    if (!blocks) {
+      throw new Error(`[runBlock] blocks not found in app`);
+    }
+    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
+    return result;
+  } catch (err) {
+    throw new Error(`Error running block ${block_name}: ${err}`);
+  }
+}
+
+// node_modules/omnilib-docs/embedding_Openai.js
+var Embedding_Openai = class extends Embeddings {
+  constructor(ctx, params = null) {
+    super(params);
+    this.ctx = ctx;
+  }
+  async embedDocuments(texts) {
+    const embeddings = [];
+    if (is_valid(texts)) {
+      for (let i = 0; i < texts.length; i += 1) {
+        let text2 = texts[i];
+        const embedding = await this.embedQuery(text2);
+        embeddings.push(embedding);
+      }
+    }
+    return embeddings;
+  }
+  async embedQuery(text2) {
+    console_log(`[OmniOpenAIEmbeddings] embedQuery: Requested to embed text: ${text2.slice(0, 128)}[...]`);
+    if (!is_valid(text2)) {
+      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: passed text is invalid ${text2}`);
+      return null;
+    }
+    console_log(`[OmniOpenAIEmbeddings] generating embedding for ${text2.slice(0, 128)}`);
+    try {
+      const response = await this.compute_embedding_via_runblock(this.ctx, text2);
+      console_log(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
+      const embedding = response;
+      return embedding;
+    } catch (error) {
+      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text2}
+Error: ${error}`);
+      return null;
+    }
+  }
+  async compute_embedding_via_runblock(ctx, input) {
+    let args = {};
+    args.user = ctx.userId;
+    args.input = input;
+    let response = null;
+    try {
+      response = await runBlock(ctx, "openai.embeddings", args);
+    } catch (err) {
+      let error_message = `[OmniOpenAIEmbeddings] Error running openai.embeddings: ${err.message}`;
+      console.error(error_message);
+      throw err;
+    }
+    if (response == null) {
+      throw new Error(`[OmniOpenAIEmbeddings embedding runBlock response is null`);
+    }
+    ;
+    if (response.error) {
+      throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response.error: ${response.error}`);
+    }
+    let data = response?.data || null;
+    if (is_valid(data) == false) {
+      throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response is invalid: ${JSON.stringify(response)}`);
+    }
+    ;
+    const embedding = response?.data[0]?.embedding || null;
+    return embedding;
+  }
+};
+
+// node_modules/omnilib-docs/embeddings.js
+var EMBEDDER_MODEL_OPENAI = "openai";
+var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
+var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
+function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false) {
+  let raw_embedder = null;
+  if (embedder_model == EMBEDDER_MODEL_OPENAI) {
+    raw_embedder = new Embedding_Openai(ctx);
+  } else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) {
+    throw new Error("tensorflow embedding not supported at the moment");
+  }
+  const embedder = new Embedding_Cached(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
+  if (embedder == null || embedder == void 0)
+    throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
+  return embedder;
+}
+
 // node_modules/rfc4648/lib/index.mjs
-var import_index = __toESM(require_lib(), 1);
+var import_index = __toESM(require_lib6(), 1);
 var base16 = import_index.default.base16;
 var base32 = import_index.default.base32;
 var base32hex = import_index.default.base32hex;
@@ -11334,7 +11937,7 @@ var GptEncoding = class _GptEncoding {
 var api = GptEncoding.getEncodingApi("cl100k_base", () => convertTokenBytePairEncodingFromTuples(cl100k_base_default));
 var { decode, decodeAsyncGenerator, decodeGenerator, encode, encodeGenerator, isWithinTokenLimit, encodeChat, encodeChatGenerator } = api;
 
-// node_modules/omnilib-docs/tiktoken.js
+// node_modules/omnilib-llms/tiktoken.js
 function countTokens(text2) {
   const tokens = encode(text2);
   if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
@@ -11343,623 +11946,6 @@ function countTokens(text2) {
   } else {
     return 0;
   }
-}
-
-// node_modules/omnilib-docs/chunking.js
-var DEFAULT_CHUNK_SIZE = 512;
-var DEFAULT_CHUNK_OVERLAP = 64;
-async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, embedder, splitter) {
-  const splitted_texts = await splitter.splitText(text2);
-  console_log(`[break_chapter_into_chunks] splitted texts # = ${splitted_texts.length}`);
-  const embeddingPromises = splitted_texts.map(async (chunk_text) => {
-    const nb_of_chars = chunk_text.length;
-    if (nb_of_chars > 0) {
-      console_log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
-      const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
-      const chunk_embedding = await embedder.embedQuery(chunk_text);
-      const chunk_token_count = countTokens(chunk_text);
-      const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
-      console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
-      return chunk_json;
-    }
-  });
-  const chunks = await Promise.all(embeddingPromises);
-  const total_nb_of_chars = chunks.reduce((total, chunk) => total + chunk.text.length, 0);
-  const average_nb_of_chars = total_nb_of_chars / splitted_texts.length;
-  console_log(`[break_chapter_into_chunks] average_nb_of_chars = ${average_nb_of_chars}`);
-  if (is_valid(chunks) === false) {
-    throw new Error(`ERROR could not chunk the documents`);
-  }
-  return { chunks, nb_of_chunks: splitted_texts.length, total_nb_of_chars, average_nb_of_chars };
-}
-async function process_chapter(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model) {
-  let chapter_cdn = await get_cached_cdn(ctx, chapter_id, overwrite);
-  let chapter_json = null;
-  if (is_valid(chapter_cdn)) {
-    console_log(`[process_chapter] Found document_cdn: ${JSON.stringify(chapter_cdn)} in the DB under id: ${chapter_id}. Skipping chunking...`);
-    try {
-      chapter_json = await get_json_from_cdn(ctx, chapter_cdn);
-    } catch (error) {
-      console.warn(`[process_chapter] WARNING: could not get document_json from cdn`);
-      chapter_cdn = null;
-    }
-  }
-  if (!is_valid(chapter_cdn)) {
-    console_log(`[process_chapter] Found no records for document id = ${chapter_id} in the DB. Chunking now...`);
-    const chunker_results = await break_chapter_into_chunks(ctx, chapter_text, vectorstore_name, hasher, embedder, splitter);
-    const chapter_chunks = chunker_results.chunks;
-    chapter_json = { id: chapter_id, hasher_model, embedder_model, splitter_model, vectorstore_name, chunks: chapter_chunks, chapters: [chapter_text] };
-    chapter_cdn = await save_json_to_cdn_as_buffer(ctx, chapter_json);
-    if (is_valid(chapter_cdn) == false)
-      throw new Error(`ERROR: could not save document_cdn to cdn`);
-    console_log(`[process_chapter] document_cdn: = ${JSON.stringify(chapter_cdn)}`);
-    const success = await save_chunks_cdn_to_db(ctx, chapter_cdn, chapter_id);
-    if (success == false)
-      throw new Error(`ERROR: could not save document_cdn to db`);
-  }
-  return { cdn: chapter_cdn, json: chapter_json };
-}
-
-// node_modules/omnilib-docs/splitter.js
-var SPLITTER_MODEL_RECURSIVE = "RecursiveCharacterTextSplitter";
-var SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
-var SPLITTER_MODEL_CODE = "CodeSplitter_";
-var DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
-var SPLITTER_TOKEN_ENCODING = "gpt2";
-function extractCodeLanguage(str) {
-  const pattern = new RegExp("^" + SPLITTER_MODEL_CODE + "(\\w+)$", "i");
-  const match = str.match(pattern);
-  if (match) {
-    const language = match[1].toLowerCase();
-    const validLanguages = SupportedTextSplitterLanguages;
-    if (validLanguages.includes(language)) {
-      return language;
-    }
-  }
-  return null;
-}
-function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
-  let splitter = null;
-  if (splitter_model == SPLITTER_MODEL_RECURSIVE) {
-    splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: chunk_size,
-      // in characters!
-      chunkOverlap: chunk_overlap
-      // in characters!
-    });
-  } else if (splitter_model == SPLITTER_MODEL_TOKEN) {
-    splitter = new TokenTextSplitter({
-      encodingName: SPLITTER_TOKEN_ENCODING,
-      chunkSize: chunk_size,
-      // in tokens!
-      chunkOverlap: chunk_overlap
-      // in tokens!
-    });
-  } else {
-    const code_language = extractCodeLanguage(splitter_model);
-    if (code_language) {
-      splitter = RecursiveCharacterTextSplitter.fromLanguage(code_language, {
-        chunkSize: chunk_size,
-        // in characters!
-        chunkOverlap: chunk_overlap
-        // in characters!
-      });
-    }
-  }
-  if (splitter == null || splitter == void 0)
-    throw new Error(`initialize_splitter: Failed to initialize splitter_model ${splitter_model}`);
-  return splitter;
-}
-
-// node_modules/langchain/dist/embeddings/base.js
-var Embeddings = class {
-  constructor(params) {
-    Object.defineProperty(this, "caller", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    this.caller = new AsyncCaller(params ?? {});
-  }
-};
-
-// node_modules/langchain/dist/vectorstores/memory.js
-var import_ml_distance = __toESM(require_lib6(), 1);
-
-// node_modules/langchain/dist/schema/retriever.js
-var BaseRetriever = class extends Runnable {
-  constructor(fields) {
-    super(fields);
-    Object.defineProperty(this, "callbacks", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    Object.defineProperty(this, "tags", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    Object.defineProperty(this, "metadata", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    Object.defineProperty(this, "verbose", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    this.callbacks = fields?.callbacks;
-    this.tags = fields?.tags ?? [];
-    this.metadata = fields?.metadata ?? {};
-    this.verbose = fields?.verbose ?? false;
-  }
-  /**
-   * TODO: This should be an abstract method, but we'd like to avoid breaking
-   * changes to people currently using subclassed custom retrievers.
-   * Change it on next major release.
-   */
-  _getRelevantDocuments(_query, _callbacks) {
-    throw new Error("Not implemented!");
-  }
-  async invoke(input, options3) {
-    return this.getRelevantDocuments(input, options3);
-  }
-  async getRelevantDocuments(query, config) {
-    const parsedConfig = parseCallbackConfigArg(config);
-    const callbackManager_ = await CallbackManager.configure(parsedConfig.callbacks, this.callbacks, parsedConfig.tags, this.tags, parsedConfig.metadata, this.metadata, { verbose: this.verbose });
-    const runManager = await callbackManager_?.handleRetrieverStart(this.toJSON(), query);
-    try {
-      const results = await this._getRelevantDocuments(query, runManager);
-      await runManager?.handleRetrieverEnd(results);
-      return results;
-    } catch (error) {
-      await runManager?.handleRetrieverError(error);
-      throw error;
-    }
-  }
-};
-
-// node_modules/langchain/dist/vectorstores/base.js
-var VectorStoreRetriever = class extends BaseRetriever {
-  get lc_namespace() {
-    return ["langchain", "retrievers", "base"];
-  }
-  _vectorstoreType() {
-    return this.vectorStore._vectorstoreType();
-  }
-  constructor(fields) {
-    super(fields);
-    Object.defineProperty(this, "vectorStore", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    Object.defineProperty(this, "k", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: 4
-    });
-    Object.defineProperty(this, "searchType", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: "similarity"
-    });
-    Object.defineProperty(this, "searchKwargs", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    Object.defineProperty(this, "filter", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    this.vectorStore = fields.vectorStore;
-    this.k = fields.k ?? this.k;
-    this.searchType = fields.searchType ?? this.searchType;
-    this.filter = fields.filter;
-    if (fields.searchType === "mmr") {
-      this.searchKwargs = fields.searchKwargs;
-    }
-  }
-  async _getRelevantDocuments(query, runManager) {
-    if (this.searchType === "mmr") {
-      if (typeof this.vectorStore.maxMarginalRelevanceSearch !== "function") {
-        throw new Error(`The vector store backing this retriever, ${this._vectorstoreType()} does not support max marginal relevance search.`);
-      }
-      return this.vectorStore.maxMarginalRelevanceSearch(query, {
-        k: this.k,
-        filter: this.filter,
-        ...this.searchKwargs
-      }, runManager?.getChild("vectorstore"));
-    }
-    return this.vectorStore.similaritySearch(query, this.k, this.filter, runManager?.getChild("vectorstore"));
-  }
-  async addDocuments(documents, options3) {
-    return this.vectorStore.addDocuments(documents, options3);
-  }
-};
-var VectorStore = class extends Serializable {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(embeddings, dbConfig) {
-    super(dbConfig);
-    Object.defineProperty(this, "lc_namespace", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: ["langchain", "vectorstores", this._vectorstoreType()]
-    });
-    Object.defineProperty(this, "embeddings", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    this.embeddings = embeddings;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async delete(_params) {
-    throw new Error("Not implemented.");
-  }
-  async similaritySearch(query, k = 4, filter2 = void 0, _callbacks = void 0) {
-    const results = await this.similaritySearchVectorWithScore(await this.embeddings.embedQuery(query), k, filter2);
-    return results.map((result) => result[0]);
-  }
-  async similaritySearchWithScore(query, k = 4, filter2 = void 0, _callbacks = void 0) {
-    return this.similaritySearchVectorWithScore(await this.embeddings.embedQuery(query), k, filter2);
-  }
-  static fromTexts(_texts, _metadatas, _embeddings, _dbConfig) {
-    throw new Error("the Langchain vectorstore implementation you are using forgot to override this, please report a bug");
-  }
-  static fromDocuments(_docs, _embeddings, _dbConfig) {
-    throw new Error("the Langchain vectorstore implementation you are using forgot to override this, please report a bug");
-  }
-  asRetriever(kOrFields, filter2, callbacks, tags, metadata, verbose) {
-    if (typeof kOrFields === "number") {
-      return new VectorStoreRetriever({
-        vectorStore: this,
-        k: kOrFields,
-        filter: filter2,
-        tags: [...tags ?? [], this._vectorstoreType()],
-        metadata,
-        verbose,
-        callbacks
-      });
-    } else {
-      const params = {
-        vectorStore: this,
-        k: kOrFields?.k,
-        filter: kOrFields?.filter,
-        tags: [...kOrFields?.tags ?? [], this._vectorstoreType()],
-        metadata: kOrFields?.metadata,
-        verbose: kOrFields?.verbose,
-        callbacks: kOrFields?.callbacks,
-        searchType: kOrFields?.searchType
-      };
-      if (kOrFields?.searchType === "mmr") {
-        return new VectorStoreRetriever({
-          ...params,
-          searchKwargs: kOrFields.searchKwargs
-        });
-      }
-      return new VectorStoreRetriever({ ...params });
-    }
-  }
-};
-
-// node_modules/langchain/dist/vectorstores/memory.js
-var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
-  _vectorstoreType() {
-    return "memory";
-  }
-  constructor(embeddings, { similarity, ...rest } = {}) {
-    super(embeddings, rest);
-    Object.defineProperty(this, "memoryVectors", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: []
-    });
-    Object.defineProperty(this, "similarity", {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: void 0
-    });
-    this.similarity = similarity ?? import_ml_distance.similarity.cosine;
-  }
-  async addDocuments(documents) {
-    const texts = documents.map(({ pageContent }) => pageContent);
-    return this.addVectors(await this.embeddings.embedDocuments(texts), documents);
-  }
-  async addVectors(vectors, documents) {
-    const memoryVectors = vectors.map((embedding, idx) => ({
-      content: documents[idx].pageContent,
-      embedding,
-      metadata: documents[idx].metadata
-    }));
-    this.memoryVectors = this.memoryVectors.concat(memoryVectors);
-  }
-  async similaritySearchVectorWithScore(query, k, filter2) {
-    const filterFunction = (memoryVector) => {
-      if (!filter2) {
-        return true;
-      }
-      const doc = new Document({
-        metadata: memoryVector.metadata,
-        pageContent: memoryVector.content
-      });
-      return filter2(doc);
-    };
-    const filteredMemoryVectors = this.memoryVectors.filter(filterFunction);
-    const searches = filteredMemoryVectors.map((vector, index) => ({
-      similarity: this.similarity(query, vector.embedding),
-      index
-    })).sort((a, b2) => a.similarity > b2.similarity ? -1 : 0).slice(0, k);
-    const result = searches.map((search) => [
-      new Document({
-        metadata: filteredMemoryVectors[search.index].metadata,
-        pageContent: filteredMemoryVectors[search.index].content
-      }),
-      search.similarity
-    ]);
-    return result;
-  }
-  static async fromTexts(texts, metadatas, embeddings, dbConfig) {
-    const docs = [];
-    for (let i = 0; i < texts.length; i += 1) {
-      const metadata = Array.isArray(metadatas) ? metadatas[i] : metadatas;
-      const newDoc = new Document({
-        pageContent: texts[i],
-        metadata
-      });
-      docs.push(newDoc);
-    }
-    return _MemoryVectorStore.fromDocuments(docs, embeddings, dbConfig);
-  }
-  static async fromDocuments(docs, embeddings, dbConfig) {
-    const instance = new this(embeddings, dbConfig);
-    await instance.addDocuments(docs);
-    return instance;
-  }
-  static async fromExistingIndex(embeddings, dbConfig) {
-    const instance = new this(embeddings, dbConfig);
-    return instance;
-  }
-};
-
-// node_modules/omnilib-docs/vectorstore_Memory.js
-async function memory_from_texts(texts, text_ids, embedder) {
-  return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
-}
-
-// node_modules/omnilib-docs/vectorstore.js
-var MEMORY_VECTORSTORE = "MEMORY";
-var DEFAULT_VECTORSTORE_NAME = "omnitool";
-var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
-async function create_vectorstore_from_texts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
-  console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
-  let vectorstore;
-  switch (vectorstore_type) {
-    case MEMORY_VECTORSTORE:
-      vectorstore = await memory_from_texts(texts, text_ids, embedder);
-      break;
-    default:
-      throw new Error(`Vectorstore type ${vectorstore_type} not recognized`);
-  }
-  return vectorstore;
-}
-async function query_vectorstore(vector_store, query, nb_of_results = 1, embedder) {
-  const vector_query = await embedder.embedQuery(query);
-  const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
-  return results;
-}
-function get_texts_and_ids(chunks) {
-  if (is_valid(chunks) == false)
-    throw new Error(`get_texts_and_ids: chunks_list is invalid`);
-  let chunk_texts = [];
-  let chunk_ids = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const chunk_text = chunk.text;
-    const chunk_id = chunk.id;
-    chunk_ids.push({ id: chunk_id });
-    chunk_texts.push(chunk_text);
-  }
-  return [chunk_texts, chunk_ids];
-}
-async function compute_vectorstore(chunks, embedder) {
-  console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
-  if (is_valid(chunks) == false)
-    throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
-  const [all_texts, all_ids] = get_texts_and_ids(chunks);
-  console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
-  const vectorstore = await create_vectorstore_from_texts(all_texts, all_ids, embedder);
-  return vectorstore;
-}
-function clean_vectorstore_name(vectorstore_name) {
-  if (is_valid(vectorstore_name) == false)
-    throw new Error(`ERROR: vectorstore_name is invalid`);
-  const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
-  return clean_name;
-}
-
-// node_modules/omnilib-docs/embedding_Cached.js
-var Embedding_Cached = class extends Embeddings {
-  // A db-cached version of the embeddings
-  // NOTE: This is a general purpose "cached embeddings" class
-  // that can wrap any langchain embeddings model
-  constructor(ctx, embedder, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null) {
-    super(params);
-    this.embedder = embedder;
-    this.ctx = ctx;
-    this.db = ctx.app.services.get("db");
-    this.user = ctx.user;
-    this.vectorstore_name = vectorstore_name;
-    this.overwrite = false;
-    this.hasher = hasher;
-    if (!this.ctx) {
-      throw new Error(`[embeddings] Context not provided`);
-    }
-  }
-  async embedDocuments(texts) {
-    const embeddings = [];
-    if (is_valid(texts)) {
-      for (let i = 0; i < texts.length; i += 1) {
-        let text2 = texts[i];
-        const embedding = await this.embedQuery(text2);
-        embeddings.push(embedding);
-      }
-    }
-    return embeddings;
-  }
-  async embedQuery(text2) {
-    if (!is_valid(text2)) {
-      throw new Error(`[embeddings] passed text is invalid ${text2}`);
-    }
-    console_log(`[embeddings] embedQuery of: ${text2.slice(0, 128)}[...]`);
-    const embedding_id = compute_chunk_id(this.ctx, text2, this.vectorstore_name, this.hasher);
-    let embedding = null;
-    if (this.overwrite) {
-      await user_db_delete(this.ctx, embedding_id);
-    } else {
-      embedding = await user_db_get(this.ctx, embedding_id);
-    }
-    if (is_valid(embedding)) {
-      console_log(`[embeddings]: embedding found in DB - returning it`);
-      return embedding;
-    }
-    console_log(`[embeddings] Not found in DB. Generating embedding for ${text2.slice(0, 128)}[...]`);
-    try {
-      console_log(`[embeddings] Using embedded: ${this.embedder}`);
-      embedding = await this.embedder.embedQuery(text2);
-      if (!is_valid(embedding)) {
-        console_log(`[embeddings]: [WARNING] embedding ${embedding} is invalid - returning null <---------------`);
-        return null;
-      }
-      console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
-      const success = await user_db_put(this.ctx, embedding, embedding_id);
-      if (success == false) {
-        throw new Error(`[embeddings] Error saving embedding for text chunk: ${text2.slice(0, 128)}[...]`);
-      } else {
-        console_log(`[embeddings] Saved to DB`);
-      }
-      return embedding;
-    } catch (error) {
-      throw new Error(`[embeddings] Error generating embedding: ${error}`);
-    }
-  }
-};
-
-// node_modules/omnilib-utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs3 = {}) {
-  try {
-    const app = ctx.app;
-    if (!app) {
-      throw new Error(`[runBlock] app not found in ctx`);
-    }
-    const blocks = app.blocks;
-    if (!blocks) {
-      throw new Error(`[runBlock] blocks not found in app`);
-    }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
-    return result;
-  } catch (err) {
-    throw new Error(`Error running block ${block_name}: ${err}`);
-  }
-}
-
-// node_modules/omnilib-docs/embedding_Openai.js
-var Embedding_Openai = class extends Embeddings {
-  constructor(ctx, params = null) {
-    super(params);
-    this.ctx = ctx;
-  }
-  async embedDocuments(texts) {
-    const embeddings = [];
-    if (is_valid(texts)) {
-      for (let i = 0; i < texts.length; i += 1) {
-        let text2 = texts[i];
-        const embedding = await this.embedQuery(text2);
-        embeddings.push(embedding);
-      }
-    }
-    return embeddings;
-  }
-  async embedQuery(text2) {
-    console_log(`[OmniOpenAIEmbeddings] embedQuery: Requested to embed text: ${text2.slice(0, 128)}[...]`);
-    if (!is_valid(text2)) {
-      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: passed text is invalid ${text2}`);
-      return null;
-    }
-    console_log(`[OmniOpenAIEmbeddings] generating embedding for ${text2.slice(0, 128)}`);
-    try {
-      const response = await this.compute_embedding_via_runblock(this.ctx, text2);
-      console_log(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
-      const embedding = response;
-      return embedding;
-    } catch (error) {
-      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text2}
-Error: ${error}`);
-      return null;
-    }
-  }
-  async compute_embedding_via_runblock(ctx, input) {
-    let args = {};
-    args.user = ctx.userId;
-    args.input = input;
-    let response = null;
-    try {
-      response = await runBlock(ctx, "openai.embeddings", args);
-    } catch (err) {
-      let error_message = `[OmniOpenAIEmbeddings] Error running openai.embeddings: ${err.message}`;
-      console.error(error_message);
-      throw err;
-    }
-    if (response == null) {
-      throw new Error(`[OmniOpenAIEmbeddings embedding runBlock response is null`);
-    }
-    ;
-    if (response.error) {
-      throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response.error: ${response.error}`);
-    }
-    let data = response?.data || null;
-    if (is_valid(data) == false) {
-      throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response is invalid: ${JSON.stringify(response)}`);
-    }
-    ;
-    const embedding = response?.data[0]?.embedding || null;
-    return embedding;
-  }
-};
-
-// node_modules/omnilib-docs/embeddings.js
-var EMBEDDER_MODEL_OPENAI = "openai";
-var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
-var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
-function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false) {
-  let raw_embedder = null;
-  if (embedder_model == EMBEDDER_MODEL_OPENAI) {
-    raw_embedder = new Embedding_Openai(ctx);
-  } else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) {
-    throw new Error("tensorflow embedding not supported at the moment");
-  }
-  const embedder = new Embedding_Cached(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
-  if (embedder == null || embedder == void 0)
-    throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
-  return embedder;
 }
 
 // component_ChunkFiles.js
@@ -12056,7 +12042,7 @@ async function chunk_files_function(ctx, documents, overwrite = false, vectorsto
   for (let chapter_index = 0; chapter_index < chapters.length; chapter_index++) {
     const text2 = chapters[chapter_index];
     const chapter_id = compute_document_id(ctx, [text2], vectorstore_name, hasher);
-    let response = await process_chapter(ctx, text2, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model);
+    let response = await processChapter(ctx, text2, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
     const document_json = response.json;
     all_texts += text2 + "\n\n";
     all_chunks = all_chunks.concat(document_json.chunks);
@@ -16546,13 +16532,18 @@ async function getLlmChoices() {
   }
   return choices;
 }
-async function queryLlmByModelId(ctx, prompt3, instruction, model_id, temperature = 0, args = null) {
+function getBlockName(model_id) {
   const splits = getModelNameAndProviderFromId(model_id);
+  const model_name = splits.model_name;
   const model_provider = splits.model_provider;
-  let block_name = `omni-extension-document_processing:${model_provider}.llm_query`;
+  let block_name = `omni-extension-${model_provider}:${model_provider}.llm_query`;
   if (model_provider == "openai") {
     block_name = `omni-core-llms:${model_provider}.llm_query`;
   }
+  return block_name;
+}
+async function queryLlmByModelId(ctx, prompt3, instruction, model_id, temperature = 0, args = null) {
+  const block_name = getBlockName(model_id);
   const block_args = { prompt: prompt3, instruction, model_id, temperature, args };
   const response = await runBlock(ctx, block_name, block_args);
   return response;
