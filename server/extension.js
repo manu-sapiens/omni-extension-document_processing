@@ -6567,14 +6567,14 @@ function setComponentControls(component, controls) {
   return component;
 }
 
-// node_modules/omnilib-docs/hasher.js
+// omnilib-docs/hasher.js
 var Hasher = class {
   hash(text2) {
     throw new Error("You have to implement the method hash!");
   }
 };
 
-// node_modules/omnilib-docs/hasher_SHA256.js
+// omnilib-docs/hasher_SHA256.js
 import { createHash } from "crypto";
 var Hasher_SHA256 = class extends Hasher {
   constructor() {
@@ -6746,7 +6746,7 @@ function parse_text_to_array(candidate_text) {
   return texts;
 }
 
-// node_modules/omnilib-docs/hashers.js
+// omnilib-docs/hashers.js
 var HASHER_MODEL_SHA256 = "SHA256";
 var DEFAULT_HASHER_MODEL = HASHER_MODEL_SHA256;
 function compute_chunk_id(ctx, text2, vectorstore_name, hasher) {
@@ -7305,7 +7305,34 @@ function replaceSecrets(root, secretsMap) {
   }
   return result;
 }
+function get_lc_unique_name(serializableClass) {
+  const parentClass = Object.getPrototypeOf(serializableClass);
+  const lcNameIsSubclassed = typeof serializableClass.lc_name === "function" && (typeof parentClass.lc_name !== "function" || serializableClass.lc_name() !== parentClass.lc_name());
+  if (lcNameIsSubclassed) {
+    return serializableClass.lc_name();
+  } else {
+    return serializableClass.name;
+  }
+}
 var Serializable = class _Serializable {
+  /**
+   * The name of the serializable. Override to provide an alias or
+   * to preserve the serialized module name in minified environments.
+   *
+   * Implemented as a static method to support loading logic.
+   */
+  static lc_name() {
+    return this.name;
+  }
+  /**
+   * The final serialized identifier for the module.
+   */
+  get lc_id() {
+    return [
+      ...this.lc_namespace,
+      get_lc_unique_name(this.constructor)
+    ];
+  }
   /**
    * A map of secrets, which will be omitted from serialization.
    * Keys are paths to the secret in constructor args, e.g. "foo.bar.baz".
@@ -7376,7 +7403,7 @@ var Serializable = class _Serializable {
     return {
       lc: 1,
       type: "constructor",
-      id: [...this.lc_namespace, this.constructor.name],
+      id: this.lc_id,
       kwargs: mapKeys(Object.keys(secrets).length ? replaceSecrets(kwargs, secrets) : kwargs, keyToJson, aliases)
     };
   }
@@ -7384,7 +7411,7 @@ var Serializable = class _Serializable {
     return {
       lc: 1,
       type: "not_implemented",
-      id: [...this.lc_namespace, this.constructor.name]
+      id: this.lc_id
     };
   }
 };
@@ -7404,6 +7431,24 @@ var BaseCallbackHandler = class _BaseCallbackHandler extends BaseCallbackHandler
   }
   get lc_aliases() {
     return void 0;
+  }
+  /**
+   * The name of the serializable. Override to provide an alias or
+   * to preserve the serialized module name in minified environments.
+   *
+   * Implemented as a static method to support loading logic.
+   */
+  static lc_name() {
+    return this.name;
+  }
+  /**
+   * The final serialized identifier for the module.
+   */
+  get lc_id() {
+    return [
+      ...this.lc_namespace,
+      get_lc_unique_name(this.constructor)
+    ];
   }
   constructor(input) {
     super();
@@ -7490,6 +7535,9 @@ var BaseCallbackHandler = class _BaseCallbackHandler extends BaseCallbackHandler
 var import_ansi_styles = __toESM(require_ansi_styles(), 1);
 
 // node_modules/langchain/dist/callbacks/handlers/tracer.js
+function _coerceToDict(value, defaultKey) {
+  return value && !Array.isArray(value) && typeof value === "object" ? value : { [defaultKey]: value };
+}
 var BaseTracer = class extends BaseCallbackHandler {
   constructor(_fields) {
     super(...arguments);
@@ -7511,6 +7559,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       const parentRun = this.runMap.get(run.parent_run_id);
       if (parentRun) {
         this._addChildRun(parentRun, run);
+        parentRun.child_execution_order = Math.max(parentRun.child_execution_order, run.child_execution_order);
       }
     }
     this.runMap.set(run.id, run);
@@ -7544,7 +7593,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       events: [
         {
           name: "start",
-          time: start_time
+          time: new Date(start_time).toISOString()
         }
       ],
       inputs: { prompts },
@@ -7571,7 +7620,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       events: [
         {
           name: "start",
-          time: start_time
+          time: new Date(start_time).toISOString()
         }
       ],
       inputs: { messages },
@@ -7594,7 +7643,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.outputs = output;
     run.events.push({
       name: "end",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onLLMEnd?.(run);
     await this._endTrace(run);
@@ -7608,7 +7657,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.error = error.message;
     run.events.push({
       name: "error",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onLLMError?.(run);
     await this._endTrace(run);
@@ -7625,7 +7674,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       events: [
         {
           name: "start",
-          time: start_time
+          time: new Date(start_time).toISOString()
         }
       ],
       inputs: inputs3,
@@ -7639,21 +7688,24 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs3, runId) {
+  async handleChainEnd(outputs3, runId, _parentRunId, _tags, kwargs) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = outputs3;
+    run.outputs = _coerceToDict(outputs3, "output");
     run.events.push({
       name: "end",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
+    if (kwargs?.inputs !== void 0) {
+      run.inputs = _coerceToDict(kwargs.inputs, "input");
+    }
     await this.onChainEnd?.(run);
     await this._endTrace(run);
   }
-  async handleChainError(error, runId) {
+  async handleChainError(error, runId, _parentRunId, _tags, kwargs) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
@@ -7662,8 +7714,11 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.error = error.message;
     run.events.push({
       name: "error",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
+    if (kwargs?.inputs !== void 0) {
+      run.inputs = _coerceToDict(kwargs.inputs, "input");
+    }
     await this.onChainError?.(run);
     await this._endTrace(run);
   }
@@ -7679,7 +7734,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       events: [
         {
           name: "start",
-          time: start_time
+          time: new Date(start_time).toISOString()
         }
       ],
       inputs: { input },
@@ -7702,7 +7757,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.outputs = { output };
     run.events.push({
       name: "end",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onToolEnd?.(run);
     await this._endTrace(run);
@@ -7716,7 +7771,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.error = error.message;
     run.events.push({
       name: "error",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onToolError?.(run);
     await this._endTrace(run);
@@ -7731,7 +7786,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     agentRun.actions.push(action);
     agentRun.events.push({
       name: "agent_action",
-      time: Date.now(),
+      time: (/* @__PURE__ */ new Date()).toISOString(),
       kwargs: { action }
     });
     await this.onAgentAction?.(run);
@@ -7743,7 +7798,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     }
     run.events.push({
       name: "agent_end",
-      time: Date.now(),
+      time: (/* @__PURE__ */ new Date()).toISOString(),
       kwargs: { action }
     });
     await this.onAgentEnd?.(run);
@@ -7760,7 +7815,7 @@ var BaseTracer = class extends BaseCallbackHandler {
       events: [
         {
           name: "start",
-          time: start_time
+          time: new Date(start_time).toISOString()
         }
       ],
       inputs: { query },
@@ -7783,7 +7838,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.outputs = { documents };
     run.events.push({
       name: "end",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onRetrieverEnd?.(run);
     await this._endTrace(run);
@@ -7797,7 +7852,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     run.error = error.message;
     run.events.push({
       name: "error",
-      time: run.end_time
+      time: new Date(run.end_time).toISOString()
     });
     await this.onRetrieverError?.(run);
     await this._endTrace(run);
@@ -7809,20 +7864,20 @@ var BaseTracer = class extends BaseCallbackHandler {
     }
     run.events.push({
       name: "text",
-      time: Date.now(),
+      time: (/* @__PURE__ */ new Date()).toISOString(),
       kwargs: { text: text2 }
     });
     await this.onText?.(run);
   }
-  async handleLLMNewToken(token, idx, runId) {
+  async handleLLMNewToken(token, idx, runId, _parentRunId, _tags, fields) {
     const run = this.runMap.get(runId);
     if (!run || run?.run_type !== "llm") {
       return;
     }
     run.events.push({
       name: "new_token",
-      time: Date.now(),
-      kwargs: { token, idx }
+      time: (/* @__PURE__ */ new Date()).toISOString(),
+      kwargs: { token, idx, chunk: fields?.chunk }
     });
     await this.onLLMNewToken?.(run);
   }
@@ -7859,10 +7914,21 @@ var ConsoleCallbackHandler = class extends BaseTracer {
       value: "console_callback_handler"
     });
   }
+  /**
+   * Method used to persist the run. In this case, it simply returns a
+   * resolved promise as there's no persistence logic.
+   * @param _run The run to persist.
+   * @returns A resolved promise.
+   */
   persistRun(_run) {
     return Promise.resolve();
   }
   // utility methods
+  /**
+   * Method used to get all the parent runs of a given run.
+   * @param run The run whose parents are to be retrieved.
+   * @returns An array of parent runs.
+   */
   getParents(run) {
     const parents = [];
     let currentRun = run;
@@ -7877,6 +7943,12 @@ var ConsoleCallbackHandler = class extends BaseTracer {
     }
     return parents;
   }
+  /**
+   * Method used to get a string representation of the run's lineage, which
+   * is used in logging.
+   * @param run The run whose lineage is to be retrieved.
+   * @returns A string representation of the run's lineage.
+   */
   getBreadcrumbs(run) {
     const parents = this.getParents(run).reverse();
     const string = [...parents, run].map((parent, i, arr) => {
@@ -7886,55 +7958,120 @@ var ConsoleCallbackHandler = class extends BaseTracer {
     return wrap(color.grey, string);
   }
   // logging methods
+  /**
+   * Method used to log the start of a chain run.
+   * @param run The chain run that has started.
+   * @returns void
+   */
   onChainStart(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.green, "[chain/start]")} [${crumbs}] Entering Chain run with input: ${tryJsonStringify(run.inputs, "[inputs]")}`);
   }
+  /**
+   * Method used to log the end of a chain run.
+   * @param run The chain run that has ended.
+   * @returns void
+   */
   onChainEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.cyan, "[chain/end]")} [${crumbs}] [${elapsed(run)}] Exiting Chain run with output: ${tryJsonStringify(run.outputs, "[outputs]")}`);
   }
+  /**
+   * Method used to log any errors of a chain run.
+   * @param run The chain run that has errored.
+   * @returns void
+   */
   onChainError(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.red, "[chain/error]")} [${crumbs}] [${elapsed(run)}] Chain run errored with error: ${tryJsonStringify(run.error, "[error]")}`);
   }
+  /**
+   * Method used to log the start of an LLM run.
+   * @param run The LLM run that has started.
+   * @returns void
+   */
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
     const inputs3 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p2) => p2.trim()) } : run.inputs;
     console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs3, "[inputs]")}`);
   }
+  /**
+   * Method used to log the end of an LLM run.
+   * @param run The LLM run that has ended.
+   * @returns void
+   */
   onLLMEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.cyan, "[llm/end]")} [${crumbs}] [${elapsed(run)}] Exiting LLM run with output: ${tryJsonStringify(run.outputs, "[response]")}`);
   }
+  /**
+   * Method used to log any errors of an LLM run.
+   * @param run The LLM run that has errored.
+   * @returns void
+   */
   onLLMError(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.red, "[llm/error]")} [${crumbs}] [${elapsed(run)}] LLM run errored with error: ${tryJsonStringify(run.error, "[error]")}`);
   }
+  /**
+   * Method used to log the start of a tool run.
+   * @param run The tool run that has started.
+   * @returns void
+   */
   onToolStart(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.green, "[tool/start]")} [${crumbs}] Entering Tool run with input: "${run.inputs.input?.trim()}"`);
   }
+  /**
+   * Method used to log the end of a tool run.
+   * @param run The tool run that has ended.
+   * @returns void
+   */
   onToolEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.cyan, "[tool/end]")} [${crumbs}] [${elapsed(run)}] Exiting Tool run with output: "${run.outputs?.output?.trim()}"`);
   }
+  /**
+   * Method used to log any errors of a tool run.
+   * @param run The tool run that has errored.
+   * @returns void
+   */
   onToolError(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.red, "[tool/error]")} [${crumbs}] [${elapsed(run)}] Tool run errored with error: ${tryJsonStringify(run.error, "[error]")}`);
   }
+  /**
+   * Method used to log the start of a retriever run.
+   * @param run The retriever run that has started.
+   * @returns void
+   */
   onRetrieverStart(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.green, "[retriever/start]")} [${crumbs}] Entering Retriever run with input: ${tryJsonStringify(run.inputs, "[inputs]")}`);
   }
+  /**
+   * Method used to log the end of a retriever run.
+   * @param run The retriever run that has ended.
+   * @returns void
+   */
   onRetrieverEnd(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.cyan, "[retriever/end]")} [${crumbs}] [${elapsed(run)}] Exiting Retriever run with output: ${tryJsonStringify(run.outputs, "[outputs]")}`);
   }
+  /**
+   * Method used to log any errors of a retriever run.
+   * @param run The retriever run that has errored.
+   * @returns void
+   */
   onRetrieverError(run) {
     const crumbs = this.getBreadcrumbs(run);
     console.log(`${wrap(color.red, "[retriever/error]")} [${crumbs}] [${elapsed(run)}] Retriever run errored with error: ${tryJsonStringify(run.error, "[error]")}`);
   }
+  /**
+   * Method used to log the action selected by the agent.
+   * @param run The run in which the agent action occurred.
+   * @returns void
+   */
   onAgentAction(run) {
     const agentRun = run;
     const crumbs = this.getBreadcrumbs(run);
@@ -8910,7 +9047,8 @@ var LangChainTracer = class extends BaseTracer {
       end_time: run.end_time,
       error: run.error,
       outputs: run.outputs,
-      events: run.events
+      events: run.events,
+      inputs: run.inputs
     };
     await this.client.updateRun(run.id, runUpdate);
   }
@@ -9308,11 +9446,11 @@ var CallbackManagerForRetrieverRun = class extends BaseRunManager {
   }
 };
 var CallbackManagerForLLMRun = class extends BaseRunManager {
-  async handleLLMNewToken(token, idx = { prompt: 0, completion: 0 }) {
+  async handleLLMNewToken(token, idx, _runId, _parentRunId, _tags, fields) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreLLM) {
         try {
-          await handler.handleLLMNewToken?.(token, idx, this.runId, this._parentRunId, this.tags);
+          await handler.handleLLMNewToken?.(token, idx ?? { prompt: 0, completion: 0 }, this.runId, this._parentRunId, this.tags, fields);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleLLMNewToken: ${err}`);
         }
@@ -9353,22 +9491,22 @@ var CallbackManagerForChainRun = class extends BaseRunManager {
     }
     return manager;
   }
-  async handleChainError(err) {
+  async handleChainError(err, _runId, _parentRunId, _tags, kwargs) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainError?.(err, this.runId, this._parentRunId, this.tags);
+          await handler.handleChainError?.(err, this.runId, this._parentRunId, this.tags, kwargs);
         } catch (err2) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainError: ${err2}`);
         }
       }
     }, handler.awaitHandlers)));
   }
-  async handleChainEnd(output) {
+  async handleChainEnd(output, _runId, _parentRunId, _tags, kwargs) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainEnd?.(output, this.runId, this._parentRunId, this.tags);
+          await handler.handleChainEnd?.(output, this.runId, this._parentRunId, this.tags, kwargs);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainEnd: ${err}`);
         }
@@ -9652,7 +9790,7 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       callbackManager = callbackManager.copy(Array.isArray(localHandlers) ? localHandlers.map(ensureHandler) : localHandlers?.handlers, false);
     }
     const verboseEnabled = getEnvironmentVariable2("LANGCHAIN_VERBOSE") || options3?.verbose;
-    const tracingV2Enabled = getEnvironmentVariable2("LANGCHAIN_TRACING_V2") ?? false;
+    const tracingV2Enabled = getEnvironmentVariable2("LANGCHAIN_TRACING_V2") === "true";
     const tracingEnabled = tracingV2Enabled || (getEnvironmentVariable2("LANGCHAIN_TRACING") ?? false);
     if (verboseEnabled || tracingEnabled) {
       if (!callbackManager) {
@@ -9731,6 +9869,24 @@ var IterableReadableStream = class _IterableReadableStream extends ReadableStrea
   [Symbol.asyncIterator]() {
     return this;
   }
+  static fromReadableStream(stream) {
+    const reader = stream.getReader();
+    return new _IterableReadableStream({
+      start(controller) {
+        return pump();
+        function pump() {
+          return reader.read().then(({ done, value }) => {
+            if (done) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(value);
+            return pump();
+          });
+        }
+      }
+    });
+  }
   static fromAsyncGenerator(generator) {
     return new _IterableReadableStream({
       async pull(controller) {
@@ -9746,7 +9902,7 @@ var IterableReadableStream = class _IterableReadableStream extends ReadableStrea
 };
 
 // node_modules/langchain/dist/schema/runnable.js
-function _coerceToDict(value, defaultKey) {
+function _coerceToDict2(value, defaultKey) {
   return value && !Array.isArray(value) && typeof value === "object" ? value : { [defaultKey]: value };
 }
 var Runnable = class extends Serializable {
@@ -9759,8 +9915,25 @@ var Runnable = class extends Serializable {
       value: true
     });
   }
+  /**
+   * Bind arguments to a Runnable, returning a new Runnable.
+   * @param kwargs
+   * @returns A new RunnableBinding that, when invoked, will apply the bound args.
+   */
   bind(kwargs) {
     return new RunnableBinding({ bound: this, kwargs });
+  }
+  /**
+   * Create a new runnable from the current one that will try invoking
+   * other passed fallback runnables if the initial invocation fails.
+   * @param fields.fallbacks Other runnables to call if the runnable errors.
+   * @returns A new RunnableWithFallbacks.
+   */
+  withFallbacks(fields) {
+    return new RunnableWithFallbacks({
+      runnable: this,
+      fallbacks: fields.fallbacks
+    });
   }
   _getOptionsList(options3, length = 0) {
     if (Array.isArray(options3)) {
@@ -9771,20 +9944,40 @@ var Runnable = class extends Serializable {
     }
     return Array.from({ length }, () => options3);
   }
+  /**
+   * Default implementation of batch, which calls invoke N times.
+   * Subclasses should override this method if they can batch more efficiently.
+   * @param inputs Array of inputs to each batch call.
+   * @param options Either a single call options object to apply to each batch call or an array for each call.
+   * @param batchOptions.maxConcurrency Maximum number of calls to run at once.
+   * @returns An array of RunOutputs
+   */
   async batch(inputs3, options3, batchOptions) {
     const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
     const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs3.length;
     const batchResults = [];
     for (let i = 0; i < inputs3.length; i += batchSize) {
-      const batchPromises = inputs3.slice(i, i + batchSize).map((input, i2) => this.invoke(input, configList[i2]));
+      const batchPromises = inputs3.slice(i, i + batchSize).map((input, j2) => this.invoke(input, configList[j2]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
     return batchResults.flat();
   }
+  /**
+   * Default streaming implementation.
+   * Subclasses should override this method if they support streaming output.
+   * @param input
+   * @param options
+   */
   async *_streamIterator(input, options3) {
     yield this.invoke(input, options3);
   }
+  /**
+   * Stream output in chunks.
+   * @param input
+   * @param options
+   * @returns A readable stream that is also an iterable.
+   */
   async stream(input, options3) {
     return IterableReadableStream.fromAsyncGenerator(this._streamIterator(input, options3));
   }
@@ -9802,7 +9995,7 @@ var Runnable = class extends Serializable {
   }
   async _callWithConfig(func, input, options3) {
     const callbackManager_ = await CallbackManager.configure(options3?.callbacks, void 0, options3?.tags, void 0, options3?.metadata);
-    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict(input, "input"), void 0, options3?.runType);
+    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict2(input, "input"), void 0, options3?.runType);
     let output;
     try {
       output = await func.bind(this)(input);
@@ -9810,39 +10003,77 @@ var Runnable = class extends Serializable {
       await runManager?.handleChainError(e);
       throw e;
     }
-    await runManager?.handleChainEnd(_coerceToDict(output, "output"));
+    await runManager?.handleChainEnd(_coerceToDict2(output, "output"));
     return output;
   }
-  async *_streamWithConfig(generator, options3) {
+  /**
+   * Helper method to transform an Iterator of Input values into an Iterator of
+   * Output values, with callbacks.
+   * Use this to implement `stream()` or `transform()` in Runnable subclasses.
+   */
+  async *_transformStreamWithConfig(inputGenerator, transformer, options3) {
+    let finalInput;
+    let finalInputSupported = true;
+    let finalOutput;
+    let finalOutputSupported = true;
     const callbackManager_ = await CallbackManager.configure(options3?.callbacks, void 0, options3?.tags, void 0, options3?.metadata);
-    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict("<streamed value>", "input"), void 0, options3?.runType);
-    let output;
-    let concatSupported = true;
-    try {
-      for await (const chunk of generator) {
-        yield chunk;
-        if (concatSupported) {
-          if (output === void 0) {
-            output = chunk;
+    let runManager;
+    const serializedRepresentation = this.toJSON();
+    async function* wrapInputForTracing() {
+      for await (const chunk of inputGenerator) {
+        if (!runManager) {
+          runManager = await callbackManager_?.handleChainStart(serializedRepresentation, { input: "" }, void 0, options3?.runType);
+        }
+        if (finalInputSupported) {
+          if (finalInput === void 0) {
+            finalInput = chunk;
           } else {
             try {
-              output = output.concat(chunk);
-            } catch (e) {
-              output = void 0;
-              concatSupported = false;
+              finalInput = finalInput.concat(chunk);
+            } catch {
+              finalInput = void 0;
+              finalInputSupported = false;
+            }
+          }
+        }
+        yield chunk;
+      }
+    }
+    const wrappedInputGenerator = wrapInputForTracing();
+    try {
+      const outputIterator = transformer(wrappedInputGenerator, runManager, options3);
+      for await (const chunk of outputIterator) {
+        yield chunk;
+        if (finalOutputSupported) {
+          if (finalOutput === void 0) {
+            finalOutput = chunk;
+          } else {
+            try {
+              finalOutput = finalOutput.concat(chunk);
+            } catch {
+              finalOutput = void 0;
+              finalOutputSupported = false;
             }
           }
         }
       }
     } catch (e) {
-      await runManager?.handleChainError(e);
+      await runManager?.handleChainError(e, void 0, void 0, void 0, {
+        inputs: _coerceToDict2(finalInput, "input")
+      });
       throw e;
     }
-    await runManager?.handleChainEnd(_coerceToDict(output, "output"));
+    await runManager?.handleChainEnd(finalOutput ?? {}, void 0, void 0, void 0, { inputs: _coerceToDict2(finalInput, "input") });
   }
   _patchConfig(config = {}, callbackManager = void 0) {
     return { ...config, callbacks: callbackManager };
   }
+  /**
+   * Create a new runnable sequence that runs each individual runnable in series,
+   * piping the output of one runnable into another runnable or runnable-like.
+   * @param coerceable A runnable, function, or object whose values are functions or runnables.
+   * @returns A new runnable sequence.
+   */
   pipe(coerceable) {
     return new RunnableSequence({
       first: this,
@@ -9855,6 +10086,9 @@ var Runnable = class extends Serializable {
   }
 };
 var RunnableSequence = class _RunnableSequence extends Runnable {
+  static lc_name() {
+    return "RunnableSequence";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "first", {
@@ -9885,7 +10119,7 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
       enumerable: true,
       configurable: true,
       writable: true,
-      value: ["schema", "runnable"]
+      value: ["langchain", "schema", "runnable"]
     });
     this.first = fields.first;
     this.middle = fields.middle ?? this.middle;
@@ -9896,7 +10130,7 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
   }
   async invoke(input, options3) {
     const callbackManager_ = await CallbackManager.configure(options3?.callbacks, void 0, options3?.tags, void 0, options3?.metadata);
-    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict(input, "input"));
+    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict2(input, "input"));
     let nextStepInput = input;
     let finalOutput;
     try {
@@ -9908,31 +10142,31 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
       await runManager?.handleChainError(e);
       throw e;
     }
-    await runManager?.handleChainEnd(_coerceToDict(finalOutput, "output"));
+    await runManager?.handleChainEnd(_coerceToDict2(finalOutput, "output"));
     return finalOutput;
   }
   async batch(inputs3, options3, batchOptions) {
     const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict(inputs3[i], "input"))));
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
     let nextStepInputs = inputs3;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
         const step = this.steps[i];
-        nextStepInputs = await step.batch(nextStepInputs, runManagers.map((runManager) => this._patchConfig(configList[i], runManager?.getChild()), batchOptions));
+        nextStepInputs = await step.batch(nextStepInputs, runManagers.map((runManager, j2) => this._patchConfig(configList[j2], runManager?.getChild())), batchOptions);
       }
-      finalOutputs = await this.last.batch(nextStepInputs, runManagers.map((runManager) => this._patchConfig(configList[this.steps.length - 1], runManager?.getChild()), batchOptions));
+      finalOutputs = await this.last.batch(nextStepInputs, runManagers.map((runManager) => this._patchConfig(configList[this.steps.length - 1], runManager?.getChild())), batchOptions);
     } catch (e) {
       await Promise.all(runManagers.map((runManager) => runManager?.handleChainError(e)));
       throw e;
     }
-    await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict(finalOutputs[i], "output"))));
+    await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(finalOutputs[i], "output"))));
     return finalOutputs;
   }
   async *_streamIterator(input, options3) {
     const callbackManager_ = await CallbackManager.configure(options3?.callbacks, void 0, options3?.tags, void 0, options3?.metadata);
-    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict(input, "input"));
+    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict2(input, "input"));
     let nextStepInput = input;
     const steps = [this.first, ...this.middle, this.last];
     const streamingStartStepIndex = steps.length - [...steps].reverse().findIndex((step) => typeof step.transform !== "function") - 1;
@@ -9970,7 +10204,7 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
       await runManager?.handleChainError(e);
       throw e;
     }
-    await runManager?.handleChainEnd(_coerceToDict(finalOutput, "output"));
+    await runManager?.handleChainEnd(_coerceToDict2(finalOutput, "output"));
   }
   pipe(coerceable) {
     if (_RunnableSequence.isRunnableSequence(coerceable)) {
@@ -10004,13 +10238,16 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
   }
 };
 var RunnableMap = class extends Runnable {
+  static lc_name() {
+    return "RunnableMap";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "lc_namespace", {
       enumerable: true,
       configurable: true,
       writable: true,
-      value: ["schema", "runnable"]
+      value: ["langchain", "schema", "runnable"]
     });
     Object.defineProperty(this, "lc_serializable", {
       enumerable: true,
@@ -10049,13 +10286,16 @@ var RunnableMap = class extends Runnable {
   }
 };
 var RunnableLambda = class extends Runnable {
+  static lc_name() {
+    return "RunnableLambda";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "lc_namespace", {
       enumerable: true,
       configurable: true,
       writable: true,
-      value: ["schema", "runnable"]
+      value: ["langchain", "schema", "runnable"]
     });
     Object.defineProperty(this, "func", {
       enumerable: true,
@@ -10069,30 +10309,17 @@ var RunnableLambda = class extends Runnable {
     return this._callWithConfig(async (input2) => this.func(input2), input, options3);
   }
 };
-function _coerceToRunnable(coerceable) {
-  if (typeof coerceable === "function") {
-    return new RunnableLambda({ func: coerceable });
-  } else if (Runnable.isRunnable(coerceable)) {
-    return coerceable;
-  } else if (!Array.isArray(coerceable) && typeof coerceable === "object") {
-    const runnables = {};
-    for (const [key, value] of Object.entries(coerceable)) {
-      runnables[key] = _coerceToRunnable(value);
-    }
-    return new RunnableMap({ steps: runnables });
-  } else {
-    throw new Error(`Expected a Runnable, function or object.
-Instead got an unsupported type.`);
-  }
-}
 var RunnableBinding = class _RunnableBinding extends Runnable {
+  static lc_name() {
+    return "RunnableBinding";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "lc_namespace", {
       enumerable: true,
       configurable: true,
       writable: true,
-      value: ["schema", "runnable"]
+      value: ["langchain", "schema", "runnable"]
     });
     Object.defineProperty(this, "lc_serializable", {
       enumerable: true,
@@ -10135,6 +10362,105 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
     return this.bound.stream(input, { ...options3, ...this.kwargs });
   }
 };
+var RunnableWithFallbacks = class extends Runnable {
+  static lc_name() {
+    return "RunnableWithFallbacks";
+  }
+  constructor(fields) {
+    super(fields);
+    Object.defineProperty(this, "lc_namespace", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: ["langchain", "schema", "runnable"]
+    });
+    Object.defineProperty(this, "lc_serializable", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: true
+    });
+    Object.defineProperty(this, "runnable", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    Object.defineProperty(this, "fallbacks", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
+    this.runnable = fields.runnable;
+    this.fallbacks = fields.fallbacks;
+  }
+  *runnables() {
+    yield this.runnable;
+    for (const fallback of this.fallbacks) {
+      yield fallback;
+    }
+  }
+  async invoke(input, options3) {
+    const callbackManager_ = await CallbackManager.configure(options3?.callbacks, void 0, options3?.tags, void 0, options3?.metadata);
+    const runManager = await callbackManager_?.handleChainStart(this.toJSON(), _coerceToDict2(input, "input"));
+    let firstError;
+    for (const runnable of this.runnables()) {
+      try {
+        const output = await runnable.invoke(input, this._patchConfig(options3, runManager?.getChild()));
+        await runManager?.handleChainEnd(_coerceToDict2(output, "output"));
+        return output;
+      } catch (e) {
+        if (firstError === void 0) {
+          firstError = e;
+        }
+      }
+    }
+    if (firstError === void 0) {
+      throw new Error("No error stored at end of fallback.");
+    }
+    await runManager?.handleChainError(firstError);
+    throw firstError;
+  }
+  async batch(inputs3, options3, batchOptions) {
+    const configList = this._getOptionsList(options3 ?? {}, inputs3.length);
+    const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
+    let firstError;
+    for (const runnable of this.runnables()) {
+      try {
+        const outputs3 = await runnable.batch(inputs3, runManagers.map((runManager, j2) => this._patchConfig(configList[j2], runManager?.getChild())), batchOptions);
+        await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(outputs3[i], "output"))));
+        return outputs3;
+      } catch (e) {
+        if (firstError === void 0) {
+          firstError = e;
+        }
+      }
+    }
+    if (!firstError) {
+      throw new Error("No error stored at end of fallbacks.");
+    }
+    await Promise.all(runManagers.map((runManager) => runManager?.handleChainError(firstError)));
+    throw firstError;
+  }
+};
+function _coerceToRunnable(coerceable) {
+  if (typeof coerceable === "function") {
+    return new RunnableLambda({ func: coerceable });
+  } else if (Runnable.isRunnable(coerceable)) {
+    return coerceable;
+  } else if (!Array.isArray(coerceable) && typeof coerceable === "object") {
+    const runnables = {};
+    for (const [key, value] of Object.entries(coerceable)) {
+      runnables[key] = _coerceToRunnable(value);
+    }
+    return new RunnableMap({ steps: runnables });
+  } else {
+    throw new Error(`Expected a Runnable, function or object.
+Instead got an unsupported type.`);
+  }
+}
 
 // node_modules/langchain/dist/schema/document.js
 var BaseDocumentTransformer = class extends Runnable {
@@ -10147,6 +10473,13 @@ var BaseDocumentTransformer = class extends Runnable {
       value: ["langchain", "document_transformers"]
     });
   }
+  /**
+   * Method to invoke the document transformation. This method calls the
+   * transformDocuments method with the provided input.
+   * @param input The input documents to be transformed.
+   * @param _options Optional configuration object to customize the behavior of callbacks.
+   * @returns A Promise that resolves to the transformed documents.
+   */
   invoke(input, _options) {
     return this.transformDocuments(input);
   }
@@ -10314,6 +10647,9 @@ var SupportedTextSplitterLanguages = [
   "sol"
 ];
 var RecursiveCharacterTextSplitter = class _RecursiveCharacterTextSplitter extends TextSplitter {
+  static lc_name() {
+    return "RecursiveCharacterTextSplitter";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "separators", {
@@ -10723,6 +11059,9 @@ var RecursiveCharacterTextSplitter = class _RecursiveCharacterTextSplitter exten
   }
 };
 var TokenTextSplitter = class extends TextSplitter {
+  static lc_name() {
+    return "TokenTextSplitter";
+  }
   constructor(fields) {
     super(fields);
     Object.defineProperty(this, "encodingName", {
@@ -10772,8 +11111,8 @@ var TokenTextSplitter = class extends TextSplitter {
   }
 };
 
-// node_modules/omnilib-docs/chunking.js
-var DEFAULT_CHUNK_SIZE = 512;
+// omnilib-docs/chunking.js
+var DEFAULT_CHUNK_SIZE = 4096;
 var DEFAULT_CHUNK_OVERLAP = 64;
 var EMBEDDING_BATCH_SIZE = 10;
 async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, embedder, splitter, tokenCounterFunction) {
@@ -10840,7 +11179,7 @@ async function processChapter(ctx, chapter_text, vectorstore_name, hasher, embed
   return { cdn: chapter_cdn, json: chapter_json };
 }
 
-// node_modules/omnilib-docs/splitter.js
+// omnilib-docs/splitter.js
 var SPLITTER_MODEL_RECURSIVE = "RecursiveCharacterTextSplitter";
 var SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
 var SPLITTER_MODEL_CODE = "CodeSplitter_";
@@ -10951,6 +11290,16 @@ var BaseRetriever = class extends Runnable {
   async invoke(input, options3) {
     return this.getRelevantDocuments(input, options3);
   }
+  /**
+   * Main method used to retrieve relevant documents. It takes a query
+   * string and an optional configuration object, and returns a promise that
+   * resolves to an array of `Document` objects. This method handles the
+   * retrieval process, including starting and ending callbacks, and error
+   * handling.
+   * @param query The query string to retrieve relevant documents for.
+   * @param config Optional configuration object for the retrieval process.
+   * @returns A promise that resolves to an array of `Document` objects.
+   */
   async getRelevantDocuments(query, config) {
     const parsedConfig = parseCallbackConfigArg(config);
     const callbackManager_ = await CallbackManager.configure(parsedConfig.callbacks, this.callbacks, parsedConfig.tags, this.tags, parsedConfig.metadata, this.metadata, { verbose: this.verbose });
@@ -10968,6 +11317,9 @@ var BaseRetriever = class extends Runnable {
 
 // node_modules/langchain/dist/vectorstores/base.js
 var VectorStoreRetriever = class extends BaseRetriever {
+  static lc_name() {
+    return "VectorStoreRetriever";
+  }
   get lc_namespace() {
     return ["langchain", "retrievers", "base"];
   }
@@ -11120,10 +11472,25 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
     });
     this.similarity = similarity ?? import_ml_distance.similarity.cosine;
   }
+  /**
+   * Method to add documents to the memory vector store. It extracts the
+   * text from each document, generates embeddings for them, and adds the
+   * resulting vectors to the store.
+   * @param documents Array of `Document` instances to be added to the store.
+   * @returns Promise that resolves when all documents have been added.
+   */
   async addDocuments(documents) {
     const texts = documents.map(({ pageContent }) => pageContent);
     return this.addVectors(await this.embeddings.embedDocuments(texts), documents);
   }
+  /**
+   * Method to add vectors to the memory vector store. It creates
+   * `MemoryVector` instances for each vector and document pair and adds
+   * them to the store.
+   * @param vectors Array of vectors to be added to the store.
+   * @param documents Array of `Document` instances corresponding to the vectors.
+   * @returns Promise that resolves when all vectors have been added.
+   */
   async addVectors(vectors, documents) {
     const memoryVectors = vectors.map((embedding, idx) => ({
       content: documents[idx].pageContent,
@@ -11132,6 +11499,16 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
     }));
     this.memoryVectors = this.memoryVectors.concat(memoryVectors);
   }
+  /**
+   * Method to perform a similarity search in the memory vector store. It
+   * calculates the similarity between the query vector and each vector in
+   * the store, sorts the results by similarity, and returns the top `k`
+   * results along with their scores.
+   * @param query Query vector to compare against the vectors in the store.
+   * @param k Number of top results to return.
+   * @param filter Optional filter function to apply to the vectors before performing the search.
+   * @returns Promise that resolves with an array of tuples, each containing a `Document` and its similarity score.
+   */
   async similaritySearchVectorWithScore(query, k, filter2) {
     const filterFunction = (memoryVector) => {
       if (!filter2) {
@@ -11157,6 +11534,16 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
     ]);
     return result;
   }
+  /**
+   * Static method to create a `MemoryVectorStore` instance from an array of
+   * texts. It creates a `Document` for each text and metadata pair, and
+   * adds them to the store.
+   * @param texts Array of texts to be added to the store.
+   * @param metadatas Array or single object of metadata corresponding to the texts.
+   * @param embeddings `Embeddings` instance used to generate embeddings for the texts.
+   * @param dbConfig Optional `MemoryVectorStoreArgs` to configure the `MemoryVectorStore` instance.
+   * @returns Promise that resolves with a new `MemoryVectorStore` instance.
+   */
   static async fromTexts(texts, metadatas, embeddings, dbConfig) {
     const docs = [];
     for (let i = 0; i < texts.length; i += 1) {
@@ -11169,23 +11556,39 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
     }
     return _MemoryVectorStore.fromDocuments(docs, embeddings, dbConfig);
   }
+  /**
+   * Static method to create a `MemoryVectorStore` instance from an array of
+   * `Document` instances. It adds the documents to the store.
+   * @param docs Array of `Document` instances to be added to the store.
+   * @param embeddings `Embeddings` instance used to generate embeddings for the documents.
+   * @param dbConfig Optional `MemoryVectorStoreArgs` to configure the `MemoryVectorStore` instance.
+   * @returns Promise that resolves with a new `MemoryVectorStore` instance.
+   */
   static async fromDocuments(docs, embeddings, dbConfig) {
     const instance = new this(embeddings, dbConfig);
     await instance.addDocuments(docs);
     return instance;
   }
+  /**
+   * Static method to create a `MemoryVectorStore` instance from an existing
+   * index. It creates a new `MemoryVectorStore` instance without adding any
+   * documents or vectors.
+   * @param embeddings `Embeddings` instance used to generate embeddings for the documents.
+   * @param dbConfig Optional `MemoryVectorStoreArgs` to configure the `MemoryVectorStore` instance.
+   * @returns Promise that resolves with a new `MemoryVectorStore` instance.
+   */
   static async fromExistingIndex(embeddings, dbConfig) {
     const instance = new this(embeddings, dbConfig);
     return instance;
   }
 };
 
-// node_modules/omnilib-docs/vectorstore_Memory.js
+// omnilib-docs/vectorstore_Memory.js
 async function memory_from_texts(texts, text_ids, embedder) {
   return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
 }
 
-// node_modules/omnilib-docs/vectorstore.js
+// omnilib-docs/vectorstore.js
 var MEMORY_VECTORSTORE = "MEMORY";
 var DEFAULT_VECTORSTORE_NAME = "omnitool";
 var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
@@ -11236,7 +11639,7 @@ function clean_vectorstore_name(vectorstore_name) {
   return clean_name;
 }
 
-// node_modules/omnilib-docs/embedding_Cached.js
+// omnilib-docs/embedding_Cached.js
 var Embedding_Cached = class extends Embeddings {
   // A db-cached version of the embeddings
   // NOTE: This is a general purpose "cached embeddings" class
@@ -11321,7 +11724,7 @@ async function runBlock(ctx, block_name, args, outputs3 = {}) {
   }
 }
 
-// node_modules/omnilib-docs/embedding_Openai.js
+// omnilib-docs/embedding_Openai.js
 var Embedding_Openai = class extends Embeddings {
   constructor(ctx, params = null) {
     super(params);
@@ -11385,7 +11788,7 @@ Error: ${error}`);
   }
 };
 
-// node_modules/omnilib-docs/embeddings.js
+// omnilib-docs/embeddings.js
 var EMBEDDER_MODEL_OPENAI = "openai";
 var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
 var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
@@ -16962,7 +17365,7 @@ async function async_getDocsWithGptComponent() {
     { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name", defaultValue: "default" },
+    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name", defaultValue: "my_library_00" },
     { name: "chunk_size", type: "number", defaultValue: 512, minimum: 1, maximum: 32768, step: 1 },
     { name: "chunk_overlap", type: "number", defaultValue: 64, minimum: 0, maximum: 32768, step: 1 },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
@@ -17095,11 +17498,9 @@ export {
 @ungap/structured-clone/esm/json.js:
   (*! (c) Andrea Giammarchi - ISC *)
 */
+//!!//import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
 /*! Bundled license information:
 
 he/he.js:
   (*! http://mths.be/he v0.5.0 by @mathias | MIT license *)
-
-omnilib-docs/embeddings.js:
-  (*!!//import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow"; *)
 */

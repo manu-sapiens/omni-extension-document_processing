@@ -5,16 +5,16 @@ import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
 const NS_ONMI = 'document_processing';
 
-import { initialize_hasher, compute_document_id } from 'omnilib-docs/hashers.js';
+import { initialize_hasher, compute_document_id } from './omnilib-docs/hashers.js';
 import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from 'omnilib-utils/cdn.js';
-import { initialize_splitter } from 'omnilib-docs/splitter.js';
-import { initialize_embedder } from 'omnilib-docs/embeddings.js';
-import { processChapter } from 'omnilib-docs/chunking.js';
-import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from 'omnilib-docs/vectorstore.js';
-import { DEFAULT_HASHER_MODEL } from 'omnilib-docs/hashers.js';
-import { DEFAULT_EMBEDDER_MODEL } from 'omnilib-docs/embeddings.js';
-import { DEFAULT_SPLITTER_MODEL } from 'omnilib-docs/splitter.js';
-import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from 'omnilib-docs/chunking.js';
+import { initialize_splitter } from './omnilib-docs/splitter.js';
+import { initialize_embedder } from './omnilib-docs/embeddings.js';
+import { processChapter } from './omnilib-docs/chunking.js';
+import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from './omnilib-docs/vectorstore.js';
+import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
+import { DEFAULT_EMBEDDER_MODEL } from './omnilib-docs/embeddings.js';
+import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
+import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './omnilib-docs/chunking.js';
 import { printObject } from 'omnilib-utils/utils.js';
 import { countTokens } from 'omnilib-llms/tiktoken.js';
 

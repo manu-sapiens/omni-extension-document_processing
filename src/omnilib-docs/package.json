@@ -1,0 +1,8 @@
+{
+  "name": "omnilib-docs",
+  "version": "1.0.01",
+  "dependencies": {
+    "langchain": "^0.0.123",
+    "omnilib-utils": "https://github.com/manu-sapiens/omnilib-utils.git#main"
+  }
+}

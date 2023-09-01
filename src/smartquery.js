@@ -1,7 +1,7 @@
 //@ts-check
 // smartquery.js
 
-import { query_vectorstore } from 'omnilib-docs/vectorstore.js';
+import { query_vectorstore } from './omnilib-docs/vectorstore.js';
 import { queryLlmByModelId, getModelMaxSize } from 'omnilib-llms/llms.js';
 import { console_log, is_valid } from 'omnilib-utils/utils.js';
 import { countTokens } from 'omnilib-llms/tiktoken.js';
