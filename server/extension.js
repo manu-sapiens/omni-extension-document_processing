@@ -6606,15 +6606,6 @@ var Hasher_SHA256 = class extends Hasher {
 
 // node_modules/omnilib-utils/utils.js
 var VERBOSE = true;
-function printObject(obj, text2 = "") {
-  if (text2 != "")
-    console.log(text2);
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      console_log(`Key: ${key}, Value: ${obj[key]}`);
-    }
-  }
-}
 function is_valid(value) {
   if (value === null || value === void 0) {
     return false;
@@ -10784,22 +10775,35 @@ var TokenTextSplitter = class extends TextSplitter {
 // node_modules/omnilib-docs/chunking.js
 var DEFAULT_CHUNK_SIZE = 512;
 var DEFAULT_CHUNK_OVERLAP = 64;
+var EMBEDDING_BATCH_SIZE = 10;
 async function break_chapter_into_chunks(ctx, text2, vectorstore_name, hasher, embedder, splitter, tokenCounterFunction) {
   const splitted_texts = await splitter.splitText(text2);
   console_log(`[break_chapter_into_chunks] splitted texts # = ${splitted_texts.length}`);
-  const embeddingPromises = splitted_texts.map(async (chunk_text) => {
-    const nb_of_chars = chunk_text.length;
-    if (nb_of_chars > 0) {
-      console_log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
-      const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
-      const chunk_embedding = await embedder.embedQuery(chunk_text);
-      const chunk_token_count = tokenCounterFunction(chunk_text);
-      const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
-      console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
-      return chunk_json;
+  const createBatches = (arr, size) => {
+    const batches = [];
+    for (let i = 0; i < arr.length; i += size) {
+      batches.push(arr.slice(i, i + size));
     }
-  });
-  const chunks = await Promise.all(embeddingPromises);
+    return batches;
+  };
+  const textBatches = createBatches(splitted_texts, EMBEDDING_BATCH_SIZE);
+  const chunks = [];
+  for (const textBatch of textBatches) {
+    const embeddingPromises = textBatch.map(async (chunk_text) => {
+      const nb_of_chars = chunk_text.length;
+      if (nb_of_chars > 0) {
+        console_log(`[break_chapter_into_chunks] splitted text nb of chars = ${nb_of_chars}`);
+        const chunk_id = compute_chunk_id(ctx, chunk_text, vectorstore_name, hasher);
+        const chunk_embedding = await embedder.embedQuery(chunk_text);
+        const chunk_token_count = tokenCounterFunction(chunk_text);
+        const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count, embedding: chunk_embedding };
+        console_log(`[break_chapter_into_chunks] [${splitted_texts.indexOf(chunk_text)}] splitted text (first 1024) = ${chunk_text.slice(0, 1024)}`);
+        return chunk_json;
+      }
+    });
+    const batchResults = await Promise.all(embeddingPromises);
+    chunks.push(...batchResults);
+  }
   const total_nb_of_chars = chunks.reduce((total, chunk) => total + chunk.text.length, 0);
   const average_nb_of_chars = total_nb_of_chars / splitted_texts.length;
   console_log(`[break_chapter_into_chunks] average_nb_of_chars = ${average_nb_of_chars}`);
@@ -12071,24 +12075,22 @@ async function chunk_files_parse(payload, ctx) {
     payload[key] = payload.args[key];
   }
   delete payload.args;
-  const documents_cdns = payload.documents;
-  const overwrite = payload.overwrite || false;
-  const vectorstore_name = payload.vectorstore_name;
-  const splitter_model = payload.splitter_model;
-  const embedder_model = payload.embedder_model;
-  const chunk_size = payload.chunk_size;
-  const chunk_overlap = payload.chunk_overlap;
   if (!payload.documents)
     return { result: { "ok": false }, documents: [] };
-  const result_cdns = await chunk_files_function(ctx, documents_cdns, overwrite, vectorstore_name, embedder_model, splitter_model, chunk_size, chunk_overlap);
+  const result_cdns = await chunk_files_function(ctx, payload);
   if (!result_cdns)
     return { result: { "ok": false }, documents: [] };
   const return_value = { result: { "ok": true }, documents: result_cdns };
   return return_value;
 }
-async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
-  omnilog.log(`--------------------------------`);
-  printObject(ctx, "[chunk_files_component] chunk_files_parse() ctx=");
+async function chunk_files_function(ctx, payload) {
+  const documents = payload.documents;
+  const overwrite = payload.overwrite || false;
+  let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
+  const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
+  const embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
+  const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
+  const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
   console.time("chunk_files_component_processTime");
   vectorstore_name = clean_vectorstore_name(vectorstore_name);
   const hasher_model = DEFAULT_HASHER_MODEL;
@@ -16960,6 +16962,9 @@ async function async_getDocsWithGptComponent() {
     { name: "prompt", type: "string", title: "the Prompt, Query or Functions to process", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
+    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name", defaultValue: "default" },
+    { name: "chunk_size", type: "number", defaultValue: 512, minimum: 1, maximum: 32768, step: 1 },
+    { name: "chunk_overlap", type: "number", defaultValue: 64, minimum: 0, maximum: 32768, step: 1 },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
   component = setComponentInputs(component, inputs3);
@@ -16979,19 +16984,22 @@ async function parsePayload4(payload, ctx) {
   const failure = { result: { "ok": false }, answer_text: "" };
   if (!payload)
     return failure;
-  const documents = payload.documents;
-  const url = payload.url;
-  const usage = payload.usage;
-  const prompt3 = payload.prompt;
-  const temperature = payload.temperature;
-  const model_id = payload.model_id;
-  const overwrite = payload.overwrite;
-  const answer_text = await docsWithGpt(ctx, documents, url, usage, prompt3, temperature, model_id, overwrite);
+  const answer_text = await docsWithGpt(ctx, payload);
   if (!answer_text || answer_text == "")
     return failure;
   return { result: { "ok": true }, answer_text };
 }
-async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt3, temperature, model_id, overwrite) {
+async function docsWithGpt(ctx, payload) {
+  let passed_documents_cdns = payload.documents;
+  const url = payload.url;
+  const usage = payload.usage;
+  const prompt3 = payload.prompt;
+  const temperature = payload.temperature || 0.3;
+  const model_id = payload.model_id;
+  const overwrite = payload.overwrite || false;
+  const chunk_size = payload.chunk_size;
+  const chunk_overlap = payload.chunk_overlap;
+  const vectorstore_name = payload.vectorstore_name;
   let passed_documents_are_valid = passed_documents_cdns != null && passed_documents_cdns != void 0 && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0;
   if (passed_documents_are_valid) {
     omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -17022,7 +17030,8 @@ async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt3, temp
   } else {
     omnilog.log(`2] documents = ${read_documents_cdns} is invalid`);
   }
-  const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
+  payload.documents = read_documents_cdns;
+  const chunked_documents_cdns = await chunk_files_function(ctx, payload);
   let answer_text = "";
   let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
   if (usage == "query_documents") {

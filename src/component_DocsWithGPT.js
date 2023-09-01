@@ -10,6 +10,7 @@ import { chunk_files_function } from './component_ChunkFiles.js';
 import { queryChunks } from './component_QueryChunks.js';
 import { loopGpt } from './component_LoopGPT.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "omnilib-llms/llms.js"
+import { over } from 'lodash-es';
 
 
 async function async_getDocsWithGptComponent()
@@ -41,7 +42,11 @@ async function async_getDocsWithGptComponent()
         { name: 'prompt', type: 'string', title: 'the Prompt, Query or Functions to process', customSocket: 'text' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'model_id', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices},
+        { name: 'vectorstore_name', type: 'string', description: 'All injested information sharing the same vectorstore will be grouped and queried together', title: "Vector-Store Name", defaultValue: "my_library_00" },
+        { name: 'chunk_size', type: 'number', defaultValue: 512, minimum: 1, maximum:32768, step:1 },
+        { name: 'chunk_overlap', type: 'number', defaultValue: 64, minimum: 0, maximum:32768, step:1 },
         { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
+
     ];
     component = setComponentInputs(component, inputs);
 
@@ -69,21 +74,27 @@ async function parsePayload(payload, ctx) {
     const failure = { result: { "ok": false }, answer_text: ""};
     if (!payload) return failure;
 
-    const documents = payload.documents;
-    const url = payload.url;
-    const usage = payload.usage;
-    const prompt = payload.prompt;
-    const temperature = payload.temperature;
-    const model_id = payload.model_id;
-    const overwrite = payload.overwrite;
 
-    const answer_text = await docsWithGpt(ctx, documents, url, usage, prompt, temperature, model_id, overwrite)
+    
+    const answer_text = await docsWithGpt(ctx, payload)
     if (!answer_text || answer_text == "")  return failure;
 
     return { result: { "ok": true }, answer_text: answer_text};
 }
 
-async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, temperature, model_id, overwrite) {
+async function docsWithGpt(ctx, payload) 
+{
+    let passed_documents_cdns = payload.documents;
+    const url = payload.url;
+    const usage = payload.usage;
+    const prompt = payload.prompt;
+    const temperature = payload.temperature || 0.3;
+    const model_id = payload.model_id;
+    const overwrite = payload.overwrite || false;
+    const chunk_size = payload.chunk_size;
+    const chunk_overlap = payload.chunk_overlap;
+    const vectorstore_name = payload.vectorstore_name;
+
     let passed_documents_are_valid = (passed_documents_cdns != null && passed_documents_cdns != undefined && Array.isArray(passed_documents_cdns) && passed_documents_cdns.length > 0);
     if (passed_documents_are_valid) {
         omnilog.log(`read #${passed_documents_cdns.lentgh} from "documents" input, passed_documents_cdns = ${JSON.stringify(passed_documents_cdns)}`);
@@ -122,7 +133,8 @@ async function docsWithGpt(ctx, passed_documents_cdns, url, usage, prompt, tempe
         omnilog.log(`2] documents = ${read_documents_cdns} is invalid`);
     }
 
-    const chunked_documents_cdns = await chunk_files_function(ctx, read_documents_cdns, overwrite);
+    payload.documents = read_documents_cdns;
+    const chunked_documents_cdns = await chunk_files_function(ctx, payload);
     let answer_text = "";
     let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
 

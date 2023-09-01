@@ -92,18 +92,10 @@ async function chunk_files_parse(payload, ctx)
     delete payload.args;
 
 
-    const documents_cdns = payload.documents;
-    const overwrite = payload.overwrite || false;
 
-    const vectorstore_name = payload.vectorstore_name;
-    const splitter_model = payload.splitter_model;
-    const embedder_model = payload.embedder_model;
-
-    const chunk_size = payload.chunk_size;
-    const chunk_overlap = payload.chunk_overlap;
 
     if (!payload.documents) return { result: { "ok": false }, documents: [] };
-    const result_cdns = await chunk_files_function(ctx, documents_cdns, overwrite, vectorstore_name, embedder_model, splitter_model, chunk_size, chunk_overlap);
+    const result_cdns = await chunk_files_function(ctx, payload);
     if (!result_cdns) return { result: { "ok": false }, documents: [] };
 
     const return_value = { result: { "ok": true }, documents: result_cdns };
@@ -111,10 +103,17 @@ async function chunk_files_parse(payload, ctx)
    
 }
 
-async function chunk_files_function(ctx, documents, overwrite = false, vectorstore_name = DEFAULT_VECTORSTORE_NAME, embedder_model = DEFAULT_EMBEDDER_MODEL, splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
+async function chunk_files_function(ctx, payload)
 {
-    omnilog.log(`--------------------------------`);
-    printObject(ctx, "[chunk_files_component] chunk_files_parse() ctx=");
+    const documents = payload.documents;
+    const overwrite = payload.overwrite || false;
+
+    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
+    const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
+    const embedder_model = payload.embedder_model || DEFAULT_EMBEDDER_MODEL;
+
+    const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE; 
+    const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
 
     console.time("chunk_files_component_processTime");
 
