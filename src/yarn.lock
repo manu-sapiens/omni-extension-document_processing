@@ -1084,8 +1084,8 @@ __metadata:
   linkType: hard
 
 "langsmith@npm:~0.0.16":
-  version: 0.0.29
-  resolution: "langsmith@npm:0.0.29"
+  version: 0.0.32
+  resolution: "langsmith@npm:0.0.32"
   dependencies:
     "@types/uuid": ^9.0.1
     commander: ^10.0.1
@@ -1094,7 +1094,7 @@ __metadata:
     uuid: ^9.0.0
   bin:
     langsmith: dist/cli/main.cjs
-  checksum: aa38900b3e94126758c6ecefd80f37d661b9a02d45afb2104200e53d4693ea0122147da6171404231037487c076e8d55be1b864429da757729c506cfd5c7b2b2
+  checksum: 85d6bcec4ae137f00449e151a3b1867a3634f46d53487ee836d90a8d383d5457af89025a5934ca61d0f6392eda51ccd5203050b91393764aafb6a1ad326bc0ab
   languageName: node
   linkType: hard
 
