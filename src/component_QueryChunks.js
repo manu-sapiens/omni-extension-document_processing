@@ -11,7 +11,7 @@ import { is_valid } from 'omnilib-utils/utils.js';
 import { computeVectorstore, loadVectorstore } from './omnilib-docs/vectorstore.js';
 import { smartquery_from_vectorstore } from './smartquery.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from "omnilib-llms/llms.js";
-import { getVectorstoreChoices, loadEmbedderParameters } from './omnilib-docs/embedder.js';
+import { loadEmbedderParameters } from './omnilib-docs/embedder.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { initializeEmbedder, DEFAULT_EMBEDDER_MODEL } from './omnilib-docs/embeddings.js';
 
@@ -51,7 +51,7 @@ async function async_getQueryChunksComponent()
   ];
   query_chunk_component = setComponentOutputs(query_chunk_component, outputs);
 
-  
+
   // Adding _exec function
   query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 

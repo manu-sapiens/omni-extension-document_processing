@@ -11613,12 +11613,12 @@ async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore
   }
   return vectorstore;
 }
-async function query_vectorstore(vector_store, query, nb_of_results = 1, embedder) {
-  const vector_query = await embedder.embedQuery(query);
+async function queryVectorstore(vector_store, query, nb_of_results = 1, embedder) {
+  const vector_query = await embedder.embedQuery(query, false);
   const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
   return results;
 }
-function get_texts_and_ids(chunks) {
+function getTextsAndIds(chunks) {
   if (is_valid(chunks) == false)
     throw new Error(`get_texts_and_ids: chunks_list is invalid`);
   let chunk_texts = [];
@@ -11632,11 +11632,11 @@ function get_texts_and_ids(chunks) {
   }
   return [chunk_texts, chunk_ids];
 }
-async function compute_vectorstore(chunks, embedder) {
+async function computeVectorstore(chunks, embedder) {
   console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
   if (is_valid(chunks) == false)
-    throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
-  const [all_texts, all_ids] = get_texts_and_ids(chunks);
+    throw new Error(`[computeVectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
+  const [all_texts, all_ids] = getTextsAndIds(chunks);
   console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
   const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
   return vectorstore;
@@ -11691,22 +11691,24 @@ var Embedder = class extends Embeddings {
     }
     return embeddings;
   }
-  async embedQuery(text2) {
+  async embedQuery(text2, save_embedding = true) {
     if (!is_valid(text2)) {
       throw new Error(`[embeddings] passed text is invalid ${text2}`);
     }
     console_log(`[embeddings] embedQuery of: ${text2.slice(0, 128)}[...]`);
     const embedding_id = compute_chunk_id(this.ctx, text2, this.vectorstore_name, this.hasher);
     let embedding = null;
-    if (this.overwrite) {
-      await user_db_delete(this.ctx, embedding_id);
-    } else {
-      const db_entry = await user_db_get(this.ctx, embedding_id);
-      embedding = db_entry?.embedding;
-    }
-    if (is_valid(embedding)) {
-      console_log(`[embeddings]: embedding found in DB - returning it`);
-      return embedding;
+    if (save_embedding) {
+      if (this.overwrite) {
+        await user_db_delete(this.ctx, embedding_id);
+      } else {
+        const db_entry = await user_db_get(this.ctx, embedding_id);
+        embedding = db_entry?.embedding;
+      }
+      if (is_valid(embedding)) {
+        console_log(`[embeddings]: embedding found in DB - returning it`);
+        return embedding;
+      }
     }
     console_log(`[embeddings] Not found in DB. Generating embedding for ${text2.slice(0, 128)}[...]`);
     try {
@@ -11717,17 +11719,19 @@ var Embedder = class extends Embeddings {
         return null;
       }
       console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
-      const db_value = { embedding, text: text2, id: embedding_id };
-      const success = await user_db_put(this.ctx, db_value, embedding_id);
-      if (success == false) {
-        throw new Error(`[embeddings] Error saving embedding for text chunk: ${text2.slice(0, 128)}[...]`);
+      if (save_embedding) {
+        const db_value = { embedding, text: text2, id: embedding_id };
+        const success = await user_db_put(this.ctx, db_value, embedding_id);
+        if (success == false) {
+          throw new Error(`[embeddings] Error saving embedding for text chunk: ${text2.slice(0, 128)}[...]`);
+        }
+        const keys3 = this.vectorstore_keys[this.vectorstore_name];
+        if (Array.isArray(keys3) === false) {
+          throw new Error(`UNEXPECTED type for keys: ${typeof keys3}, keys = ${JSON.stringify(keys3)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
+        }
+        keys3.push(embedding_id);
+        await this.saveVectorstoreKeys();
       }
-      const keys3 = this.vectorstore_keys[this.vectorstore_name];
-      if (Array.isArray(keys3) === false) {
-        throw new Error(`UNEXPECTED type for keys: ${typeof keys3}, keys = ${JSON.stringify(keys3)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
-      }
-      keys3.push(embedding_id);
-      await this.saveVectorstoreKeys();
       return embedding;
     } catch (error) {
       throw new Error(`[embeddings] Error generating embedding: ${error}`);
@@ -11779,8 +11783,8 @@ async function loadEmbedderParameters(ctx, vectorstore_name) {
 }
 async function loadVectorstoreKeys(ctx, embedder) {
   const loadedData = await user_db_get(ctx, VECTORSTORE_KEY_LIST_ID);
-  const vectorstore_key = loadedData || {};
-  embedder.vectorstore_keys = vectorstore_key;
+  const vectorstore_keys = loadedData || {};
+  embedder.vectorstore_keys = vectorstore_keys;
   return;
 }
 
@@ -17323,7 +17327,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
   const model_provider = splits.model_provider;
   if (is_valid(query) == false)
     throw new Error(`ERROR: query is invalid`);
-  let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
+  let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
   let max_size = getModelMaxSize(model_name);
   let combined_text = "";
@@ -17357,12 +17361,11 @@ var NS_ONMI5 = "document_processing";
 async function async_getQueryChunksComponent() {
   let query_chunk_component = OAIBaseComponent6.create(NS_ONMI5, "query_chunks").fromScratch().set("title", "Query chunked documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
     source: {
-      summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+      summary: "chunk text files and save the chunks to the CDN using (by default) OpenAI embeddings and Langchain",
       links: {
         "Langchainjs Website": "https://docs.langchain.com/docs/",
         "Documentation": "https://js.langchain.com/docs/",
-        "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-        "Faiss": "https://faiss.ai/"
+        "Langchainjs Github": "https://github.com/hwchase17/langchainjs"
       }
     }
   });
@@ -17371,7 +17374,7 @@ async function async_getQueryChunksComponent() {
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name" }
+    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name", defaultValue: "my_library_00" }
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
   const outputs3 = [
@@ -17425,7 +17428,7 @@ async function queryChunks(ctx, payload) {
       omnilog.log(`[query_chunks_component] Read from the document:
 chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}`);
     }
-    vectorstore = await compute_vectorstore(all_chunks, embedder);
+    vectorstore = await computeVectorstore(all_chunks, embedder);
   }
   const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
   combined_answer += query_result + "\n\n";

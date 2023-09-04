@@ -58,8 +58,9 @@ var Embedder = class extends Embeddings {
         return embeddings;
     }
 
-    async embedQuery(text)
+    async embedQuery(text, save_embedding = true)
     {
+        // TBD we could save query embeddings in a separate vectorstore (instead of not saving them at all using save_embedding = false)
         if (!is_valid(text))
         {
             throw new Error(`[embeddings] passed text is invalid ${text}`);
@@ -70,20 +71,23 @@ var Embedder = class extends Embeddings {
         const embedding_id = compute_chunk_id(this.ctx, text, this.vectorstore_name, this.hasher);
         let embedding = null;
 
-        if (this.overwrite) 
+        if (save_embedding)
         {
-            await user_db_delete(this.ctx, embedding_id);
-        }
-        else
-        {
-            const db_entry = await user_db_get(this.ctx, embedding_id);
-            embedding = db_entry?.embedding;
-        }
+            if (this.overwrite) 
+            {
+                await user_db_delete(this.ctx, embedding_id);
+            }
+            else
+            {
+                const db_entry = await user_db_get(this.ctx, embedding_id);
+                embedding = db_entry?.embedding;
+            }
 
-        if (is_valid(embedding)) 
-        {
-            console_log(`[embeddings]: embedding found in DB - returning it`);
-            return embedding;
+            if (is_valid(embedding)) 
+            {
+                console_log(`[embeddings]: embedding found in DB - returning it`);
+                return embedding;
+            }
         }
 
         console_log(`[embeddings] Not found in DB. Generating embedding for ${text.slice(0, 128)}[...]`);
@@ -99,26 +103,28 @@ var Embedder = class extends Embeddings {
             }
 
             console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
-            const db_value = { embedding: embedding, text: text, id: embedding_id };
-            const success = await user_db_put(this.ctx, db_value, embedding_id);
-            if (success == false)
+            if (save_embedding)
             {
-                throw new Error(`[embeddings] Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
+                const db_value = { embedding: embedding, text: text, id: embedding_id };
+                const success = await user_db_put(this.ctx, db_value, embedding_id);
+                if (success == false)
+                {
+                    throw new Error(`[embeddings] Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
+                }
+        
+                const keys = this.vectorstore_keys[this.vectorstore_name];
+
+                if (Array.isArray(keys) === false)
+                {
+                throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
+                }
+                
+                // Add the key to the Set.
+                keys.push(embedding_id);
+
+                // Save the updated list of keys to the database.
+                await this.saveVectorstoreKeys();
             }
-      
-            const keys = this.vectorstore_keys[this.vectorstore_name];
-
-            if (Array.isArray(keys) === false)
-            {
-              throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
-            }
-            
-            // Add the key to the Set.
-            keys.push(embedding_id);
-
-            // Save the updated list of keys to the database.
-            await this.saveVectorstoreKeys();
-
 
             return embedding;
         }
@@ -187,11 +193,34 @@ async function loadEmbedderParameters(ctx, vectorstore_name)
 async function loadVectorstoreKeys(ctx, embedder) 
 {
     const loadedData = await user_db_get(ctx, VECTORSTORE_KEY_LIST_ID);
-    const vectorstore_key = loadedData || {};
-    embedder.vectorstore_keys = vectorstore_key;
+    const vectorstore_keys = loadedData || {};
+    embedder.vectorstore_keys = vectorstore_keys;
 
     return;
 }
 
 
-export { Embedder, saveEmbedderParameters, loadEmbedderParameters, loadVectorstoreKeys };
+async function getVectorstoreChoices(ctx)
+{
+    const loadedData = await user_db_get(ctx, VECTORSTORE_KEY_LIST_ID);
+    const vectorstore_keys = loadedData || null;
+    if (!vectorstore_keys) return null;
+
+    const choices = [];
+
+    // Iterate through each key in the dictionary
+    for (const [vectorstore_name, records] of Object.entries(vectorstore_keys)) {
+      
+      // Check if the value is a non-null array
+      if (Array.isArray(records) && records !== null) 
+      {
+        const length = records.length;
+        const choice = { value: vectorstore_name, title: `${vectorstore_name} [${length}]`, description: `${vectorstore_name} with ${length} chunks recorded`};
+        // Add information to the result array
+        choices.push(choice);
+      }
+
+    }
+    return choices;
+}
+export { Embedder, saveEmbedderParameters, loadEmbedderParameters, loadVectorstoreKeys, getVectorstoreChoices };
