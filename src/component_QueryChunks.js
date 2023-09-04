@@ -8,10 +8,10 @@ const NS_ONMI = 'document_processing';
 
 import { get_json_from_cdn } from 'omnilib-utils/cdn.js';
 import { is_valid } from 'omnilib-utils/utils.js';
-import { compute_vectorstore, loadVectorstore } from './omnilib-docs/vectorstore.js';
+import { computeVectorstore, loadVectorstore } from './omnilib-docs/vectorstore.js';
 import { smartquery_from_vectorstore } from './smartquery.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from "omnilib-llms/llms.js";
-import { loadVectorstoreKeys, loadEmbedderParameters } from './omnilib-docs/embedder.js';
+import { getVectorstoreChoices, loadEmbedderParameters } from './omnilib-docs/embedder.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { initializeEmbedder, DEFAULT_EMBEDDER_MODEL } from './omnilib-docs/embeddings.js';
 
@@ -26,12 +26,11 @@ async function async_getQueryChunksComponent()
     .setMethod('X-CUSTOM')
     .setMeta({
       source: {
-        summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
+        summary: "chunk text files and save the chunks to the CDN using (by default) OpenAI embeddings and Langchain",
         links: {
           "Langchainjs Website": "https://docs.langchain.com/docs/",
           "Documentation": "https://js.langchain.com/docs/",
           "Langchainjs Github": "https://github.com/hwchase17/langchainjs",
-          "Faiss": "https://faiss.ai/"
         },
       }
     });
@@ -42,7 +41,7 @@ async function async_getQueryChunksComponent()
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked' },
     { name: 'query', type: 'string', customSocket: 'text' },
     { name: 'model_id', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: 'vectorstore_name', type: 'string', description: 'All injested information sharing the same vectorstore will be grouped and queried together', title: "Vector-Store Name" },
+    { name: 'vectorstore_name', type: 'string', description: 'All injested information sharing the same vectorstore will be grouped and queried together', title: "Vector-Store Name", defaultValue: "my_library_00" }, 
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs);
 
@@ -52,7 +51,7 @@ async function async_getQueryChunksComponent()
   ];
   query_chunk_component = setComponentOutputs(query_chunk_component, outputs);
 
-
+  
   // Adding _exec function
   query_chunk_component.setMacro(OmniComponentMacroTypes.EXEC, parsePayload);
 
@@ -125,7 +124,7 @@ async function queryChunks(ctx, payload)
       omnilog.log(`[query_chunks_component] Read from the document:\nchunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}`);
 
     }
-    vectorstore = await compute_vectorstore(all_chunks, embedder);
+    vectorstore = await computeVectorstore(all_chunks, embedder);
   }
 
   const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
