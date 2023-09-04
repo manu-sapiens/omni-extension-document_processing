@@ -11584,20 +11584,29 @@ var MemoryVectorStore = class _MemoryVectorStore extends VectorStore {
 };
 
 // omnilib-docs/vectorstore_Memory.js
-async function memory_from_texts(texts, text_ids, embedder) {
-  return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
+async function memoryFromTexts(texts, text_ids, embedder) {
+  const result = await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
+  return result;
 }
 
 // omnilib-docs/vectorstore.js
+var FAISS_VECTORSTORE = "FAISS";
 var MEMORY_VECTORSTORE = "MEMORY";
+var LANCEDB_VECTORSTORE = "LANCEDB";
 var DEFAULT_VECTORSTORE_NAME = "omnitool";
 var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
-async function create_vectorstore_from_texts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
+async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE, vectorstore_name = DEFAULT_VECTORSTORE_NAME) {
   console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
   let vectorstore;
   switch (vectorstore_type) {
+    case FAISS_VECTORSTORE:
+      vectorstore = null;
+      break;
     case MEMORY_VECTORSTORE:
-      vectorstore = await memory_from_texts(texts, text_ids, embedder);
+      vectorstore = await memoryFromTexts(texts, text_ids, embedder);
+      break;
+    case LANCEDB_VECTORSTORE:
+      vectorstore = null;
       break;
     default:
       throw new Error(`Vectorstore type ${vectorstore_type} not recognized`);
@@ -11629,7 +11638,12 @@ async function compute_vectorstore(chunks, embedder) {
     throw new Error(`[compute_vectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
   const [all_texts, all_ids] = get_texts_and_ids(chunks);
   console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
-  const vectorstore = await create_vectorstore_from_texts(all_texts, all_ids, embedder);
+  const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
+  return vectorstore;
+}
+async function loadVectorstore(embedder) {
+  const [all_texts, all_ids] = await embedder.getAllTextsAndIds();
+  const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
   return vectorstore;
 }
 function clean_vectorstore_name(vectorstore_name) {
@@ -11639,23 +11653,32 @@ function clean_vectorstore_name(vectorstore_name) {
   return clean_name;
 }
 
-// omnilib-docs/embedding_Cached.js
-var Embedding_Cached = class extends Embeddings {
+// omnilib-docs/embedder.js
+var VECTORSTORE_KEY_LIST_ID = "vectorstore_key_list";
+var Embedder = class extends Embeddings {
   // A db-cached version of the embeddings
   // NOTE: This is a general purpose "cached embeddings" class
   // that can wrap any langchain embeddings model
-  constructor(ctx, embedder, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null) {
+  constructor(ctx, embedder, hasher_model, embedder_model, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null) {
     super(params);
     this.embedder = embedder;
+    this.embedder_model = embedder_model;
     this.ctx = ctx;
     this.db = ctx.app.services.get("db");
     this.user = ctx.user;
     this.vectorstore_name = vectorstore_name;
     this.overwrite = false;
+    this.hasher_model = hasher_model;
+    const hasher = initialize_hasher(hasher_model);
     this.hasher = hasher;
+    this.vectorstore_keys = {};
     if (!this.ctx) {
       throw new Error(`[embeddings] Context not provided`);
     }
+  }
+  // Function to save keys
+  async saveVectorstoreKeys() {
+    await user_db_put(this.ctx, this.vectorstore_keys, VECTORSTORE_KEY_LIST_ID);
   }
   async embedDocuments(texts) {
     const embeddings = [];
@@ -11678,7 +11701,8 @@ var Embedding_Cached = class extends Embeddings {
     if (this.overwrite) {
       await user_db_delete(this.ctx, embedding_id);
     } else {
-      embedding = await user_db_get(this.ctx, embedding_id);
+      const db_entry = await user_db_get(this.ctx, embedding_id);
+      embedding = db_entry?.embedding;
     }
     if (is_valid(embedding)) {
       console_log(`[embeddings]: embedding found in DB - returning it`);
@@ -11693,18 +11717,72 @@ var Embedding_Cached = class extends Embeddings {
         return null;
       }
       console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
-      const success = await user_db_put(this.ctx, embedding, embedding_id);
+      const db_value = { embedding, text: text2, id: embedding_id };
+      const success = await user_db_put(this.ctx, db_value, embedding_id);
       if (success == false) {
         throw new Error(`[embeddings] Error saving embedding for text chunk: ${text2.slice(0, 128)}[...]`);
-      } else {
-        console_log(`[embeddings] Saved to DB`);
       }
+      const keys3 = this.vectorstore_keys[this.vectorstore_name];
+      if (Array.isArray(keys3) === false) {
+        throw new Error(`UNEXPECTED type for keys: ${typeof keys3}, keys = ${JSON.stringify(keys3)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
+      }
+      keys3.push(embedding_id);
+      await this.saveVectorstoreKeys();
       return embedding;
     } catch (error) {
       throw new Error(`[embeddings] Error generating embedding: ${error}`);
     }
   }
+  async getAllDbEntries() {
+    const dbEntries = [];
+    if (this.vectorstore_name in this.vectorstore_keys === false)
+      return null;
+    const keys3 = this.vectorstore_keys[this.vectorstore_name];
+    if (Array.isArray(keys3) === false) {
+      throw new Error(`UNEXPECTED type for keys: ${typeof keys3}, keys = ${JSON.stringify(keys3)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
+    }
+    for (const key of keys3) {
+      const embedding = await user_db_get(this.ctx, key);
+      if (embedding) {
+        dbEntries.push(embedding);
+      } else {
+        console.warn(`[embeddings] Could not retrieve embedding for key: ${key}`);
+      }
+    }
+    return dbEntries;
+  }
+  async getAllTextsAndIds() {
+    const allEntries = await this.getAllDbEntries();
+    const allTexts = allEntries.map((db_entry) => db_entry.text);
+    const allIds = allEntries.map((db_entry) => db_entry.id);
+    return [allTexts, allIds];
+  }
 };
+async function saveEmbedderParameters(ctx, embedder) {
+  const hasher_model = embedder.hasher_model;
+  const vectorstore_name = embedder.vectorstore_name;
+  const embedder_model = embedder.embedder_model;
+  const embedder_id = `EMBEDDERS_STORAGE_${vectorstore_name}`;
+  const db_value = { hasher_model, vectorstore_name, embedder_model };
+  const success = await user_db_put(ctx, db_value, embedder_id);
+  const check = await user_db_get(ctx, embedder_id);
+  if (!check)
+    throw new Error(`ERROR could not retrieve after saving in the db`);
+  return success;
+}
+async function loadEmbedderParameters(ctx, vectorstore_name) {
+  const embedder_id = `EMBEDDERS_STORAGE_${vectorstore_name}`;
+  const entry = await user_db_get(ctx, embedder_id);
+  if (!entry)
+    throw new Error(`[loadEmbedderParameters] Error loading embedder parameters for vectorstore_name = ${vectorstore_name}`);
+  return entry;
+}
+async function loadVectorstoreKeys(ctx, embedder) {
+  const loadedData = await user_db_get(ctx, VECTORSTORE_KEY_LIST_ID);
+  const vectorstore_key = loadedData || {};
+  embedder.vectorstore_keys = vectorstore_key;
+  return;
+}
 
 // node_modules/omnilib-utils/blocks.js
 async function runBlock(ctx, block_name, args, outputs3 = {}) {
@@ -11792,16 +11870,18 @@ Error: ${error}`);
 var EMBEDDER_MODEL_OPENAI = "openai";
 var EMBEDDER_MODEL_TENSORFLOW = "tensorflow";
 var DEFAULT_EMBEDDER_MODEL = EMBEDDER_MODEL_OPENAI;
-function initialize_embedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false) {
+async function initializeEmbedder(ctx, embedder_model = DEFAULT_EMBEDDER_MODEL, hasher_model = DEFAULT_HASHER_MODEL, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false) {
   let raw_embedder = null;
   if (embedder_model == EMBEDDER_MODEL_OPENAI) {
     raw_embedder = new Embedding_Openai(ctx);
   } else if (embedder_model == EMBEDDER_MODEL_TENSORFLOW) {
     throw new Error("tensorflow embedding not supported at the moment");
   }
-  const embedder = new Embedding_Cached(ctx, raw_embedder, hasher, vectorstore_name, overwrite);
+  const embedder = new Embedder(ctx, raw_embedder, hasher_model, embedder_model, vectorstore_name, overwrite);
   if (embedder == null || embedder == void 0)
     throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
+  saveEmbedderParameters(ctx, embedder);
+  await loadVectorstoreKeys(ctx, embedder);
   return embedder;
 }
 
@@ -12480,13 +12560,13 @@ async function chunk_files_parse(payload, ctx) {
   delete payload.args;
   if (!payload.documents)
     return { result: { "ok": false }, documents: [] };
-  const result_cdns = await chunk_files_function(ctx, payload);
+  const result_cdns = await chunkFiles_function(ctx, payload);
   if (!result_cdns)
     return { result: { "ok": false }, documents: [] };
   const return_value = { result: { "ok": true }, documents: result_cdns };
   return return_value;
 }
-async function chunk_files_function(ctx, payload) {
+async function chunkFiles_function(ctx, payload) {
   const documents = payload.documents;
   const overwrite = payload.overwrite || false;
   let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
@@ -12499,7 +12579,7 @@ async function chunk_files_function(ctx, payload) {
   const hasher_model = DEFAULT_HASHER_MODEL;
   const hasher = initialize_hasher(hasher_model);
   const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
-  const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name, overwrite);
+  const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name, overwrite);
   omnilog.log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
   const chapters = await gather_all_texts_from_documents(ctx, documents);
   let cdns = [];
@@ -16703,7 +16783,6 @@ function generateModelId(model_name, model_provider) {
 function getModelNameAndProviderFromId(model_id) {
   if (!model_id)
     throw new Error(`getModelNameAndProviderFromId: model_id is not valid: ${model_id}`);
-  debugger;
   const splits = model_id.split("|");
   if (splits.length != 2)
     throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
@@ -17276,7 +17355,7 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 // component_QueryChunks.js
 var NS_ONMI5 = "document_processing";
 async function async_getQueryChunksComponent() {
-  let query_chunk_component = OAIBaseComponent6.create(NS_ONMI5, "query_chunks").fromScratch().set("title", "Query documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
+  let query_chunk_component = OAIBaseComponent6.create(NS_ONMI5, "query_chunks").fromScratch().set("title", "Query chunked documents").set("category", "Text Manipulation").set("description", "Query chunked documents using a vectorstore").setMethod("X-CUSTOM").setMeta({
     source: {
       summary: "chunk text files and save the chunks to the CDN using FAISS, OpenAI embeddings and Langchain",
       links: {
@@ -17291,7 +17370,8 @@ async function async_getQueryChunksComponent() {
   const inputs3 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "query", type: "string", customSocket: "text" },
-    { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
+    { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
+    { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name" }
   ];
   query_chunk_component = setComponentInputs(query_chunk_component, inputs3);
   const outputs3 = [
@@ -17302,40 +17382,53 @@ async function async_getQueryChunksComponent() {
   return query_chunk_component.toJSON();
 }
 async function parsePayload3(payload, ctx) {
-  const failure = { result: { "ok": false }, answer: "" };
-  const documents = payload?.documents;
-  if (!documents)
-    return failure;
-  const documents_cdns = payload.documents;
-  const query = payload.query;
-  const model_id = payload.model_id;
-  const answer = await queryChunks(ctx, documents_cdns, query, model_id);
+  const answer = await queryChunks(ctx, payload);
   if (!answer)
-    return failure;
+    return { result: { "ok": false }, answer: "" };
   return { result: { "ok": true }, answer };
 }
-async function queryChunks(ctx, document_cdns, query, model_id) {
+async function queryChunks(ctx, payload) {
+  const document_cdns = payload.documents;
+  const query = payload.query;
+  const model_id = payload.model_id;
+  const vectorstore_name = payload.vectorstore_name;
   console.time("query_chunks_component_processTime");
   let combined_answer = "";
-  for (let i = 0; i < document_cdns.length; i++) {
-    const document_cdn = document_cdns[i];
-    const document_json = await get_json_from_cdn(ctx, document_cdn);
-    if (is_valid(document_json) == false)
-      throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
-    const vectorstore_name = document_json.vectorstore_name;
-    const hasher_model = document_json.hasher_model;
-    const embedder_model = document_json.embedder_model;
-    const chunks = document_json.chunks;
-    if (is_valid(chunks) == false)
-      throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
-    omnilog.log(`[query_chunks_component] Read from the document:
-chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}, hasher_model = ${hasher_model}, embedder_model = ${embedder_model}`);
-    const hasher = initialize_hasher(hasher_model);
-    const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name);
-    const vectorstore = await compute_vectorstore(chunks, embedder);
-    const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
-    combined_answer += query_result + "\n\n";
+  let vectorstore = null;
+  let embedder = null;
+  if (!document_cdns || document_cdns.length == 0) {
+    const embedder_parameters = await loadEmbedderParameters(ctx, vectorstore_name);
+    omnilog.warn(`[query_chunks_component] No documents passed, querying the entire vectorstore ${vectorstore_name} with embedder_parameters = ${JSON.stringify(embedder_parameters)}`);
+    const hasher_model = embedder_parameters?.hasher_model || DEFAULT_HASHER_MODEL;
+    const embedder_model = embedder_parameters?.embedder_model || DEFAULT_EMBEDDER_MODEL;
+    embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name);
+    if (!embedder)
+      throw new Error(`[query_chunks_component] Error loading vectorstore with embedder_model = ${embedder_model}, hasher_model = ${hasher_model}, vectorstore_name = ${vectorstore_name}`);
+    vectorstore = await loadVectorstore(embedder);
+  } else {
+    const all_chunks = [];
+    for (let i = 0; i < document_cdns.length; i++) {
+      const document_cdn = document_cdns[i];
+      const document_json = await get_json_from_cdn(ctx, document_cdn);
+      if (is_valid(document_json) == false)
+        throw new Error(`[component_query_chunks] Error getting chunks from database with id ${JSON.stringify(document_cdn)}`);
+      const chunks = document_json.chunks;
+      if (is_valid(chunks) == false)
+        throw new Error(`[query_chunks_component] Error getting chunks from document_json: ${JSON.stringify(document_json)}`);
+      all_chunks.push(...chunks);
+      if (i == 0) {
+        const vectorstore_name2 = document_json.vectorstore_name;
+        const hasher_model = document_json.hasher_model;
+        const embedder_model = document_json.embedder_model;
+        embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name2);
+      }
+      omnilog.log(`[query_chunks_component] Read from the document:
+chunks #= ${chunks.length}, vectorstore_name = ${vectorstore_name}`);
+    }
+    vectorstore = await compute_vectorstore(all_chunks, embedder);
   }
+  const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
+  combined_answer += query_result + "\n\n";
   const response = combined_answer;
   console.timeEnd("query_chunks_component_processTime");
   return response;
@@ -17366,8 +17459,8 @@ async function async_getDocsWithGptComponent() {
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
     { name: "vectorstore_name", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", title: "Vector-Store Name", defaultValue: "my_library_00" },
-    { name: "chunk_size", type: "number", defaultValue: 512, minimum: 1, maximum: 32768, step: 1 },
-    { name: "chunk_overlap", type: "number", defaultValue: 64, minimum: 0, maximum: 32768, step: 1 },
+    { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 1, maximum: 32768, step: 1 },
+    { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 32768, step: 1 },
     { name: "overwrite", description: "re-ingest the document(s)", type: "boolean", defaultValue: false }
   ];
   component = setComponentInputs(component, inputs3);
@@ -17434,13 +17527,15 @@ async function docsWithGpt(ctx, payload) {
     omnilog.log(`2] documents = ${read_documents_cdns} is invalid`);
   }
   payload.documents = read_documents_cdns;
-  const chunked_documents_cdns = await chunk_files_function(ctx, payload);
+  const chunked_documents_cdns = await chunkFiles_function(ctx, payload);
+  payload.documents = chunked_documents_cdns;
   let answer_text = "";
   let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
   if (usage == "query_documents") {
     if (prompt3 === null || prompt3 === void 0 || prompt3.length == 0)
       throw new Error("No query specified in [prompt] field");
-    answer_text = await queryChunks(ctx, chunked_documents_cdns, prompt3, model_id);
+    payload.query = prompt3;
+    answer_text = await queryChunks(ctx, payload);
   } else if (usage == "run_prompt_on_documents") {
     if (prompt3 === null || prompt3 === void 0 || prompt3.length == 0)
       throw new Error("No prompt specified in [prompt] field");
@@ -17498,7 +17593,6 @@ export {
 @ungap/structured-clone/esm/json.js:
   (*! (c) Andrea Giammarchi - ISC *)
 */
-//!!//import { TensorFlowEmbeddings } from "langchain/embeddings/tensorflow";
 /*! Bundled license information:
 
 he/he.js:

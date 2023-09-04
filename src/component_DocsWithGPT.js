@@ -6,11 +6,11 @@ import { setComponentInputs, setComponentOutputs, setComponentControls } from 'o
 const NS_ONMI = 'document_processing';
 
 import { read_text_files_function } from "./component_ReadTextFiles.js";
-import { chunk_files_function } from './component_ChunkFiles.js';
+import { chunkFiles_function } from './component_ChunkFiles.js';
 import { queryChunks } from './component_QueryChunks.js';
 import { loopGpt } from './component_LoopGPT.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "omnilib-llms/llms.js"
-import { over } from 'lodash-es';
+import { chunk, over } from 'lodash-es';
 
 
 async function async_getDocsWithGptComponent()
@@ -43,8 +43,8 @@ async function async_getDocsWithGptComponent()
         { name: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'model_id', title: 'model', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices},
         { name: 'vectorstore_name', type: 'string', description: 'All injested information sharing the same vectorstore will be grouped and queried together', title: "Vector-Store Name", defaultValue: "my_library_00" },
-        { name: 'chunk_size', type: 'number', defaultValue: 512, minimum: 1, maximum:32768, step:1 },
-        { name: 'chunk_overlap', type: 'number', defaultValue: 64, minimum: 0, maximum:32768, step:1 },
+        { name: 'chunk_size', type: 'number', defaultValue: 4096, minimum: 1, maximum:32768, step:1 },
+        { name: 'chunk_overlap', type: 'number', defaultValue: 512, minimum: 0, maximum:32768, step:1 },
         { name: 'overwrite', description:"re-ingest the document(s)", type: 'boolean', defaultValue: false },
 
     ];
@@ -90,6 +90,8 @@ async function docsWithGpt(ctx, payload)
     const prompt = payload.prompt;
     const temperature = payload.temperature || 0.3;
     const model_id = payload.model_id;
+
+    // these variables are used by chunkFiles_function directly through the `payload` variable
     const overwrite = payload.overwrite || false;
     const chunk_size = payload.chunk_size;
     const chunk_overlap = payload.chunk_overlap;
@@ -134,13 +136,16 @@ async function docsWithGpt(ctx, payload)
     }
 
     payload.documents = read_documents_cdns;
-    const chunked_documents_cdns = await chunk_files_function(ctx, payload);
+    const chunked_documents_cdns = await chunkFiles_function(ctx, payload);
+    payload.documents = chunked_documents_cdns;
+
     let answer_text = "";
     let default_instruction = "You are a helpful bot answering the user with their question to the best of your ability.";
 
     if (usage == "query_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No query specified in [prompt] field");
-        answer_text = await queryChunks(ctx, chunked_documents_cdns, prompt, model_id);
+        payload.query = prompt;
+        answer_text = await queryChunks(ctx, payload);
     }
     else if (usage == "run_prompt_on_documents") {
         if (prompt === null || prompt === undefined || prompt.length == 0) throw new Error("No prompt specified in [prompt] field");

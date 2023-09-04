@@ -1,24 +1,33 @@
 //@ts-check
-//import { faiss_from_texts } from "./vectorstoreFaiss.js";
-import { memory_from_texts } from "./vectorstore_Memory.js";
+// import { faiss_from_texts } from "./vectorstore_Faiss.js";
+// import { lancedb_from_texts, loadDbTable } from "./vectorstore_Lancedb.js";
+import { memoryFromTexts } from "./vectorstore_Memory.js";
 import { console_log,   is_valid } from "omnilib-utils/utils.js";
 
-//const FAISS_VECTORSTORE = "FAISS";
-const MEMORY_VECTORSTORE = "MEMORY"
+const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies
+const MEMORY_VECTORSTORE = "MEMORY";
+const LANCEDB_VECTORSTORE = "LANCEDB"; // NOT SUPPORTED FOR NOW
 const DEFAULT_VECTORSTORE_NAME = 'omnitool';
 const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
 
-async function create_vectorstore_from_texts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
+async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE, vectorstore_name = DEFAULT_VECTORSTORE_NAME) 
+{
     console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
 
     let vectorstore;
 
     switch (vectorstore_type) {
-        //case FAISS_VECTORSTORE:
-        //    vectorstore = await faiss_from_texts(texts, text_ids, embedder);
-        //    break;
+        case FAISS_VECTORSTORE:
+            vectorstore = null;//await faiss_from_texts(texts, text_ids, embedder);
+            break;
         case MEMORY_VECTORSTORE:
-            vectorstore = await memory_from_texts(texts, text_ids, embedder);
+            vectorstore = await memoryFromTexts(texts, text_ids, embedder);
+            break;
+        case LANCEDB_VECTORSTORE:
+            vectorstore = null;
+            //const table = await loadDbTable(vectorstore_name);
+            //const dbConfig = { table };
+            //vectorstore = await lancedb_from_texts(texts, text_ids, embedder, dbConfig);
             break;
         default:
             throw new Error(`Vectorstore type ${vectorstore_type} not recognized`);
@@ -67,11 +76,21 @@ async function compute_vectorstore(chunks, embedder)
 
     const [all_texts, all_ids] = get_texts_and_ids(chunks);
     console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
-    const vectorstore = await create_vectorstore_from_texts(all_texts, all_ids, embedder);
+    const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
     return vectorstore;
 }
 
+async function loadVectorstore(embedder)
+{
+    // we recompute the vectorstore from each chunk's text each time because the load/save ability of embeddings in langchain 
+    // is bound to disk operations and I find it distateful to save to temp files on the disk just to handle that.
+    // However, the embedding class itself will check if the embeddings have been
+    // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
 
+    const [all_texts, all_ids] = await embedder.getAllTextsAndIds();
+    const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
+    return vectorstore;
+}
 
 function clean_vectorstore_name(vectorstore_name)
 {
@@ -80,4 +99,4 @@ function clean_vectorstore_name(vectorstore_name)
     return clean_name;
 }
 
-export { query_vectorstore, compute_vectorstore, clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME }
+export { query_vectorstore, compute_vectorstore, clean_vectorstore_name, loadVectorstore, DEFAULT_VECTORSTORE_NAME }

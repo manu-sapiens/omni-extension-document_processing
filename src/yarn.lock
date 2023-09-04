@@ -375,16 +375,16 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:*":
-  version: 20.5.7
-  resolution: "@types/node@npm:20.5.7"
-  checksum: fc284c8e16ddc04569730d58e87eae349eb1c3dd9020cb79a1862d9d9add6f04e7367a236f3252db8db2572f90278e250f4cd43d27d264972b54394eaba1ed76
+  version: 20.5.9
+  resolution: "@types/node@npm:20.5.9"
+  checksum: 717490e94131722144878b4ca1a963ede1673bb8f2ef78c2f5b50b918df6dc9b35e7f8283e5c2a7a9f137730f7c08dc6228e53d4494a94c9ee16881e6ce6caed
   languageName: node
   linkType: hard
 
 "@types/node@npm:^18.11.18":
-  version: 18.17.12
-  resolution: "@types/node@npm:18.17.12"
-  checksum: 79f8bcca3067a3c529f30e172df8d14f25ab9e4cd6a05ed897a924ab1dec774e8ea172ef5c4a67ffec433d423a0c81778f17db22606d574bc83871b60aab298e
+  version: 18.17.14
+  resolution: "@types/node@npm:18.17.14"
+  checksum: f96ce1e588426a26cf82440193084f8bbab47bfb3c2e668cf174095f99ce808a20654b2137448c7e88cfd7b6c2b8521ffb6f714f521b3502ac595a0df0bff679
   languageName: node
   linkType: hard
 
@@ -1132,8 +1132,8 @@ __metadata:
   linkType: hard
 
 "langsmith@npm:~0.0.31":
-  version: 0.0.32
-  resolution: "langsmith@npm:0.0.32"
+  version: 0.0.33
+  resolution: "langsmith@npm:0.0.33"
   dependencies:
     "@types/uuid": ^9.0.1
     commander: ^10.0.1
@@ -1142,7 +1142,7 @@ __metadata:
     uuid: ^9.0.0
   bin:
     langsmith: dist/cli/main.cjs
-  checksum: 85d6bcec4ae137f00449e151a3b1867a3634f46d53487ee836d90a8d383d5457af89025a5934ca61d0f6392eda51ccd5203050b91393764aafb6a1ad326bc0ab
+  checksum: 81e668072e2d1f0c75c12d3e109b71f83905e9c0741c4af4698336b2b964e8d13775654b7f047393a7216111b7d10e3b6f44ea883774c821eb9bcabccd45950b
   languageName: node
   linkType: hard
 
@@ -1309,11 +1309,11 @@ __metadata:
 
 "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#main":
   version: 1.0.0
-  resolution: "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#commit=3f5d8431f703b31317ef98487e10b728577e0336"
+  resolution: "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#commit=faffcdf2bbfadd877c1c1b6bd1744238bb445efd"
   dependencies:
     gpt-tokenizer: ^2.1.1
     omnilib-utils: "https://github.com/manu-sapiens/omnilib-utils.git#main"
-  checksum: 076b1c6655a02b1a2650f4b3957e0b11d2525e0d0125350a89f27250f75f5d3fc8fdc1530cc2acd08b51a3523126d4017c438b92bc9652914247da79c49f0045
+  checksum: 79b9e6d6624bcbe318cf91c9aab31834ea901e1199c55029642d2fb4c58dee06f69bf3cba1933f7642c551a0705b2a7e7b3fb1e56e88a69c38d0a86dc891b6e0
   languageName: node
   linkType: hard
 

@@ -2,8 +2,9 @@
 // vectorstoreMemory.js
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
-async function memory_from_texts(texts, text_ids, embedder) {
-    return await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
+async function memoryFromTexts(texts, text_ids, embedder) {
+    const result = await MemoryVectorStore.fromTexts(texts, text_ids, embedder);
+    return result;
 }
 
-export { memory_from_texts };
+export { memoryFromTexts };

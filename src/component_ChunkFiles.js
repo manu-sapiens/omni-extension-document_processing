@@ -8,7 +8,7 @@ const NS_ONMI = 'document_processing';
 import { initialize_hasher, compute_document_id } from './omnilib-docs/hashers.js';
 import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from 'omnilib-utils/cdn.js';
 import { initialize_splitter } from './omnilib-docs/splitter.js';
-import { initialize_embedder } from './omnilib-docs/embeddings.js';
+import { initializeEmbedder } from './omnilib-docs/embeddings.js';
 import { processChapter } from './omnilib-docs/chunking.js';
 import { clean_vectorstore_name, DEFAULT_VECTORSTORE_NAME } from './omnilib-docs/vectorstore.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
@@ -95,7 +95,7 @@ async function chunk_files_parse(payload, ctx)
 
 
     if (!payload.documents) return { result: { "ok": false }, documents: [] };
-    const result_cdns = await chunk_files_function(ctx, payload);
+    const result_cdns = await chunkFiles_function(ctx, payload);
     if (!result_cdns) return { result: { "ok": false }, documents: [] };
 
     const return_value = { result: { "ok": true }, documents: result_cdns };
@@ -103,7 +103,7 @@ async function chunk_files_parse(payload, ctx)
    
 }
 
-async function chunk_files_function(ctx, payload)
+async function chunkFiles_function(ctx, payload)
 {
     const documents = payload.documents;
     const overwrite = payload.overwrite || false;
@@ -121,7 +121,7 @@ async function chunk_files_function(ctx, payload)
     const hasher_model = DEFAULT_HASHER_MODEL;
     const hasher = initialize_hasher(hasher_model);
     const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
-    const embedder = initialize_embedder(ctx, embedder_model, hasher, vectorstore_name, overwrite);
+    const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name, overwrite);
 
     omnilog.log(`[chunk_files_component] splitter_model = ${splitter_model}, embedder_model = ${embedder_model}`);
 
@@ -159,4 +159,4 @@ async function chunk_files_function(ctx, payload)
 }
 
 const ChunkFilesComponent = chunk_files_component.toJSON();
-export { ChunkFilesComponent, chunk_files_function };
+export { ChunkFilesComponent, chunkFiles_function };
