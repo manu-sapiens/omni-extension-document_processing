@@ -5657,7 +5657,7 @@ var Emittery = class _Emittery {
     if (isMetaEvent(eventName) && !canEmitMetaEvents) {
       throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
     }
-    this.logIfDebugEnabled("emit", eventName);
+    this.logIfDebugEnabled("emit", eventName, eventData);
     enqueueProducers(this, eventName, eventData);
     const listeners = getListeners(this, eventName) ?? /* @__PURE__ */ new Set();
     const anyListeners = anyMap.get(this);
@@ -6197,6 +6197,50 @@ var { parse: $parse, stringify: $stringify } = JSON;
 var options = { json: true, lossy: true };
 var parse = (str) => deserialize($parse(str));
 var stringify = (any) => $stringify(serialize(any, options));
+var Settings = class {
+  constructor(scope) {
+    this.settings = /* @__PURE__ */ new Map();
+    this.scope = scope;
+  }
+  bindStorage(storage) {
+    this.settings = storage;
+  }
+  // Adds a setting to this system.
+  add(setting) {
+    if (this.settings.has(setting.key)) {
+      omnilog.warn(`Setting ${setting.key} already exists, doing nothing...`);
+      return this;
+    }
+    this.settings.set(setting.key, setting);
+    return this;
+  }
+  // Retrieves a setting by its key.
+  get(key) {
+    return this.settings.get(key);
+  }
+  // Updates a setting's value and validates it.
+  update(key, newValue) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = newValue;
+    }
+  }
+  // Resets a specific setting to its default value.
+  reset(key) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = setting.defaultValue;
+    }
+  }
+  // Resets all settings to their default values.
+  resetAll() {
+    if (this.settings) {
+      for (const s3 of this.settings.values()) {
+        s3.value = s3.defaultValue;
+      }
+    }
+  }
+};
 var STATE = /* @__PURE__ */ ((STATE22) => {
   STATE22[STATE22["CREATED"] = 0] = "CREATED";
   STATE22[STATE22["CONFIGURED"] = 1] = "CONFIGURED";
@@ -6217,6 +6261,7 @@ var App = class {
     this.services = new ServiceManager(this);
     this.integrations = new (opts.integrationsManagerType || IntegrationsManager)(this);
     const loginstance = this.logger.createWithTag(id);
+    this.settings = new Settings();
     this.info = loginstance.info;
     this.success = loginstance.success;
     this.debug = loginstance.debug;
@@ -6461,8 +6506,8 @@ var _User = class _User2 extends DBObject {
     this.tier = null;
     this.password = null;
     this.salt = null;
-    this.token = null;
     this.tags = [];
+    this.settings = new Settings(this.id);
   }
   isAdmin() {
     return this.tags.some((tag) => tag === "admin");
@@ -6484,7 +6529,6 @@ var _User = class _User2 extends DBObject {
     result.tier = json.tier;
     result.password = json.password;
     result.salt = json.salt;
-    result.token = json.token;
     result.tags = json.tags;
     return result;
   }
@@ -15909,7 +15953,7 @@ var Emittery2 = class _Emittery2 {
     if (isMetaEvent2(eventName) && !canEmitMetaEvents2) {
       throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
     }
-    this.logIfDebugEnabled("emit", eventName);
+    this.logIfDebugEnabled("emit", eventName, eventData);
     enqueueProducers2(this, eventName, eventData);
     const listeners = getListeners2(this, eventName) ?? /* @__PURE__ */ new Set();
     const anyListeners = anyMap2.get(this);
@@ -16449,6 +16493,50 @@ var { parse: $parse2, stringify: $stringify2 } = JSON;
 var options2 = { json: true, lossy: true };
 var parse2 = (str) => deserialize2($parse2(str));
 var stringify2 = (any) => $stringify2(serialize2(any, options2));
+var Settings2 = class {
+  constructor(scope) {
+    this.settings = /* @__PURE__ */ new Map();
+    this.scope = scope;
+  }
+  bindStorage(storage) {
+    this.settings = storage;
+  }
+  // Adds a setting to this system.
+  add(setting) {
+    if (this.settings.has(setting.key)) {
+      omnilog2.warn(`Setting ${setting.key} already exists, doing nothing...`);
+      return this;
+    }
+    this.settings.set(setting.key, setting);
+    return this;
+  }
+  // Retrieves a setting by its key.
+  get(key) {
+    return this.settings.get(key);
+  }
+  // Updates a setting's value and validates it.
+  update(key, newValue) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = newValue;
+    }
+  }
+  // Resets a specific setting to its default value.
+  reset(key) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = setting.defaultValue;
+    }
+  }
+  // Resets all settings to their default values.
+  resetAll() {
+    if (this.settings) {
+      for (const s3 of this.settings.values()) {
+        s3.value = s3.defaultValue;
+      }
+    }
+  }
+};
 var STATE2 = /* @__PURE__ */ ((STATE22) => {
   STATE22[STATE22["CREATED"] = 0] = "CREATED";
   STATE22[STATE22["CONFIGURED"] = 1] = "CONFIGURED";
@@ -16469,6 +16557,7 @@ var App2 = class {
     this.services = new ServiceManager2(this);
     this.integrations = new (opts.integrationsManagerType || IntegrationsManager2)(this);
     const loginstance = this.logger.createWithTag(id);
+    this.settings = new Settings2();
     this.info = loginstance.info;
     this.success = loginstance.success;
     this.debug = loginstance.debug;
@@ -16713,8 +16802,8 @@ var _User3 = class _User22 extends DBObject2 {
     this.tier = null;
     this.password = null;
     this.salt = null;
-    this.token = null;
     this.tags = [];
+    this.settings = new Settings2(this.id);
   }
   isAdmin() {
     return this.tags.some((tag) => tag === "admin");
@@ -16736,7 +16825,6 @@ var _User3 = class _User22 extends DBObject2 {
     result.tier = json.tier;
     result.password = json.password;
     result.salt = json.salt;
-    result.token = json.token;
     result.tags = json.tags;
     return result;
   }
