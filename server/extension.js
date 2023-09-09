@@ -2689,7 +2689,1210 @@ var require_lib5 = __commonJS({
 
 // component_ChunkFiles.js
 import { OAIBaseComponent as OAIBaseComponent2, WorkerContext as WorkerContext2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
+<<<<<<< HEAD
 import { omnilog as omnilog2 } from "mercs_shared";
+=======
+
+// ../../../../../node_modules/consola/dist/index.mjs
+init_consola_36c0034f();
+init_core();
+init_consola_06ad8a64();
+init_utils();
+
+// ../../../../shared/lib/index.js
+var import_insane = __toESM(require_insane(), 1);
+var anyMap = /* @__PURE__ */ new WeakMap();
+var eventsMap = /* @__PURE__ */ new WeakMap();
+var producersMap = /* @__PURE__ */ new WeakMap();
+var anyProducer = Symbol("anyProducer");
+var resolvedPromise = Promise.resolve();
+var listenerAdded = Symbol("listenerAdded");
+var listenerRemoved = Symbol("listenerRemoved");
+var canEmitMetaEvents = false;
+var isGlobalDebugEnabled = false;
+function assertEventName(eventName) {
+  if (typeof eventName !== "string" && typeof eventName !== "symbol" && typeof eventName !== "number") {
+    throw new TypeError("`eventName` must be a string, symbol, or number");
+  }
+}
+function assertListener(listener) {
+  if (typeof listener !== "function") {
+    throw new TypeError("listener must be a function");
+  }
+}
+function getListeners(instance, eventName) {
+  const events = eventsMap.get(instance);
+  if (!events.has(eventName)) {
+    return;
+  }
+  return events.get(eventName);
+}
+function getEventProducers(instance, eventName) {
+  const key = typeof eventName === "string" || typeof eventName === "symbol" || typeof eventName === "number" ? eventName : anyProducer;
+  const producers = producersMap.get(instance);
+  if (!producers.has(key)) {
+    return;
+  }
+  return producers.get(key);
+}
+function enqueueProducers(instance, eventName, eventData) {
+  const producers = producersMap.get(instance);
+  if (producers.has(eventName)) {
+    for (const producer of producers.get(eventName)) {
+      producer.enqueue(eventData);
+    }
+  }
+  if (producers.has(anyProducer)) {
+    const item = Promise.all([eventName, eventData]);
+    for (const producer of producers.get(anyProducer)) {
+      producer.enqueue(item);
+    }
+  }
+}
+function iterator(instance, eventNames) {
+  eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+  let isFinished = false;
+  let flush = () => {
+  };
+  let queue4 = [];
+  const producer = {
+    enqueue(item) {
+      queue4.push(item);
+      flush();
+    },
+    finish() {
+      isFinished = true;
+      flush();
+    }
+  };
+  for (const eventName of eventNames) {
+    let set = getEventProducers(instance, eventName);
+    if (!set) {
+      set = /* @__PURE__ */ new Set();
+      const producers = producersMap.get(instance);
+      producers.set(eventName, set);
+    }
+    set.add(producer);
+  }
+  return {
+    async next() {
+      if (!queue4) {
+        return { done: true };
+      }
+      if (queue4.length === 0) {
+        if (isFinished) {
+          queue4 = void 0;
+          return this.next();
+        }
+        await new Promise((resolve) => {
+          flush = resolve;
+        });
+        return this.next();
+      }
+      return {
+        done: false,
+        value: await queue4.shift()
+      };
+    },
+    async return(value) {
+      queue4 = void 0;
+      for (const eventName of eventNames) {
+        const set = getEventProducers(instance, eventName);
+        if (set) {
+          set.delete(producer);
+          if (set.size === 0) {
+            const producers = producersMap.get(instance);
+            producers.delete(eventName);
+          }
+        }
+      }
+      flush();
+      return arguments.length > 0 ? { done: true, value: await value } : { done: true };
+    },
+    [Symbol.asyncIterator]() {
+      return this;
+    }
+  };
+}
+function defaultMethodNamesOrAssert(methodNames) {
+  if (methodNames === void 0) {
+    return allEmitteryMethods;
+  }
+  if (!Array.isArray(methodNames)) {
+    throw new TypeError("`methodNames` must be an array of strings");
+  }
+  for (const methodName of methodNames) {
+    if (!allEmitteryMethods.includes(methodName)) {
+      if (typeof methodName !== "string") {
+        throw new TypeError("`methodNames` element must be a string");
+      }
+      throw new Error(`${methodName} is not Emittery method`);
+    }
+  }
+  return methodNames;
+}
+var isMetaEvent = (eventName) => eventName === listenerAdded || eventName === listenerRemoved;
+function emitMetaEvent(emitter, eventName, eventData) {
+  if (isMetaEvent(eventName)) {
+    try {
+      canEmitMetaEvents = true;
+      emitter.emit(eventName, eventData);
+    } finally {
+      canEmitMetaEvents = false;
+    }
+  }
+}
+var Emittery = class _Emittery {
+  static mixin(emitteryPropertyName, methodNames) {
+    methodNames = defaultMethodNamesOrAssert(methodNames);
+    return (target) => {
+      if (typeof target !== "function") {
+        throw new TypeError("`target` must be function");
+      }
+      for (const methodName of methodNames) {
+        if (target.prototype[methodName] !== void 0) {
+          throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+        }
+      }
+      function getEmitteryProperty() {
+        Object.defineProperty(this, emitteryPropertyName, {
+          enumerable: false,
+          value: new _Emittery()
+        });
+        return this[emitteryPropertyName];
+      }
+      Object.defineProperty(target.prototype, emitteryPropertyName, {
+        enumerable: false,
+        get: getEmitteryProperty
+      });
+      const emitteryMethodCaller = (methodName) => function(...args) {
+        return this[emitteryPropertyName][methodName](...args);
+      };
+      for (const methodName of methodNames) {
+        Object.defineProperty(target.prototype, methodName, {
+          enumerable: false,
+          value: emitteryMethodCaller(methodName)
+        });
+      }
+      return target;
+    };
+  }
+  static get isDebugEnabled() {
+    if (typeof globalThis.process?.env !== "object") {
+      return isGlobalDebugEnabled;
+    }
+    const { env: env22 } = globalThis.process ?? { env: {} };
+    return env22.DEBUG === "emittery" || env22.DEBUG === "*" || isGlobalDebugEnabled;
+  }
+  static set isDebugEnabled(newValue) {
+    isGlobalDebugEnabled = newValue;
+  }
+  constructor(options22 = {}) {
+    anyMap.set(this, /* @__PURE__ */ new Set());
+    eventsMap.set(this, /* @__PURE__ */ new Map());
+    producersMap.set(this, /* @__PURE__ */ new Map());
+    producersMap.get(this).set(anyProducer, /* @__PURE__ */ new Set());
+    this.debug = options22.debug ?? {};
+    if (this.debug.enabled === void 0) {
+      this.debug.enabled = false;
+    }
+    if (!this.debug.logger) {
+      this.debug.logger = (type, debugName, eventName, eventData) => {
+        try {
+          eventData = JSON.stringify(eventData);
+        } catch {
+          eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(",")}`;
+        }
+        if (typeof eventName === "symbol" || typeof eventName === "number") {
+          eventName = eventName.toString();
+        }
+        const currentTime = /* @__PURE__ */ new Date();
+        const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+        console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}
+	data: ${eventData}`);
+      };
+    }
+  }
+  logIfDebugEnabled(type, eventName, eventData) {
+    if (_Emittery.isDebugEnabled || this.debug.enabled) {
+      this.debug.logger(type, this.debug.name, eventName, eventData);
+    }
+  }
+  on(eventNames, listener) {
+    assertListener(listener);
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName(eventName);
+      let set = getListeners(this, eventName);
+      if (!set) {
+        set = /* @__PURE__ */ new Set();
+        const events = eventsMap.get(this);
+        events.set(eventName, set);
+      }
+      set.add(listener);
+      this.logIfDebugEnabled("subscribe", eventName, void 0);
+      if (!isMetaEvent(eventName)) {
+        emitMetaEvent(this, listenerAdded, { eventName, listener });
+      }
+    }
+    return this.off.bind(this, eventNames, listener);
+  }
+  off(eventNames, listener) {
+    assertListener(listener);
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName(eventName);
+      const set = getListeners(this, eventName);
+      if (set) {
+        set.delete(listener);
+        if (set.size === 0) {
+          const events = eventsMap.get(this);
+          events.delete(eventName);
+        }
+      }
+      this.logIfDebugEnabled("unsubscribe", eventName, void 0);
+      if (!isMetaEvent(eventName)) {
+        emitMetaEvent(this, listenerRemoved, { eventName, listener });
+      }
+    }
+  }
+  once(eventNames) {
+    let off_;
+    const promise = new Promise((resolve) => {
+      off_ = this.on(eventNames, (data) => {
+        off_();
+        resolve(data);
+      });
+    });
+    promise.off = off_;
+    return promise;
+  }
+  events(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName(eventName);
+    }
+    return iterator(this, eventNames);
+  }
+  async emit(eventName, eventData) {
+    assertEventName(eventName);
+    if (isMetaEvent(eventName) && !canEmitMetaEvents) {
+      throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
+    }
+    this.logIfDebugEnabled("emit", eventName, eventData);
+    enqueueProducers(this, eventName, eventData);
+    const listeners = getListeners(this, eventName) ?? /* @__PURE__ */ new Set();
+    const anyListeners = anyMap.get(this);
+    const staticListeners = [...listeners];
+    const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
+    await resolvedPromise;
+    await Promise.all([
+      ...staticListeners.map(async (listener) => {
+        if (listeners.has(listener)) {
+          return listener(eventData);
+        }
+      }),
+      ...staticAnyListeners.map(async (listener) => {
+        if (anyListeners.has(listener)) {
+          return listener(eventName, eventData);
+        }
+      })
+    ]);
+  }
+  async emitSerial(eventName, eventData) {
+    assertEventName(eventName);
+    if (isMetaEvent(eventName) && !canEmitMetaEvents) {
+      throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
+    }
+    this.logIfDebugEnabled("emitSerial", eventName, eventData);
+    const listeners = getListeners(this, eventName) ?? /* @__PURE__ */ new Set();
+    const anyListeners = anyMap.get(this);
+    const staticListeners = [...listeners];
+    const staticAnyListeners = [...anyListeners];
+    await resolvedPromise;
+    for (const listener of staticListeners) {
+      if (listeners.has(listener)) {
+        await listener(eventData);
+      }
+    }
+    for (const listener of staticAnyListeners) {
+      if (anyListeners.has(listener)) {
+        await listener(eventName, eventData);
+      }
+    }
+  }
+  onAny(listener) {
+    assertListener(listener);
+    this.logIfDebugEnabled("subscribeAny", void 0, void 0);
+    anyMap.get(this).add(listener);
+    emitMetaEvent(this, listenerAdded, { listener });
+    return this.offAny.bind(this, listener);
+  }
+  anyEvent() {
+    return iterator(this);
+  }
+  offAny(listener) {
+    assertListener(listener);
+    this.logIfDebugEnabled("unsubscribeAny", void 0, void 0);
+    emitMetaEvent(this, listenerRemoved, { listener });
+    anyMap.get(this).delete(listener);
+  }
+  clearListeners(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      this.logIfDebugEnabled("clear", eventName, void 0);
+      if (typeof eventName === "string" || typeof eventName === "symbol" || typeof eventName === "number") {
+        const set = getListeners(this, eventName);
+        if (set) {
+          set.clear();
+        }
+        const producers = getEventProducers(this, eventName);
+        if (producers) {
+          for (const producer of producers) {
+            producer.finish();
+          }
+          producers.clear();
+        }
+      } else {
+        anyMap.get(this).clear();
+        for (const [eventName2, listeners] of eventsMap.get(this).entries()) {
+          listeners.clear();
+          eventsMap.get(this).delete(eventName2);
+        }
+        for (const [eventName2, producers] of producersMap.get(this).entries()) {
+          for (const producer of producers) {
+            producer.finish();
+          }
+          producers.clear();
+          producersMap.get(this).delete(eventName2);
+        }
+      }
+    }
+  }
+  listenerCount(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    let count = 0;
+    for (const eventName of eventNames) {
+      if (typeof eventName === "string") {
+        count += anyMap.get(this).size + (getListeners(this, eventName)?.size ?? 0) + (getEventProducers(this, eventName)?.size ?? 0) + (getEventProducers(this)?.size ?? 0);
+        continue;
+      }
+      if (typeof eventName !== "undefined") {
+        assertEventName(eventName);
+      }
+      count += anyMap.get(this).size;
+      for (const value of eventsMap.get(this).values()) {
+        count += value.size;
+      }
+      for (const value of producersMap.get(this).values()) {
+        count += value.size;
+      }
+    }
+    return count;
+  }
+  bindMethods(target, methodNames) {
+    if (typeof target !== "object" || target === null) {
+      throw new TypeError("`target` must be an object");
+    }
+    methodNames = defaultMethodNamesOrAssert(methodNames);
+    for (const methodName of methodNames) {
+      if (target[methodName] !== void 0) {
+        throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+      }
+      Object.defineProperty(target, methodName, {
+        enumerable: false,
+        value: this[methodName].bind(this)
+      });
+    }
+  }
+};
+var allEmitteryMethods = Object.getOwnPropertyNames(Emittery.prototype).filter((v2) => v2 !== "constructor");
+Object.defineProperty(Emittery, "listenerAdded", {
+  value: listenerAdded,
+  writable: false,
+  enumerable: true,
+  configurable: false
+});
+Object.defineProperty(Emittery, "listenerRemoved", {
+  value: listenerRemoved,
+  writable: false,
+  enumerable: true,
+  configurable: false
+});
+var OmniLogLevels = ((OmniLogLevels22) => {
+  OmniLogLevels22[OmniLogLevels22["silent"] = Number.NEGATIVE_INFINITY] = "silent";
+  OmniLogLevels22[OmniLogLevels22["always"] = 0] = "always";
+  OmniLogLevels22[OmniLogLevels22["fatal"] = 0] = "fatal";
+  OmniLogLevels22[OmniLogLevels22["warning"] = 1] = "warning";
+  OmniLogLevels22[OmniLogLevels22["normal"] = 2] = "normal";
+  OmniLogLevels22[OmniLogLevels22["info"] = 3] = "info";
+  OmniLogLevels22[OmniLogLevels22["debug"] = 4] = "debug";
+  OmniLogLevels22[OmniLogLevels22["trace"] = 5] = "trace";
+  OmniLogLevels22[OmniLogLevels22["verbose"] = Number.POSITIVE_INFINITY] = "verbose";
+  return OmniLogLevels22;
+})(OmniLogLevels || {});
+var DEFAULT_LOG_LEVEL = 2;
+var _OmniLog = class _OmniLog2 {
+  constructor() {
+    this._status_priority = consola.create({ level: OmniLogLevels.verbose });
+    this._void = (_msg) => {
+    };
+    this.__log = (msg) => consola.log(msg);
+    this._log = DEFAULT_LOG_LEVEL >= 3 ? this.__log : this._void;
+    if (_OmniLog2._instance !== void 0) {
+      throw new Error("Log instance duplicate error");
+    }
+    consola.level = DEFAULT_LOG_LEVEL;
+    this._customLevel = /* @__PURE__ */ new Map();
+    _OmniLog2._instance = this;
+  }
+  get level() {
+    return consola.level;
+  }
+  set level(value) {
+    this._status_priority.level = value < 0 ? value : OmniLogLevels.verbose;
+    this._log = value >= 3 ? this.__log : this._void;
+    consola.level = value;
+    if (value < 0) {
+      this._customLevel.forEach((e) => e = OmniLogLevels.silent);
+    }
+  }
+  get warn() {
+    return consola.warn;
+  }
+  get error() {
+    return consola.error;
+  }
+  get info() {
+    return consola.info;
+  }
+  get debug() {
+    return consola.debug;
+  }
+  get verbose() {
+    return consola.verbose;
+  }
+  get ready() {
+    return consola.ready;
+  }
+  get success() {
+    return consola.success;
+  }
+  get trace() {
+    return consola.trace;
+  }
+  get log() {
+    return this._log;
+  }
+  get assert() {
+    return console.assert;
+  }
+  status_start(msg) {
+    this._status_priority.start(msg);
+  }
+  status_success(msg) {
+    this._status_priority.success(msg);
+  }
+  status_fail(msg) {
+    this._status_priority.fail(msg);
+  }
+  createWithTag(id) {
+    return consola.withTag(id);
+  }
+  wrapConsoleLogger() {
+    consola.wrapConsole();
+  }
+  restoreConsoleLogger() {
+    consola.restoreConsole();
+  }
+  setCustomLevel(id, level) {
+    this._customLevel.set(id, level);
+  }
+  getCustomLevel(id) {
+    return this._customLevel.get(id) ?? DEFAULT_LOG_LEVEL;
+  }
+};
+_OmniLog._instance = new _OmniLog();
+var OmniLog = _OmniLog;
+var omnilog = OmniLog._instance;
+var Manager = class {
+  constructor(app) {
+    this.app = app;
+    this.children = /* @__PURE__ */ new Map();
+    const logInstance = omnilog.createWithTag("Services");
+    this.info = logInstance.info;
+    this.success = logInstance.success;
+    this.debug = logInstance.debug;
+    this.verbose = logInstance.verbose;
+    this.warn = logInstance.warn;
+    this.error = logInstance.error;
+  }
+  register(Ctor, config, wrapper) {
+    throw new Error("Manager register method not implemented");
+  }
+  async load() {
+    const success = true;
+    for (const [id, child] of this.children) {
+      this.verbose(`${id} load`);
+      await child.load?.();
+    }
+    return success;
+  }
+  async start() {
+    for (const [id, child] of this.children) {
+      omnilog.log(`child ${id} start`);
+      await child.start?.();
+    }
+    omnilog.log("All children started");
+    return true;
+  }
+  async stop() {
+    this.debug("stopping children...");
+    for (const child of Array.from(this.children.values()).reverse()) {
+      this.verbose(`${child.id} stop`);
+      await child.stop?.();
+    }
+    this.success("children stopped");
+    return true;
+  }
+  get(id) {
+    return this.children.get(id);
+  }
+  has(id) {
+    return this.children.has(id);
+  }
+};
+var IntegrationsManager = class extends Manager {
+  constructor(app) {
+    super(app);
+    Object.defineProperty(this, "integrations", { get: () => this.children });
+    this._integrations = [];
+  }
+  // Unlike services, we want to delay the creation until all the services have loaded, so we
+  // just store an array here which we process for the actual registration step in load()
+  register(Ctor, config) {
+    this.verbose(`pre-registering ${config.id} integration`);
+    this._integrations.push([Ctor, config]);
+  }
+  async load() {
+    for (const [Ctor, config] of this._integrations) {
+      this.verbose(`registering integration ${config.id}...`);
+      const integration = new Ctor(config.id, this, config);
+      this.children.set(config.id, integration);
+      integration.create?.();
+    }
+    this.debug("loading integrations...");
+    const result = await super.load();
+    this.success("integrations loaded");
+    return result;
+  }
+  async start() {
+    this.debug("starting integrations...");
+    await super.start();
+    this.success("integrations started");
+    return true;
+  }
+};
+var ServiceManager = class extends Manager {
+  constructor(app) {
+    super(app);
+    Object.defineProperty(this, "services", { get: () => this.children });
+  }
+  register(Ctor, config, wrapper) {
+    this.debug(`registering ${config.id} service`);
+    let service = new Ctor(config.id, this, config);
+    if (wrapper && typeof wrapper === "function") {
+      service = wrapper(service);
+    }
+    this.children.set(config.id, service);
+    service.create?.();
+    return service;
+  }
+  async load() {
+    this.debug("loading services...");
+    const success = await super.load();
+    if (!success) {
+      this.error("failed to load services");
+      return false;
+    }
+    this.success("services loaded");
+    return true;
+  }
+  async start() {
+    this.debug("starting services...");
+    await super.start();
+    this.success("services started");
+    return true;
+  }
+};
+var VOID = -1;
+var PRIMITIVE = 0;
+var ARRAY = 1;
+var OBJECT = 2;
+var DATE = 3;
+var REGEXP = 4;
+var MAP = 5;
+var SET = 6;
+var ERROR = 7;
+var BIGINT = 8;
+var env2 = typeof self === "object" ? self : globalThis;
+var deserializer = ($2, _2) => {
+  const as = (out, index) => {
+    $2.set(index, out);
+    return out;
+  };
+  const unpair = (index) => {
+    if ($2.has(index))
+      return $2.get(index);
+    const [type, value] = _2[index];
+    switch (type) {
+      case PRIMITIVE:
+      case VOID:
+        return as(value, index);
+      case ARRAY: {
+        const arr = as([], index);
+        for (const index2 of value)
+          arr.push(unpair(index2));
+        return arr;
+      }
+      case OBJECT: {
+        const object = as({}, index);
+        for (const [key, index2] of value)
+          object[unpair(key)] = unpair(index2);
+        return object;
+      }
+      case DATE:
+        return as(new Date(value), index);
+      case REGEXP: {
+        const { source, flags } = value;
+        return as(new RegExp(source, flags), index);
+      }
+      case MAP: {
+        const map = as(/* @__PURE__ */ new Map(), index);
+        for (const [key, index2] of value)
+          map.set(unpair(key), unpair(index2));
+        return map;
+      }
+      case SET: {
+        const set = as(/* @__PURE__ */ new Set(), index);
+        for (const index2 of value)
+          set.add(unpair(index2));
+        return set;
+      }
+      case ERROR: {
+        const { name, message } = value;
+        return as(new env2[name](message), index);
+      }
+      case BIGINT:
+        return as(BigInt(value), index);
+      case "BigInt":
+        return as(Object(BigInt(value)), index);
+    }
+    return as(new env2[type](value), index);
+  };
+  return unpair;
+};
+var deserialize = (serialized) => deserializer(/* @__PURE__ */ new Map(), serialized)(0);
+var EMPTY = "";
+var { toString } = {};
+var { keys } = Object;
+var typeOf = (value) => {
+  const type = typeof value;
+  if (type !== "object" || !value)
+    return [PRIMITIVE, type];
+  const asString = toString.call(value).slice(8, -1);
+  switch (asString) {
+    case "Array":
+      return [ARRAY, EMPTY];
+    case "Object":
+      return [OBJECT, EMPTY];
+    case "Date":
+      return [DATE, EMPTY];
+    case "RegExp":
+      return [REGEXP, EMPTY];
+    case "Map":
+      return [MAP, EMPTY];
+    case "Set":
+      return [SET, EMPTY];
+  }
+  if (asString.includes("Array"))
+    return [ARRAY, asString];
+  if (asString.includes("Error"))
+    return [ERROR, asString];
+  return [OBJECT, asString];
+};
+var shouldSkip = ([TYPE, type]) => TYPE === PRIMITIVE && (type === "function" || type === "symbol");
+var serializer = (strict, json, $2, _2) => {
+  const as = (out, value) => {
+    const index = _2.push(out) - 1;
+    $2.set(value, index);
+    return index;
+  };
+  const pair = (value) => {
+    if ($2.has(value))
+      return $2.get(value);
+    let [TYPE, type] = typeOf(value);
+    switch (TYPE) {
+      case PRIMITIVE: {
+        let entry = value;
+        switch (type) {
+          case "bigint":
+            TYPE = BIGINT;
+            entry = value.toString();
+            break;
+          case "function":
+          case "symbol":
+            if (strict)
+              throw new TypeError("unable to serialize " + type);
+            entry = null;
+            break;
+          case "undefined":
+            return as([VOID], value);
+        }
+        return as([TYPE, entry], value);
+      }
+      case ARRAY: {
+        if (type)
+          return as([type, [...value]], value);
+        const arr = [];
+        const index = as([TYPE, arr], value);
+        for (const entry of value)
+          arr.push(pair(entry));
+        return index;
+      }
+      case OBJECT: {
+        if (type) {
+          switch (type) {
+            case "BigInt":
+              return as([type, value.toString()], value);
+            case "Boolean":
+            case "Number":
+            case "String":
+              return as([type, value.valueOf()], value);
+          }
+        }
+        if (json && "toJSON" in value)
+          return pair(value.toJSON());
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const key of keys(value)) {
+          if (strict || !shouldSkip(typeOf(value[key])))
+            entries.push([pair(key), pair(value[key])]);
+        }
+        return index;
+      }
+      case DATE:
+        return as([TYPE, value.toISOString()], value);
+      case REGEXP: {
+        const { source, flags } = value;
+        return as([TYPE, { source, flags }], value);
+      }
+      case MAP: {
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const [key, entry] of value) {
+          if (strict || !(shouldSkip(typeOf(key)) || shouldSkip(typeOf(entry))))
+            entries.push([pair(key), pair(entry)]);
+        }
+        return index;
+      }
+      case SET: {
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const entry of value) {
+          if (strict || !shouldSkip(typeOf(entry)))
+            entries.push(pair(entry));
+        }
+        return index;
+      }
+    }
+    const { message } = value;
+    return as([TYPE, { name: type, message }], value);
+  };
+  return pair;
+};
+var serialize = (value, { json, lossy } = {}) => {
+  const _2 = [];
+  return serializer(!(json || lossy), !!json, /* @__PURE__ */ new Map(), _2)(value), _2;
+};
+var { parse: $parse, stringify: $stringify } = JSON;
+var options = { json: true, lossy: true };
+var parse = (str) => deserialize($parse(str));
+var stringify = (any) => $stringify(serialize(any, options));
+var Settings = class {
+  constructor(scope) {
+    this.settings = /* @__PURE__ */ new Map();
+    this.scope = scope;
+  }
+  bindStorage(storage) {
+    this.settings = storage;
+  }
+  // Adds a setting to this system.
+  add(setting) {
+    if (this.settings.has(setting.key)) {
+      omnilog.warn(`Setting ${setting.key} already exists, doing nothing...`);
+      return this;
+    }
+    this.settings.set(setting.key, setting);
+    return this;
+  }
+  // Retrieves a setting by its key.
+  get(key) {
+    return this.settings.get(key);
+  }
+  // Updates a setting's value and validates it.
+  update(key, newValue) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = newValue;
+    }
+  }
+  // Resets a specific setting to its default value.
+  reset(key) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = setting.defaultValue;
+    }
+  }
+  // Resets all settings to their default values.
+  resetAll() {
+    if (this.settings) {
+      for (const s3 of this.settings.values()) {
+        s3.value = s3.defaultValue;
+      }
+    }
+  }
+};
+var STATE = /* @__PURE__ */ ((STATE22) => {
+  STATE22[STATE22["CREATED"] = 0] = "CREATED";
+  STATE22[STATE22["CONFIGURED"] = 1] = "CONFIGURED";
+  STATE22[STATE22["LOADED"] = 2] = "LOADED";
+  STATE22[STATE22["STARTED"] = 3] = "STARTED";
+  STATE22[STATE22["STOPPED"] = 4] = "STOPPED";
+  return STATE22;
+})(STATE || {});
+var App = class {
+  constructor(id, config, opts) {
+    this.state = 0;
+    this.id = id;
+    opts ?? (opts = {
+      integrationsManagerType: IntegrationsManager
+    });
+    this.config = config;
+    this.logger = omnilog;
+    this.services = new ServiceManager(this);
+    this.integrations = new (opts.integrationsManagerType || IntegrationsManager)(this);
+    const loginstance = this.logger.createWithTag(id);
+    this.settings = new Settings();
+    this.info = loginstance.info;
+    this.success = loginstance.success;
+    this.debug = loginstance.debug;
+    this.error = loginstance.error;
+    this.verbose = loginstance.verbose;
+    this.warn = loginstance.warn;
+    this.events = new Emittery(
+      omnilog.getCustomLevel("emittery") > OmniLogLevels.silent ? { debug: { name: "app.events", enabled: true } } : void 0
+    );
+  }
+  // registers a service or integration
+  use(middleware, config, middlewareType, wrapper) {
+    this.verbose("[APP.USE] use", middleware.name);
+    if (middlewareType === "service" || middleware.name.endsWith("Service")) {
+      const service = middleware;
+      this.services.register(service, config, wrapper);
+    } else if (middlewareType === "integration" || middleware.name.endsWith("Integration")) {
+      const integration = middleware;
+      this.integrations.register(integration, config);
+    } else {
+      this.warn(`[APP.USE] Unknown middleware type ${middleware.name}`);
+    }
+    return this;
+  }
+  // ----- messaging
+  async emit(event, data) {
+    this.debug("[APP.EMIT Global] emit", event);
+    await this.events.emit(event, data);
+  }
+  // ----- app state control
+  async load() {
+    if (this.state >= 2) {
+      omnilog.warn("Cannot load more than once, ignoring call");
+      return true;
+    }
+    const owner = this;
+    if (owner.onConfigure != null) {
+      await owner.onConfigure();
+    }
+    this.state = 1;
+    if (!await this.services.load()) {
+      throw new Error("Failed to load services, see console for details");
+    }
+    await this.integrations.load();
+    if (owner.onLoad != null) {
+      await owner.onLoad();
+    }
+    await this.emit("loaded", {});
+    this.success("app loaded");
+    this.state = 2;
+    return true;
+  }
+  async start() {
+    if (this.state === 3) {
+      omnilog.warn("Cannot start more than once, ignoring call");
+      return true;
+    }
+    const owner = this;
+    await this.services.start();
+    await this.integrations.start();
+    if (owner.onStart != null) {
+      await owner.onStart();
+    }
+    this.success("app started");
+    this.state = 3;
+    await this.emit("started", {});
+    return true;
+  }
+  async stop() {
+    this.info("app stopping");
+    await this.integrations.stop();
+    await this.services.stop();
+    await this.emit("stopped", {});
+    this.success("app stopped");
+    this.state = 4;
+    return true;
+  }
+  subscribeToGlobalEvent(event, handler) {
+    this.info(`[APP.SUB Global] ${this.id} subscribed to GlobalEvent ${event}`);
+    this.events.on(event, handler);
+  }
+  subscribeToServiceEvent(serviceOrId, event, handler) {
+    const id = serviceOrId.id ?? serviceOrId;
+    if (!this.services.has(id)) {
+      this.warn(`[SERVICE.SUB Service] ${this.id} subscribed to unknown service '${id}'. This can be ok in some cases, but usually indicates a bug.`);
+    }
+    this.info(`[SERVICE.SUB App] ${this.id} subscribed to service event '${event}' on ${id}`);
+    this.events.on(`${id}.${event}`, handler);
+  }
+  stringify(obj) {
+    return stringify(obj, null, 2);
+  }
+  parse(str) {
+    return parse(str);
+  }
+};
+App.STATES = STATE;
+var BaseWorkflow = class _BaseWorkflow {
+  constructor(id, version, meta) {
+    this.id = id || "";
+    this.version = version || "draft";
+    this.setMeta(meta);
+    this.setRete(null);
+    this.setAPI(null);
+    this.ui = {};
+  }
+  setMeta(meta) {
+    var _a, _b, _c, _d;
+    meta = JSON.parse(JSON.stringify(meta || {}));
+    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta;
+    this.meta.updated = Date.now();
+    (_a = this.meta).created ?? (_a.created = Date.now());
+    (_b = this.meta).tags ?? (_b.tags = []);
+    this.meta.updated = Date.now();
+    (_c = this.meta).author || (_c.author = "Anonymous");
+    (_d = this.meta).help || (_d.help = "");
+    this.meta.name = (0, import_insane.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
+    this.meta.description = (0, import_insane.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
+    this.meta.author = (0, import_insane.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
+    this.meta.help = (0, import_insane.default)(this.meta.help, { allowedTags: [], allowedAttributes: {} });
+    return this;
+  }
+  setRete(rete) {
+    this.rete = rete;
+    this.meta.updated = Date.now();
+    return this;
+  }
+  setAPI(api2) {
+    this.api = api2 ?? { fields: {} };
+    this.meta.updated = Date.now();
+    return this;
+  }
+  setUI(ui) {
+    this.ui = ui ?? {};
+    this.meta.updated = Date.now();
+    return this;
+  }
+  get isBlank() {
+    return (this?.rete?.nodes ?? []).length === 0;
+  }
+  toJSON() {
+    return {
+      id: this.id,
+      version: this.version,
+      meta: this.meta,
+      rete: this.rete,
+      api: this.api,
+      ui: this.ui
+    };
+  }
+  static fromJSON(json) {
+    const result = new _BaseWorkflow(json.id, json.version);
+    result.setMeta(json.meta);
+    result.setRete(json.rete);
+    result.setAPI(json.api);
+    result.setUI(json.ui);
+    return result;
+  }
+};
+var _Workflow = class _Workflow2 extends BaseWorkflow {
+  // Either 'public', organisation IDs, group IDs, or user IDs
+  constructor(id, version, data, meta) {
+    super(id, version, meta);
+    this._id = version == "draft" ? `wf:${id}` : `wf:${id}:${version}`;
+    this.owner = data.owner;
+    this.org = data.org;
+    this.publishedTo = [];
+  }
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      _id: this._id,
+      _rev: this._rev,
+      owner: this.owner,
+      org: this.org,
+      publishedTo: this.publishedTo
+    };
+  }
+  static fromJSON(json) {
+    let id = json._id?.replace("wf:", "") || json.id;
+    if (json.id && json.id.length > 16 && id.startsWith(json.id)) {
+      id = json.id;
+    }
+    const result = new _Workflow2(id, json.version ?? "draft", { owner: json.owner || json.meta.owner, org: json.org });
+    result.publishedTo = json.publishedTo;
+    result.setMeta(json.meta);
+    result.setRete(json.rete);
+    result.setAPI(json.api);
+    result.setUI(json.ui);
+    if (json._rev) {
+      result._rev = json._rev;
+    }
+    return result;
+  }
+};
+_Workflow.modelName = "Workflow";
+var DBObject = class {
+  constructor(id) {
+    this._rev = void 0;
+    this.id = id;
+    this._id = `${Object.getPrototypeOf(this).constructor.name}:${this.id}`;
+    this.createdAt = Date.now();
+    this.lastUpdated = Date.now();
+  }
+  processAPIResponse(response) {
+    if (response.ok) {
+      this._id = response.id;
+      this._rev = response.rev;
+    }
+  }
+};
+var Group = class extends DBObject {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.credit = 0;
+    this.organisation = null;
+    this.members = [];
+    this.permission = [];
+  }
+};
+Group.modelName = "Group";
+var Organisation = class extends DBObject {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.members = [];
+    this.groups = [];
+  }
+};
+Organisation.modelName = "Organisation";
+var _User = class _User2 extends DBObject {
+  constructor(id, username) {
+    super(id);
+    this._id = `user:${this.id}`;
+    this.email = null;
+    this.username = username;
+    this.status = "active";
+    this.credit = 0;
+    this.organisation = null;
+    this.tier = null;
+    this.password = null;
+    this.salt = null;
+    this.tags = [];
+    this.settings = new Settings(this.id);
+  }
+  isAdmin() {
+    return this.tags.some((tag) => tag === "admin");
+  }
+  static fromJSON(json) {
+    const result = new _User2(json.id, json.username);
+    result._id = json._id;
+    result._rev = json._rev;
+    result.id = json.id;
+    result.createdAt = json.createdAt;
+    result.lastUpdated = json.lastUpdated;
+    result.email = json.email;
+    result.username = json.username;
+    result.status = json.status;
+    result.externalId = json.externalId;
+    result.authType = json.authType;
+    result.credit = json.credit;
+    result.organisation = json.organisation;
+    result.tier = json.tier;
+    result.password = json.password;
+    result.salt = json.salt;
+    result.tags = json.tags;
+    return result;
+  }
+};
+_User.modelName = "User";
+var Tier = class extends DBObject {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.limits = [];
+  }
+};
+Tier.modelName = "Tier";
+var APIKey = class extends DBObject {
+  // _id of the owner
+  constructor(id) {
+    super(id);
+    this.meta = {
+      name: "",
+      description: "",
+      owner: {
+        id: "",
+        type: "",
+        name: ""
+      },
+      revoked: false
+    };
+    this.key = "";
+    this.vaultType = "local";
+    this.owner = "";
+    this.apiNamespace = "";
+    this.variableName = "";
+  }
+};
+APIKey.modelName = "APIKey";
+var rnds8 = new Uint8Array(16);
+var byteToHex = [];
+for (let i = 0; i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+>>>>>>> 24cfb6e6d864500f2f7cb366fb7282ad48e5a696
 
 // node_modules/omnilib-utils/component.js
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
@@ -8231,11 +9434,4172 @@ var ReadTextFilesComponent = read_text_files_component.toJSON();
 import { OAIBaseComponent as OAIBaseComponent4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
 import { omnilog as omnilog4 } from "mercs_shared";
 
+<<<<<<< HEAD
 // node_modules/omnilib-llms/llm.js
 import { omnilog as omnilog3 } from "mercs_shared";
 
 // node_modules/omnilib-utils/files.js
 import { ClientExtension, ClientUtils } from "mercs_client";
+=======
+// ../../../../client/lib/index.js
+var __create2 = Object.create;
+var __defProp3 = Object.defineProperty;
+var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames2 = Object.getOwnPropertyNames;
+var __getProtoOf2 = Object.getPrototypeOf;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __commonJS2 = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps2 = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames2(from))
+      if (!__hasOwnProp2.call(to, key) && key !== except)
+        __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp3(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var require_she = __commonJS2({
+  "../../node_modules/insane/she.js"(exports, module) {
+    "use strict";
+    var escapes = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    };
+    var unescapes = {
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&#39;": "'"
+    };
+    var rescaped = /(&amp;|&lt;|&gt;|&quot;|&#39;)/g;
+    var runescaped = /[&<>"']/g;
+    function escapeHtmlChar(match) {
+      return escapes[match];
+    }
+    function unescapeHtmlChar(match) {
+      return unescapes[match];
+    }
+    function escapeHtml(text2) {
+      return text2 == null ? "" : String(text2).replace(runescaped, escapeHtmlChar);
+    }
+    function unescapeHtml(html) {
+      return html == null ? "" : String(html).replace(rescaped, unescapeHtmlChar);
+    }
+    escapeHtml.options = unescapeHtml.options = {};
+    module.exports = {
+      encode: escapeHtml,
+      escape: escapeHtml,
+      decode: unescapeHtml,
+      unescape: unescapeHtml,
+      version: "1.0.0-browser"
+    };
+  }
+});
+var require_assignment2 = __commonJS2({
+  "../../node_modules/assignment/assignment.js"(exports, module) {
+    "use strict";
+    function assignment(result) {
+      var stack = Array.prototype.slice.call(arguments, 1);
+      var item;
+      var key;
+      while (stack.length) {
+        item = stack.shift();
+        for (key in item) {
+          if (item.hasOwnProperty(key)) {
+            if (Object.prototype.toString.call(result[key]) === "[object Object]") {
+              result[key] = assignment(result[key], item[key]);
+            } else {
+              result[key] = item[key];
+            }
+          }
+        }
+      }
+      return result;
+    }
+    module.exports = assignment;
+  }
+});
+var require_lowercase2 = __commonJS2({
+  "../../node_modules/insane/lowercase.js"(exports, module) {
+    "use strict";
+    module.exports = function lowercase(string) {
+      return typeof string === "string" ? string.toLowerCase() : string;
+    };
+  }
+});
+var require_toMap2 = __commonJS2({
+  "../../node_modules/insane/toMap.js"(exports, module) {
+    "use strict";
+    function toMap(list) {
+      return list.reduce(asKey, {});
+    }
+    function asKey(accumulator, item) {
+      accumulator[item] = true;
+      return accumulator;
+    }
+    module.exports = toMap;
+  }
+});
+var require_attributes2 = __commonJS2({
+  "../../node_modules/insane/attributes.js"(exports, module) {
+    "use strict";
+    var toMap = require_toMap2();
+    var uris = ["background", "base", "cite", "href", "longdesc", "src", "usemap"];
+    module.exports = {
+      uris: toMap(uris)
+      // attributes that have an href and hence need to be sanitized
+    };
+  }
+});
+var require_elements2 = __commonJS2({
+  "../../node_modules/insane/elements.js"(exports, module) {
+    "use strict";
+    var toMap = require_toMap2();
+    var voids = ["area", "br", "col", "hr", "img", "wbr", "input", "base", "basefont", "link", "meta"];
+    module.exports = {
+      voids: toMap(voids)
+    };
+  }
+});
+var require_parser2 = __commonJS2({
+  "../../node_modules/insane/parser.js"(exports, module) {
+    "use strict";
+    var he = require_she();
+    var lowercase = require_lowercase2();
+    var attributes = require_attributes2();
+    var elements = require_elements2();
+    var rstart = /^<\s*([\w:-]+)((?:\s+[\w:-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)\s*>/;
+    var rend = /^<\s*\/\s*([\w:-]+)[^>]*>/;
+    var rattrs = /([\w:-]+)(?:\s*=\s*(?:(?:"((?:[^"])*)")|(?:'((?:[^'])*)')|([^>\s]+)))?/g;
+    var rtag = /^</;
+    var rtagend = /^<\s*\//;
+    function createStack() {
+      var stack = [];
+      stack.lastItem = function lastItem() {
+        return stack[stack.length - 1];
+      };
+      return stack;
+    }
+    function parser(html, handler) {
+      var stack = createStack();
+      var last = html;
+      var chars;
+      while (html) {
+        parsePart();
+      }
+      parseEndTag();
+      function parsePart() {
+        chars = true;
+        parseTag();
+        var same = html === last;
+        last = html;
+        if (same) {
+          html = "";
+        }
+      }
+      function parseTag() {
+        if (html.substr(0, 4) === "<!--") {
+          parseComment();
+        } else if (rtagend.test(html)) {
+          parseEdge(rend, parseEndTag);
+        } else if (rtag.test(html)) {
+          parseEdge(rstart, parseStartTag);
+        }
+        parseTagDecode();
+      }
+      function parseEdge(regex2, parser2) {
+        var match = html.match(regex2);
+        if (match) {
+          html = html.substring(match[0].length);
+          match[0].replace(regex2, parser2);
+          chars = false;
+        }
+      }
+      function parseComment() {
+        var index = html.indexOf("-->");
+        if (index >= 0) {
+          if (handler.comment) {
+            handler.comment(html.substring(4, index));
+          }
+          html = html.substring(index + 3);
+          chars = false;
+        }
+      }
+      function parseTagDecode() {
+        if (!chars) {
+          return;
+        }
+        var text2;
+        var index = html.indexOf("<");
+        if (index >= 0) {
+          text2 = html.substring(0, index);
+          html = html.substring(index);
+        } else {
+          text2 = html;
+          html = "";
+        }
+        if (handler.chars) {
+          handler.chars(text2);
+        }
+      }
+      function parseStartTag(tag, tagName, rest, unary) {
+        var attrs = {};
+        var low = lowercase(tagName);
+        var u = elements.voids[low] || !!unary;
+        rest.replace(rattrs, attrReplacer);
+        if (!u) {
+          stack.push(low);
+        }
+        if (handler.start) {
+          handler.start(low, attrs, u);
+        }
+        function attrReplacer(match, name, doubleQuotedValue, singleQuotedValue, unquotedValue) {
+          if (doubleQuotedValue === void 0 && singleQuotedValue === void 0 && unquotedValue === void 0) {
+            attrs[name] = void 0;
+          } else {
+            attrs[name] = he.decode(doubleQuotedValue || singleQuotedValue || unquotedValue || "");
+          }
+        }
+      }
+      function parseEndTag(tag, tagName) {
+        var i;
+        var pos = 0;
+        var low = lowercase(tagName);
+        if (low) {
+          for (pos = stack.length - 1; pos >= 0; pos--) {
+            if (stack[pos] === low) {
+              break;
+            }
+          }
+        }
+        if (pos >= 0) {
+          for (i = stack.length - 1; i >= pos; i--) {
+            if (handler.end) {
+              handler.end(stack[i]);
+            }
+          }
+          stack.length = pos;
+        }
+      }
+    }
+    module.exports = parser;
+  }
+});
+var require_sanitizer2 = __commonJS2({
+  "../../node_modules/insane/sanitizer.js"(exports, module) {
+    "use strict";
+    var he = require_she();
+    var lowercase = require_lowercase2();
+    var attributes = require_attributes2();
+    var elements = require_elements2();
+    function sanitizer(buffer, options22) {
+      var last;
+      var context;
+      var o = options22 || {};
+      reset();
+      return {
+        start,
+        end,
+        chars
+      };
+      function out(value) {
+        buffer.push(value);
+      }
+      function start(tag, attrs, unary) {
+        var low = lowercase(tag);
+        if (context.ignoring) {
+          ignore(low);
+          return;
+        }
+        if ((o.allowedTags || []).indexOf(low) === -1) {
+          ignore(low);
+          return;
+        }
+        if (o.filter && !o.filter({ tag: low, attrs })) {
+          ignore(low);
+          return;
+        }
+        out("<");
+        out(low);
+        Object.keys(attrs).forEach(parse22);
+        out(unary ? "/>" : ">");
+        function parse22(key) {
+          var value = attrs[key];
+          var classesOk = (o.allowedClasses || {})[low] || [];
+          var attrsOk = (o.allowedAttributes || {})[low] || [];
+          var valid;
+          var lkey = lowercase(key);
+          if (lkey === "class" && attrsOk.indexOf(lkey) === -1) {
+            value = value.split(" ").filter(isValidClass).join(" ").trim();
+            valid = value.length;
+          } else {
+            valid = attrsOk.indexOf(lkey) !== -1 && (attributes.uris[lkey] !== true || testUrl(value));
+          }
+          if (valid) {
+            out(" ");
+            out(key);
+            if (typeof value === "string") {
+              out('="');
+              out(he.encode(value));
+              out('"');
+            }
+          }
+          function isValidClass(className) {
+            return classesOk && classesOk.indexOf(className) !== -1;
+          }
+        }
+      }
+      function end(tag) {
+        var low = lowercase(tag);
+        var allowed = (o.allowedTags || []).indexOf(low) !== -1;
+        if (allowed) {
+          if (context.ignoring === false) {
+            out("</");
+            out(low);
+            out(">");
+          } else {
+            unignore(low);
+          }
+        } else {
+          unignore(low);
+        }
+      }
+      function testUrl(text2) {
+        var start2 = text2[0];
+        if (start2 === "#" || start2 === "/") {
+          return true;
+        }
+        var colon = text2.indexOf(":");
+        if (colon === -1) {
+          return true;
+        }
+        var questionmark = text2.indexOf("?");
+        if (questionmark !== -1 && colon > questionmark) {
+          return true;
+        }
+        var hash = text2.indexOf("#");
+        if (hash !== -1 && colon > hash) {
+          return true;
+        }
+        return o.allowedSchemes.some(matches);
+        function matches(scheme) {
+          return text2.indexOf(scheme + ":") === 0;
+        }
+      }
+      function chars(text2) {
+        if (context.ignoring === false) {
+          out(o.transformText ? o.transformText(text2) : text2);
+        }
+      }
+      function ignore(tag) {
+        if (elements.voids[tag]) {
+          return;
+        }
+        if (context.ignoring === false) {
+          context = { ignoring: tag, depth: 1 };
+        } else if (context.ignoring === tag) {
+          context.depth++;
+        }
+      }
+      function unignore(tag) {
+        if (context.ignoring === tag) {
+          if (--context.depth <= 0) {
+            reset();
+          }
+        }
+      }
+      function reset() {
+        context = { ignoring: false, depth: 0 };
+      }
+    }
+    module.exports = sanitizer;
+  }
+});
+var require_defaults2 = __commonJS2({
+  "../../node_modules/insane/defaults.js"(exports, module) {
+    "use strict";
+    var defaults2 = {
+      allowedAttributes: {
+        a: ["href", "name", "target", "title", "aria-label"],
+        iframe: ["allowfullscreen", "frameborder", "src"],
+        img: ["src", "alt", "title", "aria-label"]
+      },
+      allowedClasses: {},
+      allowedSchemes: ["http", "https", "mailto"],
+      allowedTags: [
+        "a",
+        "abbr",
+        "article",
+        "b",
+        "blockquote",
+        "br",
+        "caption",
+        "code",
+        "del",
+        "details",
+        "div",
+        "em",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "hr",
+        "i",
+        "img",
+        "ins",
+        "kbd",
+        "li",
+        "main",
+        "mark",
+        "ol",
+        "p",
+        "pre",
+        "section",
+        "span",
+        "strike",
+        "strong",
+        "sub",
+        "summary",
+        "sup",
+        "table",
+        "tbody",
+        "td",
+        "th",
+        "thead",
+        "tr",
+        "u",
+        "ul"
+      ],
+      filter: null
+    };
+    module.exports = defaults2;
+  }
+});
+var require_insane2 = __commonJS2({
+  "../../node_modules/insane/insane.js"(exports, module) {
+    "use strict";
+    var he = require_she();
+    var assign = require_assignment2();
+    var parser = require_parser2();
+    var sanitizer = require_sanitizer2();
+    var defaults2 = require_defaults2();
+    function insane2(html, options22, strict) {
+      var buffer = [];
+      var configuration = strict === true ? options22 : assign({}, defaults2, options22);
+      var handler = sanitizer(buffer, configuration);
+      parser(html, handler);
+      return buffer.join("");
+    }
+    insane2.defaults = defaults2;
+    module.exports = insane2;
+  }
+});
+var LogLevels2 = {
+  silent: Number.NEGATIVE_INFINITY,
+  fatal: 0,
+  error: 0,
+  warn: 1,
+  log: 2,
+  info: 3,
+  success: 3,
+  fail: 3,
+  ready: 3,
+  start: 3,
+  box: 3,
+  debug: 4,
+  trace: 5,
+  verbose: Number.POSITIVE_INFINITY
+};
+var LogTypes2 = {
+  // Silent
+  silent: {
+    level: -1
+  },
+  // Level 0
+  fatal: {
+    level: LogLevels2.fatal
+  },
+  error: {
+    level: LogLevels2.error
+  },
+  // Level 1
+  warn: {
+    level: LogLevels2.warn
+  },
+  // Level 2
+  log: {
+    level: LogLevels2.log
+  },
+  // Level 3
+  info: {
+    level: LogLevels2.info
+  },
+  success: {
+    level: LogLevels2.success
+  },
+  fail: {
+    level: LogLevels2.fail
+  },
+  ready: {
+    level: LogLevels2.info
+  },
+  start: {
+    level: LogLevels2.info
+  },
+  box: {
+    level: LogLevels2.info
+  },
+  // Level 4
+  debug: {
+    level: LogLevels2.debug
+  },
+  // Level 5
+  trace: {
+    level: LogLevels2.trace
+  },
+  // Verbose
+  verbose: {
+    level: LogLevels2.verbose
+  }
+};
+function isObject2(value) {
+  return value !== null && typeof value === "object";
+}
+function _defu2(baseObject, defaults2, namespace = ".", merger) {
+  if (!isObject2(defaults2)) {
+    return _defu2(baseObject, {}, namespace, merger);
+  }
+  const object = Object.assign({}, defaults2);
+  for (const key in baseObject) {
+    if (key === "__proto__" || key === "constructor") {
+      continue;
+    }
+    const value = baseObject[key];
+    if (value === null || value === void 0) {
+      continue;
+    }
+    if (merger && merger(object, key, value, namespace)) {
+      continue;
+    }
+    if (Array.isArray(value) && Array.isArray(object[key])) {
+      object[key] = [...value, ...object[key]];
+    } else if (isObject2(value) && isObject2(object[key])) {
+      object[key] = _defu2(
+        value,
+        object[key],
+        (namespace ? `${namespace}.` : "") + key.toString(),
+        merger
+      );
+    } else {
+      object[key] = value;
+    }
+  }
+  return object;
+}
+function createDefu2(merger) {
+  return (...arguments_) => (
+    // eslint-disable-next-line unicorn/no-array-reduce
+    arguments_.reduce((p2, c2) => _defu2(p2, c2, "", merger), {})
+  );
+}
+var defu2 = createDefu2();
+function isPlainObject2(obj) {
+  return Object.prototype.toString.call(obj) === "[object Object]";
+}
+function isLogObj2(arg) {
+  if (!isPlainObject2(arg)) {
+    return false;
+  }
+  if (!arg.message && !arg.args) {
+    return false;
+  }
+  if (arg.stack) {
+    return false;
+  }
+  return true;
+}
+var paused2 = false;
+var queue3 = [];
+var Consola2 = class _Consola {
+  constructor(options22 = {}) {
+    const types = options22.types || LogTypes2;
+    this.options = defu2(
+      {
+        ...options22,
+        defaults: { ...options22.defaults },
+        level: _normalizeLogLevel2(options22.level, types),
+        reporters: [...options22.reporters || []]
+      },
+      {
+        types: LogTypes2,
+        throttle: 1e3,
+        throttleMin: 5,
+        formatOptions: {
+          date: true,
+          colors: false,
+          compact: true
+        }
+      }
+    );
+    for (const type in types) {
+      const defaults2 = {
+        type,
+        ...this.options.defaults,
+        ...types[type]
+      };
+      this[type] = this._wrapLogFn(defaults2);
+      this[type].raw = this._wrapLogFn(
+        defaults2,
+        true
+      );
+    }
+    if (this.options.mockFn) {
+      this.mockTypes();
+    }
+    this._lastLog = {};
+  }
+  get level() {
+    return this.options.level;
+  }
+  set level(level) {
+    this.options.level = _normalizeLogLevel2(
+      level,
+      this.options.types,
+      this.options.level
+    );
+  }
+  prompt(message, opts) {
+    if (!this.options.prompt) {
+      throw new Error("prompt is not supported!");
+    }
+    return this.options.prompt(message, opts);
+  }
+  create(options22) {
+    const instance = new _Consola({
+      ...this.options,
+      ...options22
+    });
+    if (this._mockFn) {
+      instance.mockTypes(this._mockFn);
+    }
+    return instance;
+  }
+  withDefaults(defaults2) {
+    return this.create({
+      ...this.options,
+      defaults: {
+        ...this.options.defaults,
+        ...defaults2
+      }
+    });
+  }
+  withTag(tag) {
+    return this.withDefaults({
+      tag: this.options.defaults.tag ? this.options.defaults.tag + ":" + tag : tag
+    });
+  }
+  addReporter(reporter) {
+    this.options.reporters.push(reporter);
+    return this;
+  }
+  removeReporter(reporter) {
+    if (reporter) {
+      const i = this.options.reporters.indexOf(reporter);
+      if (i >= 0) {
+        return this.options.reporters.splice(i, 1);
+      }
+    } else {
+      this.options.reporters.splice(0);
+    }
+    return this;
+  }
+  setReporters(reporters) {
+    this.options.reporters = Array.isArray(reporters) ? reporters : [reporters];
+    return this;
+  }
+  wrapAll() {
+    this.wrapConsole();
+    this.wrapStd();
+  }
+  restoreAll() {
+    this.restoreConsole();
+    this.restoreStd();
+  }
+  wrapConsole() {
+    for (const type in this.options.types) {
+      if (!console["__" + type]) {
+        console["__" + type] = console[type];
+      }
+      console[type] = this[type].raw;
+    }
+  }
+  restoreConsole() {
+    for (const type in this.options.types) {
+      if (console["__" + type]) {
+        console[type] = console["__" + type];
+        delete console["__" + type];
+      }
+    }
+  }
+  wrapStd() {
+    this._wrapStream(this.options.stdout, "log");
+    this._wrapStream(this.options.stderr, "log");
+  }
+  _wrapStream(stream, type) {
+    if (!stream) {
+      return;
+    }
+    if (!stream.__write) {
+      stream.__write = stream.write;
+    }
+    stream.write = (data) => {
+      this[type].raw(String(data).trim());
+    };
+  }
+  restoreStd() {
+    this._restoreStream(this.options.stdout);
+    this._restoreStream(this.options.stderr);
+  }
+  _restoreStream(stream) {
+    if (!stream) {
+      return;
+    }
+    if (stream.__write) {
+      stream.write = stream.__write;
+      delete stream.__write;
+    }
+  }
+  pauseLogs() {
+    paused2 = true;
+  }
+  resumeLogs() {
+    paused2 = false;
+    const _queue = queue3.splice(0);
+    for (const item of _queue) {
+      item[0]._logFn(item[1], item[2]);
+    }
+  }
+  mockTypes(mockFn) {
+    const _mockFn = mockFn || this.options.mockFn;
+    this._mockFn = _mockFn;
+    if (typeof _mockFn !== "function") {
+      return;
+    }
+    for (const type in this.options.types) {
+      this[type] = _mockFn(type, this.options.types[type]) || this[type];
+      this[type].raw = this[type];
+    }
+  }
+  _wrapLogFn(defaults2, isRaw) {
+    return (...args) => {
+      if (paused2) {
+        queue3.push([this, defaults2, args, isRaw]);
+        return;
+      }
+      return this._logFn(defaults2, args, isRaw);
+    };
+  }
+  _logFn(defaults2, args, isRaw) {
+    if ((defaults2.level || 0) > this.level) {
+      return false;
+    }
+    const logObj = {
+      date: /* @__PURE__ */ new Date(),
+      args: [],
+      ...defaults2,
+      level: _normalizeLogLevel2(defaults2.level, this.options.types)
+    };
+    if (!isRaw && args.length === 1 && isLogObj2(args[0])) {
+      Object.assign(logObj, args[0]);
+    } else {
+      logObj.args = [...args];
+    }
+    if (logObj.message) {
+      logObj.args.unshift(logObj.message);
+      delete logObj.message;
+    }
+    if (logObj.additional) {
+      if (!Array.isArray(logObj.additional)) {
+        logObj.additional = logObj.additional.split("\n");
+      }
+      logObj.args.push("\n" + logObj.additional.join("\n"));
+      delete logObj.additional;
+    }
+    logObj.type = typeof logObj.type === "string" ? logObj.type.toLowerCase() : "log";
+    logObj.tag = typeof logObj.tag === "string" ? logObj.tag : "";
+    const resolveLog = (newLog = false) => {
+      const repeated = (this._lastLog.count || 0) - this.options.throttleMin;
+      if (this._lastLog.object && repeated > 0) {
+        const args2 = [...this._lastLog.object.args];
+        if (repeated > 1) {
+          args2.push(`(repeated ${repeated} times)`);
+        }
+        this._log({ ...this._lastLog.object, args: args2 });
+        this._lastLog.count = 1;
+      }
+      if (newLog) {
+        this._lastLog.object = logObj;
+        this._log(logObj);
+      }
+    };
+    clearTimeout(this._lastLog.timeout);
+    const diffTime = this._lastLog.time && logObj.date ? logObj.date.getTime() - this._lastLog.time.getTime() : 0;
+    this._lastLog.time = logObj.date;
+    if (diffTime < this.options.throttle) {
+      try {
+        const serializedLog = JSON.stringify([
+          logObj.type,
+          logObj.tag,
+          logObj.args
+        ]);
+        const isSameLog = this._lastLog.serialized === serializedLog;
+        this._lastLog.serialized = serializedLog;
+        if (isSameLog) {
+          this._lastLog.count = (this._lastLog.count || 0) + 1;
+          if (this._lastLog.count > this.options.throttleMin) {
+            this._lastLog.timeout = setTimeout(
+              resolveLog,
+              this.options.throttle
+            );
+            return;
+          }
+        }
+      } catch {
+      }
+    }
+    resolveLog(true);
+  }
+  _log(logObj) {
+    for (const reporter of this.options.reporters) {
+      reporter.log(logObj, {
+        options: this.options
+      });
+    }
+  }
+};
+function _normalizeLogLevel2(input, types = {}, defaultLevel = 3) {
+  if (input === void 0) {
+    return defaultLevel;
+  }
+  if (typeof input === "number") {
+    return input;
+  }
+  if (types[input] && types[input].level !== void 0) {
+    return types[input].level;
+  }
+  return defaultLevel;
+}
+Consola2.prototype.add = Consola2.prototype.addReporter;
+Consola2.prototype.remove = Consola2.prototype.removeReporter;
+Consola2.prototype.clear = Consola2.prototype.removeReporter;
+Consola2.prototype.withScope = Consola2.prototype.withTag;
+Consola2.prototype.mock = Consola2.prototype.mockTypes;
+Consola2.prototype.pause = Consola2.prototype.pauseLogs;
+Consola2.prototype.resume = Consola2.prototype.resumeLogs;
+function createConsola3(options22 = {}) {
+  return new Consola2(options22);
+}
+var BrowserReporter = class {
+  constructor(options22) {
+    this.options = { ...options22 };
+    this.defaultColor = "#7f8c8d";
+    this.levelColorMap = {
+      0: "#c0392b",
+      // Red
+      1: "#f39c12",
+      // Yellow
+      3: "#00BCD4"
+      // Cyan
+    };
+    this.typeColorMap = {
+      success: "#2ecc71"
+      // Green
+    };
+  }
+  _getLogFn(level) {
+    if (level < 1) {
+      return console.__error || console.error;
+    }
+    if (level === 1) {
+      return console.__warn || console.warn;
+    }
+    return console.__log || console.log;
+  }
+  log(logObj) {
+    const consoleLogFn = this._getLogFn(logObj.level);
+    const type = logObj.type === "log" ? "" : logObj.type;
+    const tag = logObj.tag || "";
+    const color2 = this.typeColorMap[logObj.type] || this.levelColorMap[logObj.level] || this.defaultColor;
+    const style = `
+      background: ${color2};
+      border-radius: 0.5em;
+      color: white;
+      font-weight: bold;
+      padding: 2px 0.5em;
+    `;
+    const badge = `%c${[tag, type].filter(Boolean).join(":")}`;
+    if (typeof logObj.args[0] === "string") {
+      consoleLogFn(
+        `${badge}%c ${logObj.args[0]}`,
+        style,
+        // Empty string as style resets to default console style
+        "",
+        ...logObj.args.slice(1)
+      );
+    } else {
+      consoleLogFn(badge, style, ...logObj.args);
+    }
+  }
+};
+function createConsola22(options22 = {}) {
+  const consola22 = createConsola3({
+    reporters: options22.reporters || [new BrowserReporter({})],
+    prompt(message, options222 = {}) {
+      if (options222.type === "confirm") {
+        return Promise.resolve(confirm(message));
+      }
+      return Promise.resolve(prompt(message));
+    },
+    ...options22
+  });
+  return consola22;
+}
+var consola2 = createConsola22();
+var import_insane2 = __toESM2(require_insane2(), 1);
+function bind(fn, thisArg) {
+  return function wrap2() {
+    return fn.apply(thisArg, arguments);
+  };
+}
+var { toString: toString2 } = Object.prototype;
+var { getPrototypeOf } = Object;
+var kindOf = ((cache2) => (thing) => {
+  const str = toString2.call(thing);
+  return cache2[str] || (cache2[str] = str.slice(8, -1).toLowerCase());
+})(/* @__PURE__ */ Object.create(null));
+var kindOfTest = (type) => {
+  type = type.toLowerCase();
+  return (thing) => kindOf(thing) === type;
+};
+var typeOfTest = (type) => (thing) => typeof thing === type;
+var { isArray } = Array;
+var isUndefined = typeOfTest("undefined");
+function isBuffer(val) {
+  return val !== null && !isUndefined(val) && val.constructor !== null && !isUndefined(val.constructor) && isFunction(val.constructor.isBuffer) && val.constructor.isBuffer(val);
+}
+var isArrayBuffer = kindOfTest("ArrayBuffer");
+function isArrayBufferView(val) {
+  let result;
+  if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView) {
+    result = ArrayBuffer.isView(val);
+  } else {
+    result = val && val.buffer && isArrayBuffer(val.buffer);
+  }
+  return result;
+}
+var isString = typeOfTest("string");
+var isFunction = typeOfTest("function");
+var isNumber = typeOfTest("number");
+var isObject22 = (thing) => thing !== null && typeof thing === "object";
+var isBoolean = (thing) => thing === true || thing === false;
+var isPlainObject22 = (val) => {
+  if (kindOf(val) !== "object") {
+    return false;
+  }
+  const prototype3 = getPrototypeOf(val);
+  return (prototype3 === null || prototype3 === Object.prototype || Object.getPrototypeOf(prototype3) === null) && !(Symbol.toStringTag in val) && !(Symbol.iterator in val);
+};
+var isDate = kindOfTest("Date");
+var isFile = kindOfTest("File");
+var isBlob = kindOfTest("Blob");
+var isFileList = kindOfTest("FileList");
+var isStream = (val) => isObject22(val) && isFunction(val.pipe);
+var isFormData = (thing) => {
+  let kind;
+  return thing && (typeof FormData === "function" && thing instanceof FormData || isFunction(thing.append) && ((kind = kindOf(thing)) === "formdata" || // detect form-data instance
+  kind === "object" && isFunction(thing.toString) && thing.toString() === "[object FormData]"));
+};
+var isURLSearchParams = kindOfTest("URLSearchParams");
+var trim = (str) => str.trim ? str.trim() : str.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
+function forEach(obj, fn, { allOwnKeys = false } = {}) {
+  if (obj === null || typeof obj === "undefined") {
+    return;
+  }
+  let i;
+  let l2;
+  if (typeof obj !== "object") {
+    obj = [obj];
+  }
+  if (isArray(obj)) {
+    for (i = 0, l2 = obj.length; i < l2; i++) {
+      fn.call(null, obj[i], i, obj);
+    }
+  } else {
+    const keys22 = allOwnKeys ? Object.getOwnPropertyNames(obj) : Object.keys(obj);
+    const len = keys22.length;
+    let key;
+    for (i = 0; i < len; i++) {
+      key = keys22[i];
+      fn.call(null, obj[key], key, obj);
+    }
+  }
+}
+function findKey(obj, key) {
+  key = key.toLowerCase();
+  const keys22 = Object.keys(obj);
+  let i = keys22.length;
+  let _key;
+  while (i-- > 0) {
+    _key = keys22[i];
+    if (key === _key.toLowerCase()) {
+      return _key;
+    }
+  }
+  return null;
+}
+var _global = (() => {
+  if (typeof globalThis !== "undefined")
+    return globalThis;
+  return typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : global;
+})();
+var isContextDefined = (context) => !isUndefined(context) && context !== _global;
+function merge() {
+  const { caseless } = isContextDefined(this) && this || {};
+  const result = {};
+  const assignValue = (val, key) => {
+    const targetKey = caseless && findKey(result, key) || key;
+    if (isPlainObject22(result[targetKey]) && isPlainObject22(val)) {
+      result[targetKey] = merge(result[targetKey], val);
+    } else if (isPlainObject22(val)) {
+      result[targetKey] = merge({}, val);
+    } else if (isArray(val)) {
+      result[targetKey] = val.slice();
+    } else {
+      result[targetKey] = val;
+    }
+  };
+  for (let i = 0, l2 = arguments.length; i < l2; i++) {
+    arguments[i] && forEach(arguments[i], assignValue);
+  }
+  return result;
+}
+var extend = (a, b2, thisArg, { allOwnKeys } = {}) => {
+  forEach(b2, (val, key) => {
+    if (thisArg && isFunction(val)) {
+      a[key] = bind(val, thisArg);
+    } else {
+      a[key] = val;
+    }
+  }, { allOwnKeys });
+  return a;
+};
+var stripBOM = (content) => {
+  if (content.charCodeAt(0) === 65279) {
+    content = content.slice(1);
+  }
+  return content;
+};
+var inherits = (constructor, superConstructor, props, descriptors2) => {
+  constructor.prototype = Object.create(superConstructor.prototype, descriptors2);
+  constructor.prototype.constructor = constructor;
+  Object.defineProperty(constructor, "super", {
+    value: superConstructor.prototype
+  });
+  props && Object.assign(constructor.prototype, props);
+};
+var toFlatObject = (sourceObj, destObj, filter2, propFilter) => {
+  let props;
+  let i;
+  let prop;
+  const merged = {};
+  destObj = destObj || {};
+  if (sourceObj == null)
+    return destObj;
+  do {
+    props = Object.getOwnPropertyNames(sourceObj);
+    i = props.length;
+    while (i-- > 0) {
+      prop = props[i];
+      if ((!propFilter || propFilter(prop, sourceObj, destObj)) && !merged[prop]) {
+        destObj[prop] = sourceObj[prop];
+        merged[prop] = true;
+      }
+    }
+    sourceObj = filter2 !== false && getPrototypeOf(sourceObj);
+  } while (sourceObj && (!filter2 || filter2(sourceObj, destObj)) && sourceObj !== Object.prototype);
+  return destObj;
+};
+var endsWith = (str, searchString, position) => {
+  str = String(str);
+  if (position === void 0 || position > str.length) {
+    position = str.length;
+  }
+  position -= searchString.length;
+  const lastIndex = str.indexOf(searchString, position);
+  return lastIndex !== -1 && lastIndex === position;
+};
+var toArray2 = (thing) => {
+  if (!thing)
+    return null;
+  if (isArray(thing))
+    return thing;
+  let i = thing.length;
+  if (!isNumber(i))
+    return null;
+  const arr = new Array(i);
+  while (i-- > 0) {
+    arr[i] = thing[i];
+  }
+  return arr;
+};
+var isTypedArray = ((TypedArray) => {
+  return (thing) => {
+    return TypedArray && thing instanceof TypedArray;
+  };
+})(typeof Uint8Array !== "undefined" && getPrototypeOf(Uint8Array));
+var forEachEntry = (obj, fn) => {
+  const generator = obj && obj[Symbol.iterator];
+  const iterator22 = generator.call(obj);
+  let result;
+  while ((result = iterator22.next()) && !result.done) {
+    const pair = result.value;
+    fn.call(obj, pair[0], pair[1]);
+  }
+};
+var matchAll = (regExp, str) => {
+  let matches;
+  const arr = [];
+  while ((matches = regExp.exec(str)) !== null) {
+    arr.push(matches);
+  }
+  return arr;
+};
+var isHTMLForm = kindOfTest("HTMLFormElement");
+var toCamelCase = (str) => {
+  return str.toLowerCase().replace(
+    /[-_\s]([a-z\d])(\w*)/g,
+    function replacer(m2, p1, p2) {
+      return p1.toUpperCase() + p2;
+    }
+  );
+};
+var hasOwnProperty = (({ hasOwnProperty: hasOwnProperty2 }) => (obj, prop) => hasOwnProperty2.call(obj, prop))(Object.prototype);
+var isRegExp = kindOfTest("RegExp");
+var reduceDescriptors = (obj, reducer) => {
+  const descriptors2 = Object.getOwnPropertyDescriptors(obj);
+  const reducedDescriptors = {};
+  forEach(descriptors2, (descriptor, name) => {
+    let ret;
+    if ((ret = reducer(descriptor, name, obj)) !== false) {
+      reducedDescriptors[name] = ret || descriptor;
+    }
+  });
+  Object.defineProperties(obj, reducedDescriptors);
+};
+var freezeMethods = (obj) => {
+  reduceDescriptors(obj, (descriptor, name) => {
+    if (isFunction(obj) && ["arguments", "caller", "callee"].indexOf(name) !== -1) {
+      return false;
+    }
+    const value = obj[name];
+    if (!isFunction(value))
+      return;
+    descriptor.enumerable = false;
+    if ("writable" in descriptor) {
+      descriptor.writable = false;
+      return;
+    }
+    if (!descriptor.set) {
+      descriptor.set = () => {
+        throw Error("Can not rewrite read-only method '" + name + "'");
+      };
+    }
+  });
+};
+var toObjectSet = (arrayOrString, delimiter) => {
+  const obj = {};
+  const define2 = (arr) => {
+    arr.forEach((value) => {
+      obj[value] = true;
+    });
+  };
+  isArray(arrayOrString) ? define2(arrayOrString) : define2(String(arrayOrString).split(delimiter));
+  return obj;
+};
+var noop = () => {
+};
+var toFiniteNumber = (value, defaultValue) => {
+  value = +value;
+  return Number.isFinite(value) ? value : defaultValue;
+};
+var ALPHA = "abcdefghijklmnopqrstuvwxyz";
+var DIGIT = "0123456789";
+var ALPHABET = {
+  DIGIT,
+  ALPHA,
+  ALPHA_DIGIT: ALPHA + ALPHA.toUpperCase() + DIGIT
+};
+var generateString = (size = 16, alphabet = ALPHABET.ALPHA_DIGIT) => {
+  let str = "";
+  const { length } = alphabet;
+  while (size--) {
+    str += alphabet[Math.random() * length | 0];
+  }
+  return str;
+};
+function isSpecCompliantForm(thing) {
+  return !!(thing && isFunction(thing.append) && thing[Symbol.toStringTag] === "FormData" && thing[Symbol.iterator]);
+}
+var toJSONObject = (obj) => {
+  const stack = new Array(10);
+  const visit = (source, i) => {
+    if (isObject22(source)) {
+      if (stack.indexOf(source) >= 0) {
+        return;
+      }
+      if (!("toJSON" in source)) {
+        stack[i] = source;
+        const target = isArray(source) ? [] : {};
+        forEach(source, (value, key) => {
+          const reducedValue = visit(value, i + 1);
+          !isUndefined(reducedValue) && (target[key] = reducedValue);
+        });
+        stack[i] = void 0;
+        return target;
+      }
+    }
+    return source;
+  };
+  return visit(obj, 0);
+};
+var isAsyncFn = kindOfTest("AsyncFunction");
+var isThenable = (thing) => thing && (isObject22(thing) || isFunction(thing)) && isFunction(thing.then) && isFunction(thing.catch);
+var utils_default = {
+  isArray,
+  isArrayBuffer,
+  isBuffer,
+  isFormData,
+  isArrayBufferView,
+  isString,
+  isNumber,
+  isBoolean,
+  isObject: isObject22,
+  isPlainObject: isPlainObject22,
+  isUndefined,
+  isDate,
+  isFile,
+  isBlob,
+  isRegExp,
+  isFunction,
+  isStream,
+  isURLSearchParams,
+  isTypedArray,
+  isFileList,
+  forEach,
+  merge,
+  extend,
+  trim,
+  stripBOM,
+  inherits,
+  toFlatObject,
+  kindOf,
+  kindOfTest,
+  endsWith,
+  toArray: toArray2,
+  forEachEntry,
+  matchAll,
+  isHTMLForm,
+  hasOwnProperty,
+  hasOwnProp: hasOwnProperty,
+  // an alias to avoid ESLint no-prototype-builtins detection
+  reduceDescriptors,
+  freezeMethods,
+  toObjectSet,
+  toCamelCase,
+  noop,
+  toFiniteNumber,
+  findKey,
+  global: _global,
+  isContextDefined,
+  ALPHABET,
+  generateString,
+  isSpecCompliantForm,
+  toJSONObject,
+  isAsyncFn,
+  isThenable
+};
+function AxiosError(message, code, config, request, response) {
+  Error.call(this);
+  if (Error.captureStackTrace) {
+    Error.captureStackTrace(this, this.constructor);
+  } else {
+    this.stack = new Error().stack;
+  }
+  this.message = message;
+  this.name = "AxiosError";
+  code && (this.code = code);
+  config && (this.config = config);
+  request && (this.request = request);
+  response && (this.response = response);
+}
+utils_default.inherits(AxiosError, Error, {
+  toJSON: function toJSON() {
+    return {
+      // Standard
+      message: this.message,
+      name: this.name,
+      // Microsoft
+      description: this.description,
+      number: this.number,
+      // Mozilla
+      fileName: this.fileName,
+      lineNumber: this.lineNumber,
+      columnNumber: this.columnNumber,
+      stack: this.stack,
+      // Axios
+      config: utils_default.toJSONObject(this.config),
+      code: this.code,
+      status: this.response && this.response.status ? this.response.status : null
+    };
+  }
+});
+var prototype = AxiosError.prototype;
+var descriptors = {};
+[
+  "ERR_BAD_OPTION_VALUE",
+  "ERR_BAD_OPTION",
+  "ECONNABORTED",
+  "ETIMEDOUT",
+  "ERR_NETWORK",
+  "ERR_FR_TOO_MANY_REDIRECTS",
+  "ERR_DEPRECATED",
+  "ERR_BAD_RESPONSE",
+  "ERR_BAD_REQUEST",
+  "ERR_CANCELED",
+  "ERR_NOT_SUPPORT",
+  "ERR_INVALID_URL"
+  // eslint-disable-next-line func-names
+].forEach((code) => {
+  descriptors[code] = { value: code };
+});
+Object.defineProperties(AxiosError, descriptors);
+Object.defineProperty(prototype, "isAxiosError", { value: true });
+AxiosError.from = (error, code, config, request, response, customProps) => {
+  const axiosError = Object.create(prototype);
+  utils_default.toFlatObject(error, axiosError, function filter2(obj) {
+    return obj !== Error.prototype;
+  }, (prop) => {
+    return prop !== "isAxiosError";
+  });
+  AxiosError.call(axiosError, error.message, code, config, request, response);
+  axiosError.cause = error;
+  axiosError.name = error.name;
+  customProps && Object.assign(axiosError, customProps);
+  return axiosError;
+};
+var AxiosError_default = AxiosError;
+var null_default = null;
+function isVisitable(thing) {
+  return utils_default.isPlainObject(thing) || utils_default.isArray(thing);
+}
+function removeBrackets(key) {
+  return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
+}
+function renderKey(path, key, dots) {
+  if (!path)
+    return key;
+  return path.concat(key).map(function each(token, i) {
+    token = removeBrackets(token);
+    return !dots && i ? "[" + token + "]" : token;
+  }).join(dots ? "." : "");
+}
+function isFlatArray(arr) {
+  return utils_default.isArray(arr) && !arr.some(isVisitable);
+}
+var predicates = utils_default.toFlatObject(utils_default, {}, null, function filter(prop) {
+  return /^is[A-Z]/.test(prop);
+});
+function toFormData(obj, formData, options22) {
+  if (!utils_default.isObject(obj)) {
+    throw new TypeError("target must be an object");
+  }
+  formData = formData || new (null_default || FormData)();
+  options22 = utils_default.toFlatObject(options22, {
+    metaTokens: true,
+    dots: false,
+    indexes: false
+  }, false, function defined(option, source) {
+    return !utils_default.isUndefined(source[option]);
+  });
+  const metaTokens = options22.metaTokens;
+  const visitor = options22.visitor || defaultVisitor;
+  const dots = options22.dots;
+  const indexes = options22.indexes;
+  const _Blob = options22.Blob || typeof Blob !== "undefined" && Blob;
+  const useBlob = _Blob && utils_default.isSpecCompliantForm(formData);
+  if (!utils_default.isFunction(visitor)) {
+    throw new TypeError("visitor must be a function");
+  }
+  function convertValue(value) {
+    if (value === null)
+      return "";
+    if (utils_default.isDate(value)) {
+      return value.toISOString();
+    }
+    if (!useBlob && utils_default.isBlob(value)) {
+      throw new AxiosError_default("Blob is not supported. Use a Buffer instead.");
+    }
+    if (utils_default.isArrayBuffer(value) || utils_default.isTypedArray(value)) {
+      return useBlob && typeof Blob === "function" ? new Blob([value]) : Buffer.from(value);
+    }
+    return value;
+  }
+  function defaultVisitor(value, key, path) {
+    let arr = value;
+    if (value && !path && typeof value === "object") {
+      if (utils_default.endsWith(key, "{}")) {
+        key = metaTokens ? key : key.slice(0, -2);
+        value = JSON.stringify(value);
+      } else if (utils_default.isArray(value) && isFlatArray(value) || (utils_default.isFileList(value) || utils_default.endsWith(key, "[]")) && (arr = utils_default.toArray(value))) {
+        key = removeBrackets(key);
+        arr.forEach(function each(el, index) {
+          !(utils_default.isUndefined(el) || el === null) && formData.append(
+            // eslint-disable-next-line no-nested-ternary
+            indexes === true ? renderKey([key], index, dots) : indexes === null ? key : key + "[]",
+            convertValue(el)
+          );
+        });
+        return false;
+      }
+    }
+    if (isVisitable(value)) {
+      return true;
+    }
+    formData.append(renderKey(path, key, dots), convertValue(value));
+    return false;
+  }
+  const stack = [];
+  const exposedHelpers = Object.assign(predicates, {
+    defaultVisitor,
+    convertValue,
+    isVisitable
+  });
+  function build(value, path) {
+    if (utils_default.isUndefined(value))
+      return;
+    if (stack.indexOf(value) !== -1) {
+      throw Error("Circular reference detected in " + path.join("."));
+    }
+    stack.push(value);
+    utils_default.forEach(value, function each(el, key) {
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(
+        formData,
+        el,
+        utils_default.isString(key) ? key.trim() : key,
+        path,
+        exposedHelpers
+      );
+      if (result === true) {
+        build(el, path ? path.concat(key) : [key]);
+      }
+    });
+    stack.pop();
+  }
+  if (!utils_default.isObject(obj)) {
+    throw new TypeError("data must be an object");
+  }
+  build(obj);
+  return formData;
+}
+var toFormData_default = toFormData;
+function encode2(str) {
+  const charMap = {
+    "!": "%21",
+    "'": "%27",
+    "(": "%28",
+    ")": "%29",
+    "~": "%7E",
+    "%20": "+",
+    "%00": "\0"
+  };
+  return encodeURIComponent(str).replace(/[!'()~]|%20|%00/g, function replacer(match) {
+    return charMap[match];
+  });
+}
+function AxiosURLSearchParams(params, options22) {
+  this._pairs = [];
+  params && toFormData_default(params, this, options22);
+}
+var prototype2 = AxiosURLSearchParams.prototype;
+prototype2.append = function append(name, value) {
+  this._pairs.push([name, value]);
+};
+prototype2.toString = function toString22(encoder2) {
+  const _encode = encoder2 ? function(value) {
+    return encoder2.call(this, value, encode2);
+  } : encode2;
+  return this._pairs.map(function each(pair) {
+    return _encode(pair[0]) + "=" + _encode(pair[1]);
+  }, "").join("&");
+};
+var AxiosURLSearchParams_default = AxiosURLSearchParams;
+function encode22(val) {
+  return encodeURIComponent(val).replace(/%3A/gi, ":").replace(/%24/g, "$").replace(/%2C/gi, ",").replace(/%20/g, "+").replace(/%5B/gi, "[").replace(/%5D/gi, "]");
+}
+function buildURL(url, params, options22) {
+  if (!params) {
+    return url;
+  }
+  const _encode = options22 && options22.encode || encode22;
+  const serializeFn = options22 && options22.serialize;
+  let serializedParams;
+  if (serializeFn) {
+    serializedParams = serializeFn(params, options22);
+  } else {
+    serializedParams = utils_default.isURLSearchParams(params) ? params.toString() : new AxiosURLSearchParams_default(params, options22).toString(_encode);
+  }
+  if (serializedParams) {
+    const hashmarkIndex = url.indexOf("#");
+    if (hashmarkIndex !== -1) {
+      url = url.slice(0, hashmarkIndex);
+    }
+    url += (url.indexOf("?") === -1 ? "?" : "&") + serializedParams;
+  }
+  return url;
+}
+var InterceptorManager = class {
+  constructor() {
+    this.handlers = [];
+  }
+  /**
+   * Add a new interceptor to the stack
+   *
+   * @param {Function} fulfilled The function to handle `then` for a `Promise`
+   * @param {Function} rejected The function to handle `reject` for a `Promise`
+   *
+   * @return {Number} An ID used to remove interceptor later
+   */
+  use(fulfilled, rejected, options22) {
+    this.handlers.push({
+      fulfilled,
+      rejected,
+      synchronous: options22 ? options22.synchronous : false,
+      runWhen: options22 ? options22.runWhen : null
+    });
+    return this.handlers.length - 1;
+  }
+  /**
+   * Remove an interceptor from the stack
+   *
+   * @param {Number} id The ID that was returned by `use`
+   *
+   * @returns {Boolean} `true` if the interceptor was removed, `false` otherwise
+   */
+  eject(id) {
+    if (this.handlers[id]) {
+      this.handlers[id] = null;
+    }
+  }
+  /**
+   * Clear all interceptors from the stack
+   *
+   * @returns {void}
+   */
+  clear() {
+    if (this.handlers) {
+      this.handlers = [];
+    }
+  }
+  /**
+   * Iterate over all the registered interceptors
+   *
+   * This method is particularly useful for skipping over any
+   * interceptors that may have become `null` calling `eject`.
+   *
+   * @param {Function} fn The function to call for each interceptor
+   *
+   * @returns {void}
+   */
+  forEach(fn) {
+    utils_default.forEach(this.handlers, function forEachHandler(h2) {
+      if (h2 !== null) {
+        fn(h2);
+      }
+    });
+  }
+};
+var InterceptorManager_default = InterceptorManager;
+var transitional_default = {
+  silentJSONParsing: true,
+  forcedJSONParsing: true,
+  clarifyTimeoutError: false
+};
+var URLSearchParams_default = typeof URLSearchParams !== "undefined" ? URLSearchParams : AxiosURLSearchParams_default;
+var FormData_default = typeof FormData !== "undefined" ? FormData : null;
+var Blob_default = typeof Blob !== "undefined" ? Blob : null;
+var isStandardBrowserEnv = (() => {
+  let product;
+  if (typeof navigator !== "undefined" && ((product = navigator.product) === "ReactNative" || product === "NativeScript" || product === "NS")) {
+    return false;
+  }
+  return typeof window !== "undefined" && typeof document !== "undefined";
+})();
+var isStandardBrowserWebWorkerEnv = (() => {
+  return typeof WorkerGlobalScope !== "undefined" && // eslint-disable-next-line no-undef
+  self instanceof WorkerGlobalScope && typeof self.importScripts === "function";
+})();
+var browser_default = {
+  isBrowser: true,
+  classes: {
+    URLSearchParams: URLSearchParams_default,
+    FormData: FormData_default,
+    Blob: Blob_default
+  },
+  isStandardBrowserEnv,
+  isStandardBrowserWebWorkerEnv,
+  protocols: ["http", "https", "file", "blob", "url", "data"]
+};
+function toURLEncodedForm(data, options22) {
+  return toFormData_default(data, new browser_default.classes.URLSearchParams(), Object.assign({
+    visitor: function(value, key, path, helpers) {
+      if (browser_default.isNode && utils_default.isBuffer(value)) {
+        this.append(key, value.toString("base64"));
+        return false;
+      }
+      return helpers.defaultVisitor.apply(this, arguments);
+    }
+  }, options22));
+}
+function parsePropPath(name) {
+  return utils_default.matchAll(/\w+|\[(\w*)]/g, name).map((match) => {
+    return match[0] === "[]" ? "" : match[1] || match[0];
+  });
+}
+function arrayToObject(arr) {
+  const obj = {};
+  const keys22 = Object.keys(arr);
+  let i;
+  const len = keys22.length;
+  let key;
+  for (i = 0; i < len; i++) {
+    key = keys22[i];
+    obj[key] = arr[key];
+  }
+  return obj;
+}
+function formDataToJSON(formData) {
+  function buildPath(path, value, target, index) {
+    let name = path[index++];
+    const isNumericKey = Number.isFinite(+name);
+    const isLast = index >= path.length;
+    name = !name && utils_default.isArray(target) ? target.length : name;
+    if (isLast) {
+      if (utils_default.hasOwnProp(target, name)) {
+        target[name] = [target[name], value];
+      } else {
+        target[name] = value;
+      }
+      return !isNumericKey;
+    }
+    if (!target[name] || !utils_default.isObject(target[name])) {
+      target[name] = [];
+    }
+    const result = buildPath(path, value, target[name], index);
+    if (result && utils_default.isArray(target[name])) {
+      target[name] = arrayToObject(target[name]);
+    }
+    return !isNumericKey;
+  }
+  if (utils_default.isFormData(formData) && utils_default.isFunction(formData.entries)) {
+    const obj = {};
+    utils_default.forEachEntry(formData, (name, value) => {
+      buildPath(parsePropPath(name), value, obj, 0);
+    });
+    return obj;
+  }
+  return null;
+}
+var formDataToJSON_default = formDataToJSON;
+function stringifySafely(rawValue, parser, encoder2) {
+  if (utils_default.isString(rawValue)) {
+    try {
+      (parser || JSON.parse)(rawValue);
+      return utils_default.trim(rawValue);
+    } catch (e) {
+      if (e.name !== "SyntaxError") {
+        throw e;
+      }
+    }
+  }
+  return (encoder2 || JSON.stringify)(rawValue);
+}
+var defaults = {
+  transitional: transitional_default,
+  adapter: browser_default.isNode ? "http" : "xhr",
+  transformRequest: [function transformRequest(data, headers) {
+    const contentType = headers.getContentType() || "";
+    const hasJSONContentType = contentType.indexOf("application/json") > -1;
+    const isObjectPayload = utils_default.isObject(data);
+    if (isObjectPayload && utils_default.isHTMLForm(data)) {
+      data = new FormData(data);
+    }
+    const isFormData2 = utils_default.isFormData(data);
+    if (isFormData2) {
+      if (!hasJSONContentType) {
+        return data;
+      }
+      return hasJSONContentType ? JSON.stringify(formDataToJSON_default(data)) : data;
+    }
+    if (utils_default.isArrayBuffer(data) || utils_default.isBuffer(data) || utils_default.isStream(data) || utils_default.isFile(data) || utils_default.isBlob(data)) {
+      return data;
+    }
+    if (utils_default.isArrayBufferView(data)) {
+      return data.buffer;
+    }
+    if (utils_default.isURLSearchParams(data)) {
+      headers.setContentType("application/x-www-form-urlencoded;charset=utf-8", false);
+      return data.toString();
+    }
+    let isFileList2;
+    if (isObjectPayload) {
+      if (contentType.indexOf("application/x-www-form-urlencoded") > -1) {
+        return toURLEncodedForm(data, this.formSerializer).toString();
+      }
+      if ((isFileList2 = utils_default.isFileList(data)) || contentType.indexOf("multipart/form-data") > -1) {
+        const _FormData = this.env && this.env.FormData;
+        return toFormData_default(
+          isFileList2 ? { "files[]": data } : data,
+          _FormData && new _FormData(),
+          this.formSerializer
+        );
+      }
+    }
+    if (isObjectPayload || hasJSONContentType) {
+      headers.setContentType("application/json", false);
+      return stringifySafely(data);
+    }
+    return data;
+  }],
+  transformResponse: [function transformResponse(data) {
+    const transitional2 = this.transitional || defaults.transitional;
+    const forcedJSONParsing = transitional2 && transitional2.forcedJSONParsing;
+    const JSONRequested = this.responseType === "json";
+    if (data && utils_default.isString(data) && (forcedJSONParsing && !this.responseType || JSONRequested)) {
+      const silentJSONParsing = transitional2 && transitional2.silentJSONParsing;
+      const strictJSONParsing = !silentJSONParsing && JSONRequested;
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        if (strictJSONParsing) {
+          if (e.name === "SyntaxError") {
+            throw AxiosError_default.from(e, AxiosError_default.ERR_BAD_RESPONSE, this, null, this.response);
+          }
+          throw e;
+        }
+      }
+    }
+    return data;
+  }],
+  /**
+   * A timeout in milliseconds to abort a request. If set to 0 (default) a
+   * timeout is not created.
+   */
+  timeout: 0,
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
+  maxContentLength: -1,
+  maxBodyLength: -1,
+  env: {
+    FormData: browser_default.classes.FormData,
+    Blob: browser_default.classes.Blob
+  },
+  validateStatus: function validateStatus(status) {
+    return status >= 200 && status < 300;
+  },
+  headers: {
+    common: {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": void 0
+    }
+  }
+};
+utils_default.forEach(["delete", "get", "head", "post", "put", "patch"], (method) => {
+  defaults.headers[method] = {};
+});
+var defaults_default = defaults;
+var ignoreDuplicateOf = utils_default.toObjectSet([
+  "age",
+  "authorization",
+  "content-length",
+  "content-type",
+  "etag",
+  "expires",
+  "from",
+  "host",
+  "if-modified-since",
+  "if-unmodified-since",
+  "last-modified",
+  "location",
+  "max-forwards",
+  "proxy-authorization",
+  "referer",
+  "retry-after",
+  "user-agent"
+]);
+var parseHeaders_default = (rawHeaders) => {
+  const parsed = {};
+  let key;
+  let val;
+  let i;
+  rawHeaders && rawHeaders.split("\n").forEach(function parser(line) {
+    i = line.indexOf(":");
+    key = line.substring(0, i).trim().toLowerCase();
+    val = line.substring(i + 1).trim();
+    if (!key || parsed[key] && ignoreDuplicateOf[key]) {
+      return;
+    }
+    if (key === "set-cookie") {
+      if (parsed[key]) {
+        parsed[key].push(val);
+      } else {
+        parsed[key] = [val];
+      }
+    } else {
+      parsed[key] = parsed[key] ? parsed[key] + ", " + val : val;
+    }
+  });
+  return parsed;
+};
+var $internals = Symbol("internals");
+function normalizeHeader(header) {
+  return header && String(header).trim().toLowerCase();
+}
+function normalizeValue(value) {
+  if (value === false || value == null) {
+    return value;
+  }
+  return utils_default.isArray(value) ? value.map(normalizeValue) : String(value);
+}
+function parseTokens(str) {
+  const tokens = /* @__PURE__ */ Object.create(null);
+  const tokensRE = /([^\s,;=]+)\s*(?:=\s*([^,;]+))?/g;
+  let match;
+  while (match = tokensRE.exec(str)) {
+    tokens[match[1]] = match[2];
+  }
+  return tokens;
+}
+var isValidHeaderName = (str) => /^[-_a-zA-Z0-9^`|~,!#$%&'*+.]+$/.test(str.trim());
+function matchHeaderValue(context, value, header, filter2, isHeaderNameFilter) {
+  if (utils_default.isFunction(filter2)) {
+    return filter2.call(this, value, header);
+  }
+  if (isHeaderNameFilter) {
+    value = header;
+  }
+  if (!utils_default.isString(value))
+    return;
+  if (utils_default.isString(filter2)) {
+    return value.indexOf(filter2) !== -1;
+  }
+  if (utils_default.isRegExp(filter2)) {
+    return filter2.test(value);
+  }
+}
+function formatHeader(header) {
+  return header.trim().toLowerCase().replace(/([a-z\d])(\w*)/g, (w2, char, str) => {
+    return char.toUpperCase() + str;
+  });
+}
+function buildAccessors(obj, header) {
+  const accessorName = utils_default.toCamelCase(" " + header);
+  ["get", "set", "has"].forEach((methodName) => {
+    Object.defineProperty(obj, methodName + accessorName, {
+      value: function(arg1, arg2, arg3) {
+        return this[methodName].call(this, header, arg1, arg2, arg3);
+      },
+      configurable: true
+    });
+  });
+}
+var AxiosHeaders = class {
+  constructor(headers) {
+    headers && this.set(headers);
+  }
+  set(header, valueOrRewrite, rewrite) {
+    const self2 = this;
+    function setHeader(_value, _header, _rewrite) {
+      const lHeader = normalizeHeader(_header);
+      if (!lHeader) {
+        throw new Error("header name must be a non-empty string");
+      }
+      const key = utils_default.findKey(self2, lHeader);
+      if (!key || self2[key] === void 0 || _rewrite === true || _rewrite === void 0 && self2[key] !== false) {
+        self2[key || _header] = normalizeValue(_value);
+      }
+    }
+    const setHeaders = (headers, _rewrite) => utils_default.forEach(headers, (_value, _header) => setHeader(_value, _header, _rewrite));
+    if (utils_default.isPlainObject(header) || header instanceof this.constructor) {
+      setHeaders(header, valueOrRewrite);
+    } else if (utils_default.isString(header) && (header = header.trim()) && !isValidHeaderName(header)) {
+      setHeaders(parseHeaders_default(header), valueOrRewrite);
+    } else {
+      header != null && setHeader(valueOrRewrite, header, rewrite);
+    }
+    return this;
+  }
+  get(header, parser) {
+    header = normalizeHeader(header);
+    if (header) {
+      const key = utils_default.findKey(this, header);
+      if (key) {
+        const value = this[key];
+        if (!parser) {
+          return value;
+        }
+        if (parser === true) {
+          return parseTokens(value);
+        }
+        if (utils_default.isFunction(parser)) {
+          return parser.call(this, value, key);
+        }
+        if (utils_default.isRegExp(parser)) {
+          return parser.exec(value);
+        }
+        throw new TypeError("parser must be boolean|regexp|function");
+      }
+    }
+  }
+  has(header, matcher) {
+    header = normalizeHeader(header);
+    if (header) {
+      const key = utils_default.findKey(this, header);
+      return !!(key && this[key] !== void 0 && (!matcher || matchHeaderValue(this, this[key], key, matcher)));
+    }
+    return false;
+  }
+  delete(header, matcher) {
+    const self2 = this;
+    let deleted = false;
+    function deleteHeader(_header) {
+      _header = normalizeHeader(_header);
+      if (_header) {
+        const key = utils_default.findKey(self2, _header);
+        if (key && (!matcher || matchHeaderValue(self2, self2[key], key, matcher))) {
+          delete self2[key];
+          deleted = true;
+        }
+      }
+    }
+    if (utils_default.isArray(header)) {
+      header.forEach(deleteHeader);
+    } else {
+      deleteHeader(header);
+    }
+    return deleted;
+  }
+  clear(matcher) {
+    const keys22 = Object.keys(this);
+    let i = keys22.length;
+    let deleted = false;
+    while (i--) {
+      const key = keys22[i];
+      if (!matcher || matchHeaderValue(this, this[key], key, matcher, true)) {
+        delete this[key];
+        deleted = true;
+      }
+    }
+    return deleted;
+  }
+  normalize(format) {
+    const self2 = this;
+    const headers = {};
+    utils_default.forEach(this, (value, header) => {
+      const key = utils_default.findKey(headers, header);
+      if (key) {
+        self2[key] = normalizeValue(value);
+        delete self2[header];
+        return;
+      }
+      const normalized = format ? formatHeader(header) : String(header).trim();
+      if (normalized !== header) {
+        delete self2[header];
+      }
+      self2[normalized] = normalizeValue(value);
+      headers[normalized] = true;
+    });
+    return this;
+  }
+  concat(...targets) {
+    return this.constructor.concat(this, ...targets);
+  }
+  toJSON(asStrings) {
+    const obj = /* @__PURE__ */ Object.create(null);
+    utils_default.forEach(this, (value, header) => {
+      value != null && value !== false && (obj[header] = asStrings && utils_default.isArray(value) ? value.join(", ") : value);
+    });
+    return obj;
+  }
+  [Symbol.iterator]() {
+    return Object.entries(this.toJSON())[Symbol.iterator]();
+  }
+  toString() {
+    return Object.entries(this.toJSON()).map(([header, value]) => header + ": " + value).join("\n");
+  }
+  get [Symbol.toStringTag]() {
+    return "AxiosHeaders";
+  }
+  static from(thing) {
+    return thing instanceof this ? thing : new this(thing);
+  }
+  static concat(first, ...targets) {
+    const computed = new this(first);
+    targets.forEach((target) => computed.set(target));
+    return computed;
+  }
+  static accessor(header) {
+    const internals = this[$internals] = this[$internals] = {
+      accessors: {}
+    };
+    const accessors = internals.accessors;
+    const prototype3 = this.prototype;
+    function defineAccessor(_header) {
+      const lHeader = normalizeHeader(_header);
+      if (!accessors[lHeader]) {
+        buildAccessors(prototype3, _header);
+        accessors[lHeader] = true;
+      }
+    }
+    utils_default.isArray(header) ? header.forEach(defineAccessor) : defineAccessor(header);
+    return this;
+  }
+};
+AxiosHeaders.accessor(["Content-Type", "Content-Length", "Accept", "Accept-Encoding", "User-Agent", "Authorization"]);
+utils_default.reduceDescriptors(AxiosHeaders.prototype, ({ value }, key) => {
+  let mapped = key[0].toUpperCase() + key.slice(1);
+  return {
+    get: () => value,
+    set(headerValue) {
+      this[mapped] = headerValue;
+    }
+  };
+});
+utils_default.freezeMethods(AxiosHeaders);
+var AxiosHeaders_default = AxiosHeaders;
+function transformData(fns, response) {
+  const config = this || defaults_default;
+  const context = response || config;
+  const headers = AxiosHeaders_default.from(context.headers);
+  let data = context.data;
+  utils_default.forEach(fns, function transform(fn) {
+    data = fn.call(config, data, headers.normalize(), response ? response.status : void 0);
+  });
+  headers.normalize();
+  return data;
+}
+function isCancel(value) {
+  return !!(value && value.__CANCEL__);
+}
+function CanceledError(message, config, request) {
+  AxiosError_default.call(this, message == null ? "canceled" : message, AxiosError_default.ERR_CANCELED, config, request);
+  this.name = "CanceledError";
+}
+utils_default.inherits(CanceledError, AxiosError_default, {
+  __CANCEL__: true
+});
+var CanceledError_default = CanceledError;
+function settle(resolve, reject, response) {
+  const validateStatus2 = response.config.validateStatus;
+  if (!response.status || !validateStatus2 || validateStatus2(response.status)) {
+    resolve(response);
+  } else {
+    reject(new AxiosError_default(
+      "Request failed with status code " + response.status,
+      [AxiosError_default.ERR_BAD_REQUEST, AxiosError_default.ERR_BAD_RESPONSE][Math.floor(response.status / 100) - 4],
+      response.config,
+      response.request,
+      response
+    ));
+  }
+}
+var cookies_default = browser_default.isStandardBrowserEnv ? (
+  // Standard browser envs support document.cookie
+  function standardBrowserEnv() {
+    return {
+      write: function write(name, value, expires, path, domain, secure) {
+        const cookie = [];
+        cookie.push(name + "=" + encodeURIComponent(value));
+        if (utils_default.isNumber(expires)) {
+          cookie.push("expires=" + new Date(expires).toGMTString());
+        }
+        if (utils_default.isString(path)) {
+          cookie.push("path=" + path);
+        }
+        if (utils_default.isString(domain)) {
+          cookie.push("domain=" + domain);
+        }
+        if (secure === true) {
+          cookie.push("secure");
+        }
+        document.cookie = cookie.join("; ");
+      },
+      read: function read(name) {
+        const match = document.cookie.match(new RegExp("(^|;\\s*)(" + name + ")=([^;]*)"));
+        return match ? decodeURIComponent(match[3]) : null;
+      },
+      remove: function remove(name) {
+        this.write(name, "", Date.now() - 864e5);
+      }
+    };
+  }()
+) : (
+  // Non standard browser env (web workers, react-native) lack needed support.
+  function nonStandardBrowserEnv() {
+    return {
+      write: function write() {
+      },
+      read: function read() {
+        return null;
+      },
+      remove: function remove() {
+      }
+    };
+  }()
+);
+function isAbsoluteURL(url) {
+  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
+}
+function combineURLs(baseURL, relativeURL) {
+  return relativeURL ? baseURL.replace(/\/+$/, "") + "/" + relativeURL.replace(/^\/+/, "") : baseURL;
+}
+function buildFullPath(baseURL, requestedURL) {
+  if (baseURL && !isAbsoluteURL(requestedURL)) {
+    return combineURLs(baseURL, requestedURL);
+  }
+  return requestedURL;
+}
+var isURLSameOrigin_default = browser_default.isStandardBrowserEnv ? (
+  // Standard browser envs have full support of the APIs needed to test
+  // whether the request URL is of the same origin as current location.
+  function standardBrowserEnv2() {
+    const msie = /(msie|trident)/i.test(navigator.userAgent);
+    const urlParsingNode = document.createElement("a");
+    let originURL;
+    function resolveURL(url) {
+      let href = url;
+      if (msie) {
+        urlParsingNode.setAttribute("href", href);
+        href = urlParsingNode.href;
+      }
+      urlParsingNode.setAttribute("href", href);
+      return {
+        href: urlParsingNode.href,
+        protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, "") : "",
+        host: urlParsingNode.host,
+        search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, "") : "",
+        hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, "") : "",
+        hostname: urlParsingNode.hostname,
+        port: urlParsingNode.port,
+        pathname: urlParsingNode.pathname.charAt(0) === "/" ? urlParsingNode.pathname : "/" + urlParsingNode.pathname
+      };
+    }
+    originURL = resolveURL(window.location.href);
+    return function isURLSameOrigin(requestURL) {
+      const parsed = utils_default.isString(requestURL) ? resolveURL(requestURL) : requestURL;
+      return parsed.protocol === originURL.protocol && parsed.host === originURL.host;
+    };
+  }()
+) : (
+  // Non standard browser envs (web workers, react-native) lack needed support.
+  function nonStandardBrowserEnv2() {
+    return function isURLSameOrigin() {
+      return true;
+    };
+  }()
+);
+function parseProtocol(url) {
+  const match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
+  return match && match[1] || "";
+}
+function speedometer(samplesCount, min) {
+  samplesCount = samplesCount || 10;
+  const bytes = new Array(samplesCount);
+  const timestamps = new Array(samplesCount);
+  let head = 0;
+  let tail = 0;
+  let firstSampleTS;
+  min = min !== void 0 ? min : 1e3;
+  return function push(chunkLength) {
+    const now = Date.now();
+    const startedAt = timestamps[tail];
+    if (!firstSampleTS) {
+      firstSampleTS = now;
+    }
+    bytes[head] = chunkLength;
+    timestamps[head] = now;
+    let i = tail;
+    let bytesCount = 0;
+    while (i !== head) {
+      bytesCount += bytes[i++];
+      i = i % samplesCount;
+    }
+    head = (head + 1) % samplesCount;
+    if (head === tail) {
+      tail = (tail + 1) % samplesCount;
+    }
+    if (now - firstSampleTS < min) {
+      return;
+    }
+    const passed = startedAt && now - startedAt;
+    return passed ? Math.round(bytesCount * 1e3 / passed) : void 0;
+  };
+}
+var speedometer_default = speedometer;
+function progressEventReducer(listener, isDownloadStream) {
+  let bytesNotified = 0;
+  const _speedometer = speedometer_default(50, 250);
+  return (e) => {
+    const loaded = e.loaded;
+    const total = e.lengthComputable ? e.total : void 0;
+    const progressBytes = loaded - bytesNotified;
+    const rate = _speedometer(progressBytes);
+    const inRange = loaded <= total;
+    bytesNotified = loaded;
+    const data = {
+      loaded,
+      total,
+      progress: total ? loaded / total : void 0,
+      bytes: progressBytes,
+      rate: rate ? rate : void 0,
+      estimated: rate && total && inRange ? (total - loaded) / rate : void 0,
+      event: e
+    };
+    data[isDownloadStream ? "download" : "upload"] = true;
+    listener(data);
+  };
+}
+var isXHRAdapterSupported = typeof XMLHttpRequest !== "undefined";
+var xhr_default = isXHRAdapterSupported && function(config) {
+  return new Promise(function dispatchXhrRequest(resolve, reject) {
+    let requestData = config.data;
+    const requestHeaders = AxiosHeaders_default.from(config.headers).normalize();
+    const responseType = config.responseType;
+    let onCanceled;
+    function done() {
+      if (config.cancelToken) {
+        config.cancelToken.unsubscribe(onCanceled);
+      }
+      if (config.signal) {
+        config.signal.removeEventListener("abort", onCanceled);
+      }
+    }
+    if (utils_default.isFormData(requestData)) {
+      if (browser_default.isStandardBrowserEnv || browser_default.isStandardBrowserWebWorkerEnv) {
+        requestHeaders.setContentType(false);
+      } else {
+        requestHeaders.setContentType("multipart/form-data;", false);
+      }
+    }
+    let request = new XMLHttpRequest();
+    if (config.auth) {
+      const username = config.auth.username || "";
+      const password = config.auth.password ? unescape(encodeURIComponent(config.auth.password)) : "";
+      requestHeaders.set("Authorization", "Basic " + btoa(username + ":" + password));
+    }
+    const fullPath = buildFullPath(config.baseURL, config.url);
+    request.open(config.method.toUpperCase(), buildURL(fullPath, config.params, config.paramsSerializer), true);
+    request.timeout = config.timeout;
+    function onloadend() {
+      if (!request) {
+        return;
+      }
+      const responseHeaders = AxiosHeaders_default.from(
+        "getAllResponseHeaders" in request && request.getAllResponseHeaders()
+      );
+      const responseData = !responseType || responseType === "text" || responseType === "json" ? request.responseText : request.response;
+      const response = {
+        data: responseData,
+        status: request.status,
+        statusText: request.statusText,
+        headers: responseHeaders,
+        config,
+        request
+      };
+      settle(function _resolve(value) {
+        resolve(value);
+        done();
+      }, function _reject(err) {
+        reject(err);
+        done();
+      }, response);
+      request = null;
+    }
+    if ("onloadend" in request) {
+      request.onloadend = onloadend;
+    } else {
+      request.onreadystatechange = function handleLoad() {
+        if (!request || request.readyState !== 4) {
+          return;
+        }
+        if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf("file:") === 0)) {
+          return;
+        }
+        setTimeout(onloadend);
+      };
+    }
+    request.onabort = function handleAbort() {
+      if (!request) {
+        return;
+      }
+      reject(new AxiosError_default("Request aborted", AxiosError_default.ECONNABORTED, config, request));
+      request = null;
+    };
+    request.onerror = function handleError() {
+      reject(new AxiosError_default("Network Error", AxiosError_default.ERR_NETWORK, config, request));
+      request = null;
+    };
+    request.ontimeout = function handleTimeout() {
+      let timeoutErrorMessage = config.timeout ? "timeout of " + config.timeout + "ms exceeded" : "timeout exceeded";
+      const transitional2 = config.transitional || transitional_default;
+      if (config.timeoutErrorMessage) {
+        timeoutErrorMessage = config.timeoutErrorMessage;
+      }
+      reject(new AxiosError_default(
+        timeoutErrorMessage,
+        transitional2.clarifyTimeoutError ? AxiosError_default.ETIMEDOUT : AxiosError_default.ECONNABORTED,
+        config,
+        request
+      ));
+      request = null;
+    };
+    if (browser_default.isStandardBrowserEnv) {
+      const xsrfValue = (config.withCredentials || isURLSameOrigin_default(fullPath)) && config.xsrfCookieName && cookies_default.read(config.xsrfCookieName);
+      if (xsrfValue) {
+        requestHeaders.set(config.xsrfHeaderName, xsrfValue);
+      }
+    }
+    requestData === void 0 && requestHeaders.setContentType(null);
+    if ("setRequestHeader" in request) {
+      utils_default.forEach(requestHeaders.toJSON(), function setRequestHeader(val, key) {
+        request.setRequestHeader(key, val);
+      });
+    }
+    if (!utils_default.isUndefined(config.withCredentials)) {
+      request.withCredentials = !!config.withCredentials;
+    }
+    if (responseType && responseType !== "json") {
+      request.responseType = config.responseType;
+    }
+    if (typeof config.onDownloadProgress === "function") {
+      request.addEventListener("progress", progressEventReducer(config.onDownloadProgress, true));
+    }
+    if (typeof config.onUploadProgress === "function" && request.upload) {
+      request.upload.addEventListener("progress", progressEventReducer(config.onUploadProgress));
+    }
+    if (config.cancelToken || config.signal) {
+      onCanceled = (cancel) => {
+        if (!request) {
+          return;
+        }
+        reject(!cancel || cancel.type ? new CanceledError_default(null, config, request) : cancel);
+        request.abort();
+        request = null;
+      };
+      config.cancelToken && config.cancelToken.subscribe(onCanceled);
+      if (config.signal) {
+        config.signal.aborted ? onCanceled() : config.signal.addEventListener("abort", onCanceled);
+      }
+    }
+    const protocol = parseProtocol(fullPath);
+    if (protocol && browser_default.protocols.indexOf(protocol) === -1) {
+      reject(new AxiosError_default("Unsupported protocol " + protocol + ":", AxiosError_default.ERR_BAD_REQUEST, config));
+      return;
+    }
+    request.send(requestData || null);
+  });
+};
+var knownAdapters = {
+  http: null_default,
+  xhr: xhr_default
+};
+utils_default.forEach(knownAdapters, (fn, value) => {
+  if (fn) {
+    try {
+      Object.defineProperty(fn, "name", { value });
+    } catch (e) {
+    }
+    Object.defineProperty(fn, "adapterName", { value });
+  }
+});
+var adapters_default = {
+  getAdapter: (adapters) => {
+    adapters = utils_default.isArray(adapters) ? adapters : [adapters];
+    const { length } = adapters;
+    let nameOrAdapter;
+    let adapter;
+    for (let i = 0; i < length; i++) {
+      nameOrAdapter = adapters[i];
+      if (adapter = utils_default.isString(nameOrAdapter) ? knownAdapters[nameOrAdapter.toLowerCase()] : nameOrAdapter) {
+        break;
+      }
+    }
+    if (!adapter) {
+      if (adapter === false) {
+        throw new AxiosError_default(
+          `Adapter ${nameOrAdapter} is not supported by the environment`,
+          "ERR_NOT_SUPPORT"
+        );
+      }
+      throw new Error(
+        utils_default.hasOwnProp(knownAdapters, nameOrAdapter) ? `Adapter '${nameOrAdapter}' is not available in the build` : `Unknown adapter '${nameOrAdapter}'`
+      );
+    }
+    if (!utils_default.isFunction(adapter)) {
+      throw new TypeError("adapter is not a function");
+    }
+    return adapter;
+  },
+  adapters: knownAdapters
+};
+function throwIfCancellationRequested(config) {
+  if (config.cancelToken) {
+    config.cancelToken.throwIfRequested();
+  }
+  if (config.signal && config.signal.aborted) {
+    throw new CanceledError_default(null, config);
+  }
+}
+function dispatchRequest(config) {
+  throwIfCancellationRequested(config);
+  config.headers = AxiosHeaders_default.from(config.headers);
+  config.data = transformData.call(
+    config,
+    config.transformRequest
+  );
+  if (["post", "put", "patch"].indexOf(config.method) !== -1) {
+    config.headers.setContentType("application/x-www-form-urlencoded", false);
+  }
+  const adapter = adapters_default.getAdapter(config.adapter || defaults_default.adapter);
+  return adapter(config).then(function onAdapterResolution(response) {
+    throwIfCancellationRequested(config);
+    response.data = transformData.call(
+      config,
+      config.transformResponse,
+      response
+    );
+    response.headers = AxiosHeaders_default.from(response.headers);
+    return response;
+  }, function onAdapterRejection(reason) {
+    if (!isCancel(reason)) {
+      throwIfCancellationRequested(config);
+      if (reason && reason.response) {
+        reason.response.data = transformData.call(
+          config,
+          config.transformResponse,
+          reason.response
+        );
+        reason.response.headers = AxiosHeaders_default.from(reason.response.headers);
+      }
+    }
+    return Promise.reject(reason);
+  });
+}
+var headersToObject = (thing) => thing instanceof AxiosHeaders_default ? thing.toJSON() : thing;
+function mergeConfig(config1, config2) {
+  config2 = config2 || {};
+  const config = {};
+  function getMergedValue(target, source, caseless) {
+    if (utils_default.isPlainObject(target) && utils_default.isPlainObject(source)) {
+      return utils_default.merge.call({ caseless }, target, source);
+    } else if (utils_default.isPlainObject(source)) {
+      return utils_default.merge({}, source);
+    } else if (utils_default.isArray(source)) {
+      return source.slice();
+    }
+    return source;
+  }
+  function mergeDeepProperties(a, b2, caseless) {
+    if (!utils_default.isUndefined(b2)) {
+      return getMergedValue(a, b2, caseless);
+    } else if (!utils_default.isUndefined(a)) {
+      return getMergedValue(void 0, a, caseless);
+    }
+  }
+  function valueFromConfig2(a, b2) {
+    if (!utils_default.isUndefined(b2)) {
+      return getMergedValue(void 0, b2);
+    }
+  }
+  function defaultToConfig2(a, b2) {
+    if (!utils_default.isUndefined(b2)) {
+      return getMergedValue(void 0, b2);
+    } else if (!utils_default.isUndefined(a)) {
+      return getMergedValue(void 0, a);
+    }
+  }
+  function mergeDirectKeys(a, b2, prop) {
+    if (prop in config2) {
+      return getMergedValue(a, b2);
+    } else if (prop in config1) {
+      return getMergedValue(void 0, a);
+    }
+  }
+  const mergeMap = {
+    url: valueFromConfig2,
+    method: valueFromConfig2,
+    data: valueFromConfig2,
+    baseURL: defaultToConfig2,
+    transformRequest: defaultToConfig2,
+    transformResponse: defaultToConfig2,
+    paramsSerializer: defaultToConfig2,
+    timeout: defaultToConfig2,
+    timeoutMessage: defaultToConfig2,
+    withCredentials: defaultToConfig2,
+    adapter: defaultToConfig2,
+    responseType: defaultToConfig2,
+    xsrfCookieName: defaultToConfig2,
+    xsrfHeaderName: defaultToConfig2,
+    onUploadProgress: defaultToConfig2,
+    onDownloadProgress: defaultToConfig2,
+    decompress: defaultToConfig2,
+    maxContentLength: defaultToConfig2,
+    maxBodyLength: defaultToConfig2,
+    beforeRedirect: defaultToConfig2,
+    transport: defaultToConfig2,
+    httpAgent: defaultToConfig2,
+    httpsAgent: defaultToConfig2,
+    cancelToken: defaultToConfig2,
+    socketPath: defaultToConfig2,
+    responseEncoding: defaultToConfig2,
+    validateStatus: mergeDirectKeys,
+    headers: (a, b2) => mergeDeepProperties(headersToObject(a), headersToObject(b2), true)
+  };
+  utils_default.forEach(Object.keys(Object.assign({}, config1, config2)), function computeConfigValue(prop) {
+    const merge2 = mergeMap[prop] || mergeDeepProperties;
+    const configValue = merge2(config1[prop], config2[prop], prop);
+    utils_default.isUndefined(configValue) && merge2 !== mergeDirectKeys || (config[prop] = configValue);
+  });
+  return config;
+}
+var VERSION = "1.5.0";
+var validators = {};
+["object", "boolean", "number", "function", "string", "symbol"].forEach((type, i) => {
+  validators[type] = function validator(thing) {
+    return typeof thing === type || "a" + (i < 1 ? "n " : " ") + type;
+  };
+});
+var deprecatedWarnings = {};
+validators.transitional = function transitional(validator, version, message) {
+  function formatMessage(opt, desc) {
+    return "[Axios v" + VERSION + "] Transitional option '" + opt + "'" + desc + (message ? ". " + message : "");
+  }
+  return (value, opt, opts) => {
+    if (validator === false) {
+      throw new AxiosError_default(
+        formatMessage(opt, " has been removed" + (version ? " in " + version : "")),
+        AxiosError_default.ERR_DEPRECATED
+      );
+    }
+    if (version && !deprecatedWarnings[opt]) {
+      deprecatedWarnings[opt] = true;
+      console.warn(
+        formatMessage(
+          opt,
+          " has been deprecated since v" + version + " and will be removed in the near future"
+        )
+      );
+    }
+    return validator ? validator(value, opt, opts) : true;
+  };
+};
+function assertOptions(options22, schema, allowUnknown) {
+  if (typeof options22 !== "object") {
+    throw new AxiosError_default("options must be an object", AxiosError_default.ERR_BAD_OPTION_VALUE);
+  }
+  const keys22 = Object.keys(options22);
+  let i = keys22.length;
+  while (i-- > 0) {
+    const opt = keys22[i];
+    const validator = schema[opt];
+    if (validator) {
+      const value = options22[opt];
+      const result = value === void 0 || validator(value, opt, options22);
+      if (result !== true) {
+        throw new AxiosError_default("option " + opt + " must be " + result, AxiosError_default.ERR_BAD_OPTION_VALUE);
+      }
+      continue;
+    }
+    if (allowUnknown !== true) {
+      throw new AxiosError_default("Unknown option " + opt, AxiosError_default.ERR_BAD_OPTION);
+    }
+  }
+}
+var validator_default = {
+  assertOptions,
+  validators
+};
+var validators2 = validator_default.validators;
+var Axios = class {
+  constructor(instanceConfig) {
+    this.defaults = instanceConfig;
+    this.interceptors = {
+      request: new InterceptorManager_default(),
+      response: new InterceptorManager_default()
+    };
+  }
+  /**
+   * Dispatch a request
+   *
+   * @param {String|Object} configOrUrl The config specific for this request (merged with this.defaults)
+   * @param {?Object} config
+   *
+   * @returns {Promise} The Promise to be fulfilled
+   */
+  request(configOrUrl, config) {
+    if (typeof configOrUrl === "string") {
+      config = config || {};
+      config.url = configOrUrl;
+    } else {
+      config = configOrUrl || {};
+    }
+    config = mergeConfig(this.defaults, config);
+    const { transitional: transitional2, paramsSerializer, headers } = config;
+    if (transitional2 !== void 0) {
+      validator_default.assertOptions(transitional2, {
+        silentJSONParsing: validators2.transitional(validators2.boolean),
+        forcedJSONParsing: validators2.transitional(validators2.boolean),
+        clarifyTimeoutError: validators2.transitional(validators2.boolean)
+      }, false);
+    }
+    if (paramsSerializer != null) {
+      if (utils_default.isFunction(paramsSerializer)) {
+        config.paramsSerializer = {
+          serialize: paramsSerializer
+        };
+      } else {
+        validator_default.assertOptions(paramsSerializer, {
+          encode: validators2.function,
+          serialize: validators2.function
+        }, true);
+      }
+    }
+    config.method = (config.method || this.defaults.method || "get").toLowerCase();
+    let contextHeaders = headers && utils_default.merge(
+      headers.common,
+      headers[config.method]
+    );
+    headers && utils_default.forEach(
+      ["delete", "get", "head", "post", "put", "patch", "common"],
+      (method) => {
+        delete headers[method];
+      }
+    );
+    config.headers = AxiosHeaders_default.concat(contextHeaders, headers);
+    const requestInterceptorChain = [];
+    let synchronousRequestInterceptors = true;
+    this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
+      if (typeof interceptor.runWhen === "function" && interceptor.runWhen(config) === false) {
+        return;
+      }
+      synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
+      requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+    });
+    const responseInterceptorChain = [];
+    this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
+      responseInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
+    });
+    let promise;
+    let i = 0;
+    let len;
+    if (!synchronousRequestInterceptors) {
+      const chain = [dispatchRequest.bind(this), void 0];
+      chain.unshift.apply(chain, requestInterceptorChain);
+      chain.push.apply(chain, responseInterceptorChain);
+      len = chain.length;
+      promise = Promise.resolve(config);
+      while (i < len) {
+        promise = promise.then(chain[i++], chain[i++]);
+      }
+      return promise;
+    }
+    len = requestInterceptorChain.length;
+    let newConfig = config;
+    i = 0;
+    while (i < len) {
+      const onFulfilled = requestInterceptorChain[i++];
+      const onRejected = requestInterceptorChain[i++];
+      try {
+        newConfig = onFulfilled(newConfig);
+      } catch (error) {
+        onRejected.call(this, error);
+        break;
+      }
+    }
+    try {
+      promise = dispatchRequest.call(this, newConfig);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    i = 0;
+    len = responseInterceptorChain.length;
+    while (i < len) {
+      promise = promise.then(responseInterceptorChain[i++], responseInterceptorChain[i++]);
+    }
+    return promise;
+  }
+  getUri(config) {
+    config = mergeConfig(this.defaults, config);
+    const fullPath = buildFullPath(config.baseURL, config.url);
+    return buildURL(fullPath, config.params, config.paramsSerializer);
+  }
+};
+utils_default.forEach(["delete", "get", "head", "options"], function forEachMethodNoData(method) {
+  Axios.prototype[method] = function(url, config) {
+    return this.request(mergeConfig(config || {}, {
+      method,
+      url,
+      data: (config || {}).data
+    }));
+  };
+});
+utils_default.forEach(["post", "put", "patch"], function forEachMethodWithData(method) {
+  function generateHTTPMethod(isForm) {
+    return function httpMethod(url, data, config) {
+      return this.request(mergeConfig(config || {}, {
+        method,
+        headers: isForm ? {
+          "Content-Type": "multipart/form-data"
+        } : {},
+        url,
+        data
+      }));
+    };
+  }
+  Axios.prototype[method] = generateHTTPMethod();
+  Axios.prototype[method + "Form"] = generateHTTPMethod(true);
+});
+var Axios_default = Axios;
+var CancelToken = class _CancelToken {
+  constructor(executor) {
+    if (typeof executor !== "function") {
+      throw new TypeError("executor must be a function.");
+    }
+    let resolvePromise;
+    this.promise = new Promise(function promiseExecutor(resolve) {
+      resolvePromise = resolve;
+    });
+    const token = this;
+    this.promise.then((cancel) => {
+      if (!token._listeners)
+        return;
+      let i = token._listeners.length;
+      while (i-- > 0) {
+        token._listeners[i](cancel);
+      }
+      token._listeners = null;
+    });
+    this.promise.then = (onfulfilled) => {
+      let _resolve;
+      const promise = new Promise((resolve) => {
+        token.subscribe(resolve);
+        _resolve = resolve;
+      }).then(onfulfilled);
+      promise.cancel = function reject() {
+        token.unsubscribe(_resolve);
+      };
+      return promise;
+    };
+    executor(function cancel(message, config, request) {
+      if (token.reason) {
+        return;
+      }
+      token.reason = new CanceledError_default(message, config, request);
+      resolvePromise(token.reason);
+    });
+  }
+  /**
+   * Throws a `CanceledError` if cancellation has been requested.
+   */
+  throwIfRequested() {
+    if (this.reason) {
+      throw this.reason;
+    }
+  }
+  /**
+   * Subscribe to the cancel signal
+   */
+  subscribe(listener) {
+    if (this.reason) {
+      listener(this.reason);
+      return;
+    }
+    if (this._listeners) {
+      this._listeners.push(listener);
+    } else {
+      this._listeners = [listener];
+    }
+  }
+  /**
+   * Unsubscribe from the cancel signal
+   */
+  unsubscribe(listener) {
+    if (!this._listeners) {
+      return;
+    }
+    const index = this._listeners.indexOf(listener);
+    if (index !== -1) {
+      this._listeners.splice(index, 1);
+    }
+  }
+  /**
+   * Returns an object that contains a new `CancelToken` and a function that, when called,
+   * cancels the `CancelToken`.
+   */
+  static source() {
+    let cancel;
+    const token = new _CancelToken(function executor(c2) {
+      cancel = c2;
+    });
+    return {
+      token,
+      cancel
+    };
+  }
+};
+var CancelToken_default = CancelToken;
+function spread(callback) {
+  return function wrap2(arr) {
+    return callback.apply(null, arr);
+  };
+}
+function isAxiosError(payload) {
+  return utils_default.isObject(payload) && payload.isAxiosError === true;
+}
+var HttpStatusCode = {
+  Continue: 100,
+  SwitchingProtocols: 101,
+  Processing: 102,
+  EarlyHints: 103,
+  Ok: 200,
+  Created: 201,
+  Accepted: 202,
+  NonAuthoritativeInformation: 203,
+  NoContent: 204,
+  ResetContent: 205,
+  PartialContent: 206,
+  MultiStatus: 207,
+  AlreadyReported: 208,
+  ImUsed: 226,
+  MultipleChoices: 300,
+  MovedPermanently: 301,
+  Found: 302,
+  SeeOther: 303,
+  NotModified: 304,
+  UseProxy: 305,
+  Unused: 306,
+  TemporaryRedirect: 307,
+  PermanentRedirect: 308,
+  BadRequest: 400,
+  Unauthorized: 401,
+  PaymentRequired: 402,
+  Forbidden: 403,
+  NotFound: 404,
+  MethodNotAllowed: 405,
+  NotAcceptable: 406,
+  ProxyAuthenticationRequired: 407,
+  RequestTimeout: 408,
+  Conflict: 409,
+  Gone: 410,
+  LengthRequired: 411,
+  PreconditionFailed: 412,
+  PayloadTooLarge: 413,
+  UriTooLong: 414,
+  UnsupportedMediaType: 415,
+  RangeNotSatisfiable: 416,
+  ExpectationFailed: 417,
+  ImATeapot: 418,
+  MisdirectedRequest: 421,
+  UnprocessableEntity: 422,
+  Locked: 423,
+  FailedDependency: 424,
+  TooEarly: 425,
+  UpgradeRequired: 426,
+  PreconditionRequired: 428,
+  TooManyRequests: 429,
+  RequestHeaderFieldsTooLarge: 431,
+  UnavailableForLegalReasons: 451,
+  InternalServerError: 500,
+  NotImplemented: 501,
+  BadGateway: 502,
+  ServiceUnavailable: 503,
+  GatewayTimeout: 504,
+  HttpVersionNotSupported: 505,
+  VariantAlsoNegotiates: 506,
+  InsufficientStorage: 507,
+  LoopDetected: 508,
+  NotExtended: 510,
+  NetworkAuthenticationRequired: 511
+};
+Object.entries(HttpStatusCode).forEach(([key, value]) => {
+  HttpStatusCode[value] = key;
+});
+var HttpStatusCode_default = HttpStatusCode;
+function createInstance(defaultConfig) {
+  const context = new Axios_default(defaultConfig);
+  const instance = bind(Axios_default.prototype.request, context);
+  utils_default.extend(instance, Axios_default.prototype, context, { allOwnKeys: true });
+  utils_default.extend(instance, context, null, { allOwnKeys: true });
+  instance.create = function create(instanceConfig) {
+    return createInstance(mergeConfig(defaultConfig, instanceConfig));
+  };
+  return instance;
+}
+var axios = createInstance(defaults_default);
+axios.Axios = Axios_default;
+axios.CanceledError = CanceledError_default;
+axios.CancelToken = CancelToken_default;
+axios.isCancel = isCancel;
+axios.VERSION = VERSION;
+axios.toFormData = toFormData_default;
+axios.AxiosError = AxiosError_default;
+axios.Cancel = axios.CanceledError;
+axios.all = function all(promises) {
+  return Promise.all(promises);
+};
+axios.spread = spread;
+axios.isAxiosError = isAxiosError;
+axios.mergeConfig = mergeConfig;
+axios.AxiosHeaders = AxiosHeaders_default;
+axios.formToJSON = (thing) => formDataToJSON_default(utils_default.isHTMLForm(thing) ? new FormData(thing) : thing);
+axios.getAdapter = adapters_default.getAdapter;
+axios.HttpStatusCode = HttpStatusCode_default;
+axios.default = axios;
+var axios_default = axios;
+var {
+  Axios: Axios2,
+  AxiosError: AxiosError2,
+  CanceledError: CanceledError2,
+  isCancel: isCancel2,
+  CancelToken: CancelToken2,
+  VERSION: VERSION2,
+  all: all2,
+  Cancel,
+  isAxiosError: isAxiosError2,
+  spread: spread2,
+  toFormData: toFormData2,
+  AxiosHeaders: AxiosHeaders2,
+  HttpStatusCode: HttpStatusCode2,
+  formToJSON,
+  getAdapter,
+  mergeConfig: mergeConfig2
+} = axios_default;
+var anyMap2 = /* @__PURE__ */ new WeakMap();
+var eventsMap2 = /* @__PURE__ */ new WeakMap();
+var producersMap2 = /* @__PURE__ */ new WeakMap();
+var anyProducer2 = Symbol("anyProducer");
+var resolvedPromise2 = Promise.resolve();
+var listenerAdded2 = Symbol("listenerAdded");
+var listenerRemoved2 = Symbol("listenerRemoved");
+var canEmitMetaEvents2 = false;
+var isGlobalDebugEnabled2 = false;
+function assertEventName2(eventName) {
+  if (typeof eventName !== "string" && typeof eventName !== "symbol" && typeof eventName !== "number") {
+    throw new TypeError("`eventName` must be a string, symbol, or number");
+  }
+}
+function assertListener2(listener) {
+  if (typeof listener !== "function") {
+    throw new TypeError("listener must be a function");
+  }
+}
+function getListeners2(instance, eventName) {
+  const events = eventsMap2.get(instance);
+  if (!events.has(eventName)) {
+    return;
+  }
+  return events.get(eventName);
+}
+function getEventProducers2(instance, eventName) {
+  const key = typeof eventName === "string" || typeof eventName === "symbol" || typeof eventName === "number" ? eventName : anyProducer2;
+  const producers = producersMap2.get(instance);
+  if (!producers.has(key)) {
+    return;
+  }
+  return producers.get(key);
+}
+function enqueueProducers2(instance, eventName, eventData) {
+  const producers = producersMap2.get(instance);
+  if (producers.has(eventName)) {
+    for (const producer of producers.get(eventName)) {
+      producer.enqueue(eventData);
+    }
+  }
+  if (producers.has(anyProducer2)) {
+    const item = Promise.all([eventName, eventData]);
+    for (const producer of producers.get(anyProducer2)) {
+      producer.enqueue(item);
+    }
+  }
+}
+function iterator2(instance, eventNames) {
+  eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+  let isFinished = false;
+  let flush = () => {
+  };
+  let queue22 = [];
+  const producer = {
+    enqueue(item) {
+      queue22.push(item);
+      flush();
+    },
+    finish() {
+      isFinished = true;
+      flush();
+    }
+  };
+  for (const eventName of eventNames) {
+    let set = getEventProducers2(instance, eventName);
+    if (!set) {
+      set = /* @__PURE__ */ new Set();
+      const producers = producersMap2.get(instance);
+      producers.set(eventName, set);
+    }
+    set.add(producer);
+  }
+  return {
+    async next() {
+      if (!queue22) {
+        return { done: true };
+      }
+      if (queue22.length === 0) {
+        if (isFinished) {
+          queue22 = void 0;
+          return this.next();
+        }
+        await new Promise((resolve) => {
+          flush = resolve;
+        });
+        return this.next();
+      }
+      return {
+        done: false,
+        value: await queue22.shift()
+      };
+    },
+    async return(value) {
+      queue22 = void 0;
+      for (const eventName of eventNames) {
+        const set = getEventProducers2(instance, eventName);
+        if (set) {
+          set.delete(producer);
+          if (set.size === 0) {
+            const producers = producersMap2.get(instance);
+            producers.delete(eventName);
+          }
+        }
+      }
+      flush();
+      return arguments.length > 0 ? { done: true, value: await value } : { done: true };
+    },
+    [Symbol.asyncIterator]() {
+      return this;
+    }
+  };
+}
+function defaultMethodNamesOrAssert2(methodNames) {
+  if (methodNames === void 0) {
+    return allEmitteryMethods2;
+  }
+  if (!Array.isArray(methodNames)) {
+    throw new TypeError("`methodNames` must be an array of strings");
+  }
+  for (const methodName of methodNames) {
+    if (!allEmitteryMethods2.includes(methodName)) {
+      if (typeof methodName !== "string") {
+        throw new TypeError("`methodNames` element must be a string");
+      }
+      throw new Error(`${methodName} is not Emittery method`);
+    }
+  }
+  return methodNames;
+}
+var isMetaEvent2 = (eventName) => eventName === listenerAdded2 || eventName === listenerRemoved2;
+function emitMetaEvent2(emitter, eventName, eventData) {
+  if (isMetaEvent2(eventName)) {
+    try {
+      canEmitMetaEvents2 = true;
+      emitter.emit(eventName, eventData);
+    } finally {
+      canEmitMetaEvents2 = false;
+    }
+  }
+}
+var Emittery2 = class _Emittery2 {
+  static mixin(emitteryPropertyName, methodNames) {
+    methodNames = defaultMethodNamesOrAssert2(methodNames);
+    return (target) => {
+      if (typeof target !== "function") {
+        throw new TypeError("`target` must be function");
+      }
+      for (const methodName of methodNames) {
+        if (target.prototype[methodName] !== void 0) {
+          throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+        }
+      }
+      function getEmitteryProperty() {
+        Object.defineProperty(this, emitteryPropertyName, {
+          enumerable: false,
+          value: new _Emittery2()
+        });
+        return this[emitteryPropertyName];
+      }
+      Object.defineProperty(target.prototype, emitteryPropertyName, {
+        enumerable: false,
+        get: getEmitteryProperty
+      });
+      const emitteryMethodCaller = (methodName) => function(...args) {
+        return this[emitteryPropertyName][methodName](...args);
+      };
+      for (const methodName of methodNames) {
+        Object.defineProperty(target.prototype, methodName, {
+          enumerable: false,
+          value: emitteryMethodCaller(methodName)
+        });
+      }
+      return target;
+    };
+  }
+  static get isDebugEnabled() {
+    if (typeof globalThis.process?.env !== "object") {
+      return isGlobalDebugEnabled2;
+    }
+    const { env: env22 } = globalThis.process ?? { env: {} };
+    return env22.DEBUG === "emittery" || env22.DEBUG === "*" || isGlobalDebugEnabled2;
+  }
+  static set isDebugEnabled(newValue) {
+    isGlobalDebugEnabled2 = newValue;
+  }
+  constructor(options22 = {}) {
+    anyMap2.set(this, /* @__PURE__ */ new Set());
+    eventsMap2.set(this, /* @__PURE__ */ new Map());
+    producersMap2.set(this, /* @__PURE__ */ new Map());
+    producersMap2.get(this).set(anyProducer2, /* @__PURE__ */ new Set());
+    this.debug = options22.debug ?? {};
+    if (this.debug.enabled === void 0) {
+      this.debug.enabled = false;
+    }
+    if (!this.debug.logger) {
+      this.debug.logger = (type, debugName, eventName, eventData) => {
+        try {
+          eventData = JSON.stringify(eventData);
+        } catch {
+          eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(",")}`;
+        }
+        if (typeof eventName === "symbol" || typeof eventName === "number") {
+          eventName = eventName.toString();
+        }
+        const currentTime = /* @__PURE__ */ new Date();
+        const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+        console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}
+	data: ${eventData}`);
+      };
+    }
+  }
+  logIfDebugEnabled(type, eventName, eventData) {
+    if (_Emittery2.isDebugEnabled || this.debug.enabled) {
+      this.debug.logger(type, this.debug.name, eventName, eventData);
+    }
+  }
+  on(eventNames, listener) {
+    assertListener2(listener);
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName2(eventName);
+      let set = getListeners2(this, eventName);
+      if (!set) {
+        set = /* @__PURE__ */ new Set();
+        const events = eventsMap2.get(this);
+        events.set(eventName, set);
+      }
+      set.add(listener);
+      this.logIfDebugEnabled("subscribe", eventName, void 0);
+      if (!isMetaEvent2(eventName)) {
+        emitMetaEvent2(this, listenerAdded2, { eventName, listener });
+      }
+    }
+    return this.off.bind(this, eventNames, listener);
+  }
+  off(eventNames, listener) {
+    assertListener2(listener);
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName2(eventName);
+      const set = getListeners2(this, eventName);
+      if (set) {
+        set.delete(listener);
+        if (set.size === 0) {
+          const events = eventsMap2.get(this);
+          events.delete(eventName);
+        }
+      }
+      this.logIfDebugEnabled("unsubscribe", eventName, void 0);
+      if (!isMetaEvent2(eventName)) {
+        emitMetaEvent2(this, listenerRemoved2, { eventName, listener });
+      }
+    }
+  }
+  once(eventNames) {
+    let off_;
+    const promise = new Promise((resolve) => {
+      off_ = this.on(eventNames, (data) => {
+        off_();
+        resolve(data);
+      });
+    });
+    promise.off = off_;
+    return promise;
+  }
+  events(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      assertEventName2(eventName);
+    }
+    return iterator2(this, eventNames);
+  }
+  async emit(eventName, eventData) {
+    assertEventName2(eventName);
+    if (isMetaEvent2(eventName) && !canEmitMetaEvents2) {
+      throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
+    }
+    this.logIfDebugEnabled("emit", eventName, eventData);
+    enqueueProducers2(this, eventName, eventData);
+    const listeners = getListeners2(this, eventName) ?? /* @__PURE__ */ new Set();
+    const anyListeners = anyMap2.get(this);
+    const staticListeners = [...listeners];
+    const staticAnyListeners = isMetaEvent2(eventName) ? [] : [...anyListeners];
+    await resolvedPromise2;
+    await Promise.all([
+      ...staticListeners.map(async (listener) => {
+        if (listeners.has(listener)) {
+          return listener(eventData);
+        }
+      }),
+      ...staticAnyListeners.map(async (listener) => {
+        if (anyListeners.has(listener)) {
+          return listener(eventName, eventData);
+        }
+      })
+    ]);
+  }
+  async emitSerial(eventName, eventData) {
+    assertEventName2(eventName);
+    if (isMetaEvent2(eventName) && !canEmitMetaEvents2) {
+      throw new TypeError("`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`");
+    }
+    this.logIfDebugEnabled("emitSerial", eventName, eventData);
+    const listeners = getListeners2(this, eventName) ?? /* @__PURE__ */ new Set();
+    const anyListeners = anyMap2.get(this);
+    const staticListeners = [...listeners];
+    const staticAnyListeners = [...anyListeners];
+    await resolvedPromise2;
+    for (const listener of staticListeners) {
+      if (listeners.has(listener)) {
+        await listener(eventData);
+      }
+    }
+    for (const listener of staticAnyListeners) {
+      if (anyListeners.has(listener)) {
+        await listener(eventName, eventData);
+      }
+    }
+  }
+  onAny(listener) {
+    assertListener2(listener);
+    this.logIfDebugEnabled("subscribeAny", void 0, void 0);
+    anyMap2.get(this).add(listener);
+    emitMetaEvent2(this, listenerAdded2, { listener });
+    return this.offAny.bind(this, listener);
+  }
+  anyEvent() {
+    return iterator2(this);
+  }
+  offAny(listener) {
+    assertListener2(listener);
+    this.logIfDebugEnabled("unsubscribeAny", void 0, void 0);
+    emitMetaEvent2(this, listenerRemoved2, { listener });
+    anyMap2.get(this).delete(listener);
+  }
+  clearListeners(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    for (const eventName of eventNames) {
+      this.logIfDebugEnabled("clear", eventName, void 0);
+      if (typeof eventName === "string" || typeof eventName === "symbol" || typeof eventName === "number") {
+        const set = getListeners2(this, eventName);
+        if (set) {
+          set.clear();
+        }
+        const producers = getEventProducers2(this, eventName);
+        if (producers) {
+          for (const producer of producers) {
+            producer.finish();
+          }
+          producers.clear();
+        }
+      } else {
+        anyMap2.get(this).clear();
+        for (const [eventName2, listeners] of eventsMap2.get(this).entries()) {
+          listeners.clear();
+          eventsMap2.get(this).delete(eventName2);
+        }
+        for (const [eventName2, producers] of producersMap2.get(this).entries()) {
+          for (const producer of producers) {
+            producer.finish();
+          }
+          producers.clear();
+          producersMap2.get(this).delete(eventName2);
+        }
+      }
+    }
+  }
+  listenerCount(eventNames) {
+    eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+    let count = 0;
+    for (const eventName of eventNames) {
+      if (typeof eventName === "string") {
+        count += anyMap2.get(this).size + (getListeners2(this, eventName)?.size ?? 0) + (getEventProducers2(this, eventName)?.size ?? 0) + (getEventProducers2(this)?.size ?? 0);
+        continue;
+      }
+      if (typeof eventName !== "undefined") {
+        assertEventName2(eventName);
+      }
+      count += anyMap2.get(this).size;
+      for (const value of eventsMap2.get(this).values()) {
+        count += value.size;
+      }
+      for (const value of producersMap2.get(this).values()) {
+        count += value.size;
+      }
+    }
+    return count;
+  }
+  bindMethods(target, methodNames) {
+    if (typeof target !== "object" || target === null) {
+      throw new TypeError("`target` must be an object");
+    }
+    methodNames = defaultMethodNamesOrAssert2(methodNames);
+    for (const methodName of methodNames) {
+      if (target[methodName] !== void 0) {
+        throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+      }
+      Object.defineProperty(target, methodName, {
+        enumerable: false,
+        value: this[methodName].bind(this)
+      });
+    }
+  }
+};
+var allEmitteryMethods2 = Object.getOwnPropertyNames(Emittery2.prototype).filter((v2) => v2 !== "constructor");
+Object.defineProperty(Emittery2, "listenerAdded", {
+  value: listenerAdded2,
+  writable: false,
+  enumerable: true,
+  configurable: false
+});
+Object.defineProperty(Emittery2, "listenerRemoved", {
+  value: listenerRemoved2,
+  writable: false,
+  enumerable: true,
+  configurable: false
+});
+var OmniLogLevels2 = ((OmniLogLevels22) => {
+  OmniLogLevels22[OmniLogLevels22["silent"] = Number.NEGATIVE_INFINITY] = "silent";
+  OmniLogLevels22[OmniLogLevels22["always"] = 0] = "always";
+  OmniLogLevels22[OmniLogLevels22["fatal"] = 0] = "fatal";
+  OmniLogLevels22[OmniLogLevels22["warning"] = 1] = "warning";
+  OmniLogLevels22[OmniLogLevels22["normal"] = 2] = "normal";
+  OmniLogLevels22[OmniLogLevels22["info"] = 3] = "info";
+  OmniLogLevels22[OmniLogLevels22["debug"] = 4] = "debug";
+  OmniLogLevels22[OmniLogLevels22["trace"] = 5] = "trace";
+  OmniLogLevels22[OmniLogLevels22["verbose"] = Number.POSITIVE_INFINITY] = "verbose";
+  return OmniLogLevels22;
+})(OmniLogLevels2 || {});
+var DEFAULT_LOG_LEVEL2 = 2;
+var _OmniLog3 = class _OmniLog22 {
+  constructor() {
+    this._status_priority = consola2.create({ level: OmniLogLevels2.verbose });
+    this._void = (_msg) => {
+    };
+    this.__log = (msg) => consola2.log(msg);
+    this._log = DEFAULT_LOG_LEVEL2 >= 3 ? this.__log : this._void;
+    if (_OmniLog22._instance !== void 0) {
+      throw new Error("Log instance duplicate error");
+    }
+    consola2.level = DEFAULT_LOG_LEVEL2;
+    this._customLevel = /* @__PURE__ */ new Map();
+    _OmniLog22._instance = this;
+  }
+  get level() {
+    return consola2.level;
+  }
+  set level(value) {
+    this._status_priority.level = value < 0 ? value : OmniLogLevels2.verbose;
+    this._log = value >= 3 ? this.__log : this._void;
+    consola2.level = value;
+    if (value < 0) {
+      this._customLevel.forEach((e) => e = OmniLogLevels2.silent);
+    }
+  }
+  get warn() {
+    return consola2.warn;
+  }
+  get error() {
+    return consola2.error;
+  }
+  get info() {
+    return consola2.info;
+  }
+  get debug() {
+    return consola2.debug;
+  }
+  get verbose() {
+    return consola2.verbose;
+  }
+  get ready() {
+    return consola2.ready;
+  }
+  get success() {
+    return consola2.success;
+  }
+  get trace() {
+    return consola2.trace;
+  }
+  get log() {
+    return this._log;
+  }
+  get assert() {
+    return console.assert;
+  }
+  status_start(msg) {
+    this._status_priority.start(msg);
+  }
+  status_success(msg) {
+    this._status_priority.success(msg);
+  }
+  status_fail(msg) {
+    this._status_priority.fail(msg);
+  }
+  createWithTag(id) {
+    return consola2.withTag(id);
+  }
+  wrapConsoleLogger() {
+    consola2.wrapConsole();
+  }
+  restoreConsoleLogger() {
+    consola2.restoreConsole();
+  }
+  setCustomLevel(id, level) {
+    this._customLevel.set(id, level);
+  }
+  getCustomLevel(id) {
+    return this._customLevel.get(id) ?? DEFAULT_LOG_LEVEL2;
+  }
+};
+_OmniLog3._instance = new _OmniLog3();
+var OmniLog2 = _OmniLog3;
+var omnilog2 = OmniLog2._instance;
+var Manager2 = class {
+  constructor(app) {
+    this.app = app;
+    this.children = /* @__PURE__ */ new Map();
+    const logInstance = omnilog2.createWithTag("Services");
+    this.info = logInstance.info;
+    this.success = logInstance.success;
+    this.debug = logInstance.debug;
+    this.verbose = logInstance.verbose;
+    this.warn = logInstance.warn;
+    this.error = logInstance.error;
+  }
+  register(Ctor, config, wrapper) {
+    throw new Error("Manager register method not implemented");
+  }
+  async load() {
+    const success = true;
+    for (const [id, child] of this.children) {
+      this.verbose(`${id} load`);
+      await child.load?.();
+    }
+    return success;
+  }
+  async start() {
+    for (const [id, child] of this.children) {
+      omnilog2.log(`child ${id} start`);
+      await child.start?.();
+    }
+    omnilog2.log("All children started");
+    return true;
+  }
+  async stop() {
+    this.debug("stopping children...");
+    for (const child of Array.from(this.children.values()).reverse()) {
+      this.verbose(`${child.id} stop`);
+      await child.stop?.();
+    }
+    this.success("children stopped");
+    return true;
+  }
+  get(id) {
+    return this.children.get(id);
+  }
+  has(id) {
+    return this.children.has(id);
+  }
+};
+var IntegrationsManager2 = class extends Manager2 {
+  constructor(app) {
+    super(app);
+    Object.defineProperty(this, "integrations", { get: () => this.children });
+    this._integrations = [];
+  }
+  // Unlike services, we want to delay the creation until all the services have loaded, so we
+  // just store an array here which we process for the actual registration step in load()
+  register(Ctor, config) {
+    this.verbose(`pre-registering ${config.id} integration`);
+    this._integrations.push([Ctor, config]);
+  }
+  async load() {
+    for (const [Ctor, config] of this._integrations) {
+      this.verbose(`registering integration ${config.id}...`);
+      const integration = new Ctor(config.id, this, config);
+      this.children.set(config.id, integration);
+      integration.create?.();
+    }
+    this.debug("loading integrations...");
+    const result = await super.load();
+    this.success("integrations loaded");
+    return result;
+  }
+  async start() {
+    this.debug("starting integrations...");
+    await super.start();
+    this.success("integrations started");
+    return true;
+  }
+};
+var ServiceManager2 = class extends Manager2 {
+  constructor(app) {
+    super(app);
+    Object.defineProperty(this, "services", { get: () => this.children });
+  }
+  register(Ctor, config, wrapper) {
+    this.debug(`registering ${config.id} service`);
+    let service = new Ctor(config.id, this, config);
+    if (wrapper && typeof wrapper === "function") {
+      service = wrapper(service);
+    }
+    this.children.set(config.id, service);
+    service.create?.();
+    return service;
+  }
+  async load() {
+    this.debug("loading services...");
+    const success = await super.load();
+    if (!success) {
+      this.error("failed to load services");
+      return false;
+    }
+    this.success("services loaded");
+    return true;
+  }
+  async start() {
+    this.debug("starting services...");
+    await super.start();
+    this.success("services started");
+    return true;
+  }
+};
+var VOID2 = -1;
+var PRIMITIVE2 = 0;
+var ARRAY2 = 1;
+var OBJECT2 = 2;
+var DATE2 = 3;
+var REGEXP2 = 4;
+var MAP2 = 5;
+var SET2 = 6;
+var ERROR2 = 7;
+var BIGINT2 = 8;
+var env3 = typeof self === "object" ? self : globalThis;
+var deserializer2 = ($2, _2) => {
+  const as = (out, index) => {
+    $2.set(index, out);
+    return out;
+  };
+  const unpair = (index) => {
+    if ($2.has(index))
+      return $2.get(index);
+    const [type, value] = _2[index];
+    switch (type) {
+      case PRIMITIVE2:
+      case VOID2:
+        return as(value, index);
+      case ARRAY2: {
+        const arr = as([], index);
+        for (const index2 of value)
+          arr.push(unpair(index2));
+        return arr;
+      }
+      case OBJECT2: {
+        const object = as({}, index);
+        for (const [key, index2] of value)
+          object[unpair(key)] = unpair(index2);
+        return object;
+      }
+      case DATE2:
+        return as(new Date(value), index);
+      case REGEXP2: {
+        const { source, flags } = value;
+        return as(new RegExp(source, flags), index);
+      }
+      case MAP2: {
+        const map = as(/* @__PURE__ */ new Map(), index);
+        for (const [key, index2] of value)
+          map.set(unpair(key), unpair(index2));
+        return map;
+      }
+      case SET2: {
+        const set = as(/* @__PURE__ */ new Set(), index);
+        for (const index2 of value)
+          set.add(unpair(index2));
+        return set;
+      }
+      case ERROR2: {
+        const { name, message } = value;
+        return as(new env3[name](message), index);
+      }
+      case BIGINT2:
+        return as(BigInt(value), index);
+      case "BigInt":
+        return as(Object(BigInt(value)), index);
+    }
+    return as(new env3[type](value), index);
+  };
+  return unpair;
+};
+var deserialize2 = (serialized) => deserializer2(/* @__PURE__ */ new Map(), serialized)(0);
+var EMPTY2 = "";
+var { toString: toString3 } = {};
+var { keys: keys2 } = Object;
+var typeOf2 = (value) => {
+  const type = typeof value;
+  if (type !== "object" || !value)
+    return [PRIMITIVE2, type];
+  const asString = toString3.call(value).slice(8, -1);
+  switch (asString) {
+    case "Array":
+      return [ARRAY2, EMPTY2];
+    case "Object":
+      return [OBJECT2, EMPTY2];
+    case "Date":
+      return [DATE2, EMPTY2];
+    case "RegExp":
+      return [REGEXP2, EMPTY2];
+    case "Map":
+      return [MAP2, EMPTY2];
+    case "Set":
+      return [SET2, EMPTY2];
+  }
+  if (asString.includes("Array"))
+    return [ARRAY2, asString];
+  if (asString.includes("Error"))
+    return [ERROR2, asString];
+  return [OBJECT2, asString];
+};
+var shouldSkip2 = ([TYPE, type]) => TYPE === PRIMITIVE2 && (type === "function" || type === "symbol");
+var serializer2 = (strict, json, $2, _2) => {
+  const as = (out, value) => {
+    const index = _2.push(out) - 1;
+    $2.set(value, index);
+    return index;
+  };
+  const pair = (value) => {
+    if ($2.has(value))
+      return $2.get(value);
+    let [TYPE, type] = typeOf2(value);
+    switch (TYPE) {
+      case PRIMITIVE2: {
+        let entry = value;
+        switch (type) {
+          case "bigint":
+            TYPE = BIGINT2;
+            entry = value.toString();
+            break;
+          case "function":
+          case "symbol":
+            if (strict)
+              throw new TypeError("unable to serialize " + type);
+            entry = null;
+            break;
+          case "undefined":
+            return as([VOID2], value);
+        }
+        return as([TYPE, entry], value);
+      }
+      case ARRAY2: {
+        if (type)
+          return as([type, [...value]], value);
+        const arr = [];
+        const index = as([TYPE, arr], value);
+        for (const entry of value)
+          arr.push(pair(entry));
+        return index;
+      }
+      case OBJECT2: {
+        if (type) {
+          switch (type) {
+            case "BigInt":
+              return as([type, value.toString()], value);
+            case "Boolean":
+            case "Number":
+            case "String":
+              return as([type, value.valueOf()], value);
+          }
+        }
+        if (json && "toJSON" in value)
+          return pair(value.toJSON());
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const key of keys2(value)) {
+          if (strict || !shouldSkip2(typeOf2(value[key])))
+            entries.push([pair(key), pair(value[key])]);
+        }
+        return index;
+      }
+      case DATE2:
+        return as([TYPE, value.toISOString()], value);
+      case REGEXP2: {
+        const { source, flags } = value;
+        return as([TYPE, { source, flags }], value);
+      }
+      case MAP2: {
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const [key, entry] of value) {
+          if (strict || !(shouldSkip2(typeOf2(key)) || shouldSkip2(typeOf2(entry))))
+            entries.push([pair(key), pair(entry)]);
+        }
+        return index;
+      }
+      case SET2: {
+        const entries = [];
+        const index = as([TYPE, entries], value);
+        for (const entry of value) {
+          if (strict || !shouldSkip2(typeOf2(entry)))
+            entries.push(pair(entry));
+        }
+        return index;
+      }
+    }
+    const { message } = value;
+    return as([TYPE, { name: type, message }], value);
+  };
+  return pair;
+};
+var serialize2 = (value, { json, lossy } = {}) => {
+  const _2 = [];
+  return serializer2(!(json || lossy), !!json, /* @__PURE__ */ new Map(), _2)(value), _2;
+};
+var { parse: $parse2, stringify: $stringify2 } = JSON;
+var options2 = { json: true, lossy: true };
+var parse2 = (str) => deserialize2($parse2(str));
+var stringify2 = (any) => $stringify2(serialize2(any, options2));
+var Settings2 = class {
+  constructor(scope) {
+    this.settings = /* @__PURE__ */ new Map();
+    this.scope = scope;
+  }
+  bindStorage(storage) {
+    this.settings = storage;
+  }
+  // Adds a setting to this system.
+  add(setting) {
+    if (this.settings.has(setting.key)) {
+      omnilog2.warn(`Setting ${setting.key} already exists, doing nothing...`);
+      return this;
+    }
+    this.settings.set(setting.key, setting);
+    return this;
+  }
+  // Retrieves a setting by its key.
+  get(key) {
+    return this.settings.get(key);
+  }
+  // Updates a setting's value and validates it.
+  update(key, newValue) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = newValue;
+    }
+  }
+  // Resets a specific setting to its default value.
+  reset(key) {
+    const setting = this.get(key);
+    if (setting) {
+      setting.value = setting.defaultValue;
+    }
+  }
+  // Resets all settings to their default values.
+  resetAll() {
+    if (this.settings) {
+      for (const s3 of this.settings.values()) {
+        s3.value = s3.defaultValue;
+      }
+    }
+  }
+};
+var STATE2 = /* @__PURE__ */ ((STATE22) => {
+  STATE22[STATE22["CREATED"] = 0] = "CREATED";
+  STATE22[STATE22["CONFIGURED"] = 1] = "CONFIGURED";
+  STATE22[STATE22["LOADED"] = 2] = "LOADED";
+  STATE22[STATE22["STARTED"] = 3] = "STARTED";
+  STATE22[STATE22["STOPPED"] = 4] = "STOPPED";
+  return STATE22;
+})(STATE2 || {});
+var App2 = class {
+  constructor(id, config, opts) {
+    this.state = 0;
+    this.id = id;
+    opts ?? (opts = {
+      integrationsManagerType: IntegrationsManager2
+    });
+    this.config = config;
+    this.logger = omnilog2;
+    this.services = new ServiceManager2(this);
+    this.integrations = new (opts.integrationsManagerType || IntegrationsManager2)(this);
+    const loginstance = this.logger.createWithTag(id);
+    this.settings = new Settings2();
+    this.info = loginstance.info;
+    this.success = loginstance.success;
+    this.debug = loginstance.debug;
+    this.error = loginstance.error;
+    this.verbose = loginstance.verbose;
+    this.warn = loginstance.warn;
+    this.events = new Emittery2(
+      omnilog2.getCustomLevel("emittery") > OmniLogLevels2.silent ? { debug: { name: "app.events", enabled: true } } : void 0
+    );
+  }
+  // registers a service or integration
+  use(middleware, config, middlewareType, wrapper) {
+    this.verbose("[APP.USE] use", middleware.name);
+    if (middlewareType === "service" || middleware.name.endsWith("Service")) {
+      const service = middleware;
+      this.services.register(service, config, wrapper);
+    } else if (middlewareType === "integration" || middleware.name.endsWith("Integration")) {
+      const integration = middleware;
+      this.integrations.register(integration, config);
+    } else {
+      this.warn(`[APP.USE] Unknown middleware type ${middleware.name}`);
+    }
+    return this;
+  }
+  // ----- messaging
+  async emit(event, data) {
+    this.debug("[APP.EMIT Global] emit", event);
+    await this.events.emit(event, data);
+  }
+  // ----- app state control
+  async load() {
+    if (this.state >= 2) {
+      omnilog2.warn("Cannot load more than once, ignoring call");
+      return true;
+    }
+    const owner = this;
+    if (owner.onConfigure != null) {
+      await owner.onConfigure();
+    }
+    this.state = 1;
+    if (!await this.services.load()) {
+      throw new Error("Failed to load services, see console for details");
+    }
+    await this.integrations.load();
+    if (owner.onLoad != null) {
+      await owner.onLoad();
+    }
+    await this.emit("loaded", {});
+    this.success("app loaded");
+    this.state = 2;
+    return true;
+  }
+  async start() {
+    if (this.state === 3) {
+      omnilog2.warn("Cannot start more than once, ignoring call");
+      return true;
+    }
+    const owner = this;
+    await this.services.start();
+    await this.integrations.start();
+    if (owner.onStart != null) {
+      await owner.onStart();
+    }
+    this.success("app started");
+    this.state = 3;
+    await this.emit("started", {});
+    return true;
+  }
+  async stop() {
+    this.info("app stopping");
+    await this.integrations.stop();
+    await this.services.stop();
+    await this.emit("stopped", {});
+    this.success("app stopped");
+    this.state = 4;
+    return true;
+  }
+  subscribeToGlobalEvent(event, handler) {
+    this.info(`[APP.SUB Global] ${this.id} subscribed to GlobalEvent ${event}`);
+    this.events.on(event, handler);
+  }
+  subscribeToServiceEvent(serviceOrId, event, handler) {
+    const id = serviceOrId.id ?? serviceOrId;
+    if (!this.services.has(id)) {
+      this.warn(`[SERVICE.SUB Service] ${this.id} subscribed to unknown service '${id}'. This can be ok in some cases, but usually indicates a bug.`);
+    }
+    this.info(`[SERVICE.SUB App] ${this.id} subscribed to service event '${event}' on ${id}`);
+    this.events.on(`${id}.${event}`, handler);
+  }
+  stringify(obj) {
+    return stringify2(obj, null, 2);
+  }
+  parse(str) {
+    return parse2(str);
+  }
+};
+App2.STATES = STATE2;
+var BaseWorkflow2 = class _BaseWorkflow2 {
+  constructor(id, version, meta) {
+    this.id = id || "";
+    this.version = version || "draft";
+    this.setMeta(meta);
+    this.setRete(null);
+    this.setAPI(null);
+    this.ui = {};
+  }
+  setMeta(meta) {
+    var _a, _b, _c, _d;
+    meta = JSON.parse(JSON.stringify(meta || {}));
+    meta = meta || { name: "New Recipe", description: "No description.", pictureUrl: "omni.png", author: "Anonymous" };
+    this.meta = meta;
+    this.meta.updated = Date.now();
+    (_a = this.meta).created ?? (_a.created = Date.now());
+    (_b = this.meta).tags ?? (_b.tags = []);
+    this.meta.updated = Date.now();
+    (_c = this.meta).author || (_c.author = "Anonymous");
+    (_d = this.meta).help || (_d.help = "");
+    this.meta.name = (0, import_insane2.default)(this.meta.name, { allowedTags: [], allowedAttributes: {} });
+    this.meta.description = (0, import_insane2.default)(this.meta.description, { allowedTags: [], allowedAttributes: {} });
+    this.meta.author = (0, import_insane2.default)(this.meta.author, { allowedTags: [], allowedAttributes: {} });
+    this.meta.help = (0, import_insane2.default)(this.meta.help, { allowedTags: [], allowedAttributes: {} });
+    return this;
+  }
+  setRete(rete) {
+    this.rete = rete;
+    this.meta.updated = Date.now();
+    return this;
+  }
+  setAPI(api2) {
+    this.api = api2 ?? { fields: {} };
+    this.meta.updated = Date.now();
+    return this;
+  }
+  setUI(ui) {
+    this.ui = ui ?? {};
+    this.meta.updated = Date.now();
+    return this;
+  }
+  get isBlank() {
+    return (this?.rete?.nodes ?? []).length === 0;
+  }
+  toJSON() {
+    return {
+      id: this.id,
+      version: this.version,
+      meta: this.meta,
+      rete: this.rete,
+      api: this.api,
+      ui: this.ui
+    };
+  }
+  static fromJSON(json) {
+    const result = new _BaseWorkflow2(json.id, json.version);
+    result.setMeta(json.meta);
+    result.setRete(json.rete);
+    result.setAPI(json.api);
+    result.setUI(json.ui);
+    return result;
+  }
+};
+var _Workflow3 = class _Workflow22 extends BaseWorkflow2 {
+  // Either 'public', organisation IDs, group IDs, or user IDs
+  constructor(id, version, data, meta) {
+    super(id, version, meta);
+    this._id = version == "draft" ? `wf:${id}` : `wf:${id}:${version}`;
+    this.owner = data.owner;
+    this.org = data.org;
+    this.publishedTo = [];
+  }
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      _id: this._id,
+      _rev: this._rev,
+      owner: this.owner,
+      org: this.org,
+      publishedTo: this.publishedTo
+    };
+  }
+  static fromJSON(json) {
+    let id = json._id?.replace("wf:", "") || json.id;
+    if (json.id && json.id.length > 16 && id.startsWith(json.id)) {
+      id = json.id;
+    }
+    const result = new _Workflow22(id, json.version ?? "draft", { owner: json.owner || json.meta.owner, org: json.org });
+    result.publishedTo = json.publishedTo;
+    result.setMeta(json.meta);
+    result.setRete(json.rete);
+    result.setAPI(json.api);
+    result.setUI(json.ui);
+    if (json._rev) {
+      result._rev = json._rev;
+    }
+    return result;
+  }
+};
+_Workflow3.modelName = "Workflow";
+var DBObject2 = class {
+  constructor(id) {
+    this._rev = void 0;
+    this.id = id;
+    this._id = `${Object.getPrototypeOf(this).constructor.name}:${this.id}`;
+    this.createdAt = Date.now();
+    this.lastUpdated = Date.now();
+  }
+  processAPIResponse(response) {
+    if (response.ok) {
+      this._id = response.id;
+      this._rev = response.rev;
+    }
+  }
+};
+var Group2 = class extends DBObject2 {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.credit = 0;
+    this.organisation = null;
+    this.members = [];
+    this.permission = [];
+  }
+};
+Group2.modelName = "Group";
+var Organisation2 = class extends DBObject2 {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.members = [];
+    this.groups = [];
+  }
+};
+Organisation2.modelName = "Organisation";
+var _User3 = class _User22 extends DBObject2 {
+  constructor(id, username) {
+    super(id);
+    this._id = `user:${this.id}`;
+    this.email = null;
+    this.username = username;
+    this.status = "active";
+    this.credit = 0;
+    this.organisation = null;
+    this.tier = null;
+    this.password = null;
+    this.salt = null;
+    this.tags = [];
+    this.settings = new Settings2(this.id);
+  }
+  isAdmin() {
+    return this.tags.some((tag) => tag === "admin");
+  }
+  static fromJSON(json) {
+    const result = new _User22(json.id, json.username);
+    result._id = json._id;
+    result._rev = json._rev;
+    result.id = json.id;
+    result.createdAt = json.createdAt;
+    result.lastUpdated = json.lastUpdated;
+    result.email = json.email;
+    result.username = json.username;
+    result.status = json.status;
+    result.externalId = json.externalId;
+    result.authType = json.authType;
+    result.credit = json.credit;
+    result.organisation = json.organisation;
+    result.tier = json.tier;
+    result.password = json.password;
+    result.salt = json.salt;
+    result.tags = json.tags;
+    return result;
+  }
+};
+_User3.modelName = "User";
+var Tier2 = class extends DBObject2 {
+  constructor(id, name) {
+    super(id);
+    this.name = name;
+    this.limits = [];
+  }
+};
+Tier2.modelName = "Tier";
+var APIKey2 = class extends DBObject2 {
+  // _id of the owner
+  constructor(id) {
+    super(id);
+    this.meta = {
+      name: "",
+      description: "",
+      owner: {
+        id: "",
+        type: "",
+        name: ""
+      },
+      revoked: false
+    };
+    this.key = "";
+    this.vaultType = "local";
+    this.owner = "";
+    this.apiNamespace = "";
+    this.variableName = "";
+  }
+};
+APIKey2.modelName = "APIKey";
+var rnds82 = new Uint8Array(16);
+var byteToHex3 = [];
+for (let i = 0; i < 256; ++i) {
+  byteToHex3.push((i + 256).toString(16).slice(1));
+}
+var randomUUID2 = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+>>>>>>> 24cfb6e6d864500f2f7cb366fb7282ad48e5a696
 
 // node_modules/omnilib-llms/llm.js
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
