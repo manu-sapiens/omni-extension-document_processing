@@ -1,8 +1,8 @@
 //@ts-check
 // QueryChunksComponent.js
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { OAIBaseComponent, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
+import { setComponentInputs, setComponentOutputs } from 'omnilib-utils/component.js';
 const NS_ONMI = 'document_processing';
 
 

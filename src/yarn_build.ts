@@ -1,5 +1,6 @@
 const esbuild = require('esbuild');
 const fs = require('fs');
+const path = require('path')
 
 /*
 const { commonjs } = require("@hyrious/esbuild-plugin-commonjs");
@@ -29,6 +30,7 @@ const shimBanner = {
   "js": ESM_REQUIRE_SHIM
 };
 
+const externals = ['mercs_rete', 'mercs_shared', 'mercs_client', 'gpt-tokenizer' ];
 const buildOptions_fix = {
       format: "esm",
       target: "esnext",
@@ -37,36 +39,39 @@ const buildOptions_fix = {
       bundle : true,
       entryPoints: ['./extension.js'],
       outfile: '../server/extension.js',
-      external: ['mercs_rete'],
+      external: externals,
       loader: {
         '.node': 'binary',
       },  
       metafile: true,
     };
 
-const buildOptions_good = {
+const buildOptions_simple = {
   entryPoints: ['./extension.js'],
   bundle: true,
   outfile: '../server/extension.js',
   format: 'esm',
   platform: 'node',
   target: 'es2020',
-  external: ['mercs_rete'], // Add other options as needed
+  external: externals, // Add other options as needed
   loader: {
     '.node': 'binary',
   },  
   metafile: true,
 };
 
+build(buildOptions_fix);
 
 
-const result = esbuild.build(buildOptions_fix).then((result) => 
-{
-  console.log('\n--------------\nBuild completed successfully!\n');
+
+async function build(build_option) {
+
+  const result = await esbuild.build(build_option);
 
   // Log some summary information
   const { inputs } = result.metafile;
   const inputCount = Object.keys(inputs).length;
+  //@ts-ignore
   const totalInputBytes = Object.values(result.metafile.inputs).reduce((sum, input) => sum + input.bytes, 0);
 
   console.log(`Total input files: ${inputCount}`);
@@ -75,13 +80,14 @@ const result = esbuild.build(buildOptions_fix).then((result) =>
   // Log some summary information about the outputs
   const { outputs } = result.metafile;
   const outputCount = Object.keys(outputs).length;
+  //@ts-ignore
   const totalOutputBytes = Object.values(result.metafile.outputs).reduce((sum, output) => sum + output.bytes, 0);
 
   console.log(`Total output files: ${outputCount}`);
   console.log(`Total output bytes: ${totalOutputBytes.toLocaleString()}`);
 
-  // Additional analysis or logging as needed
-
-}).catch(() => {
-  console.error('Build failed');
-});
+  if (result.metafile) {
+    console.log("Saving metadata to ./metafile.json");
+    await fs.promises.writeFile('./metafile.json', JSON.stringify(result.metafile));
+  }
+}

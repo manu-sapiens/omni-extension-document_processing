@@ -1,6 +1,6 @@
 //@ts-check
 // component_GptIxP.ts
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
+import { OAIBaseComponent, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
 import { is_valid, parse_text_to_array } from 'omnilib-utils/utils.js';

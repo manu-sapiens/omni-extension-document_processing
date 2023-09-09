@@ -6,7 +6,6 @@ import { is_valid, console_log } from 'omnilib-utils/utils.js';
 import { DEFAULT_VECTORSTORE_NAME } from "./vectorstore.js";
 import { compute_chunk_id, initialize_hasher } from "./hashers.js";
 import { user_db_put, user_db_get, user_db_delete } from "omnilib-utils/database.js";
-import { error } from "console";
 
 // omnilib-docs/embedder.js
 const VECTORSTORE_KEY_LIST_ID = "vectorstore_key_list";
@@ -17,6 +16,7 @@ var Embedder = class extends Embeddings {
   // NOTE: This is a general purpose "cached embeddings" class
   // that can wrap any langchain embeddings model
   constructor(ctx, embedder, hasher_model, embedder_model, vectorstore_name = DEFAULT_VECTORSTORE_NAME, overwrite = false, params = null) {
+    //@ts-ignore
     super(params);
     this.embedder = embedder;
     this.embedder_model = embedder_model;
@@ -162,8 +162,8 @@ var Embedder = class extends Embeddings {
     async getAllTextsAndIds()
     {
         const allEntries = await this.getAllDbEntries();
-        const allTexts = allEntries.map(db_entry => db_entry.text);
-        const allIds = allEntries.map(db_entry => db_entry.id);
+        const allTexts = allEntries?.map(db_entry => db_entry.text);
+        const allIds = allEntries?.map(db_entry => db_entry.id);
         return [allTexts, allIds];
     }
 }

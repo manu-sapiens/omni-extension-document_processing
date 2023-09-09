@@ -1,7 +1,7 @@
 //@ts-check
 // ReadTextFilesComponent.js
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
-import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
+import { OAIBaseComponent, OmniComponentMacroTypes } from 'mercs_rete';
+import { setComponentInputs, setComponentOutputs } from 'omnilib-utils/component.js';
 const NS_ONMI = 'document_processing';
 
 import { is_valid, rebuildToTicketObjectsIfNeeded, parse_text_to_array } from 'omnilib-utils/utils.js';

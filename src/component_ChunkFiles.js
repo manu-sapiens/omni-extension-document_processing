@@ -3,8 +3,6 @@
 import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from 'mercs_rete';
 import { omnilog } from 'mercs_shared'
 import { setComponentInputs, setComponentOutputs, setComponentControls } from 'omnilib-utils/component.js';
-const NS_ONMI = 'document_processing';
-
 import { initialize_hasher, compute_document_id } from './omnilib-docs/hashers.js';
 import { save_json_to_cdn_as_buffer, gather_all_texts_from_documents } from 'omnilib-utils/cdn.js';
 import { initialize_splitter } from './omnilib-docs/splitter.js';
@@ -15,9 +13,9 @@ import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { DEFAULT_EMBEDDER_MODEL } from './omnilib-docs/embeddings.js';
 import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from './omnilib-docs/chunking.js';
-import { printObject } from 'omnilib-utils/utils.js';
 import { countTokens } from 'omnilib-llms/tiktoken.js';
 
+const NS_ONMI = 'document_processing';``
 let chunk_files_component = OAIBaseComponent
     .create(NS_ONMI, "chunk_files")
     .fromScratch()
