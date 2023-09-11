@@ -6,6 +6,7 @@ import { async_getGptIxPComponent } from "./component_GptIxP.js";
 import { async_getLoopGptComponent } from "./component_LoopGPT.js";
 import { async_getQueryChunksComponent } from "./component_QueryChunks.js";
 import { async_getDocsWithGptComponent } from "./component_DocsWithGPT.js";
+import { DownloadFilesComponent } from "./component_DownloadFiles.js";
 
 async function CreateComponents() 
 {
@@ -19,7 +20,8 @@ async function CreateComponents()
     LoopGPTComponent, 
     QueryChunksComponent, 
     ReadTextFilesComponent, 
-    DocsWithGPTComponent, 
+    DocsWithGPTComponent,
+    DownloadFilesComponent, 
     ];
 
   return {

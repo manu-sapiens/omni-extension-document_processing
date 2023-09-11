@@ -784,15 +784,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gpt-tokenizer@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "gpt-tokenizer@npm:2.1.1"
-  dependencies:
-    rfc4648: ^1.5.2
-  checksum: f04eeeb4a1ddbe14b7dc08e1ec6792e1ade341e3ab0296ce7549ac77f007bf28864e0b4ebadc142298e212fe1856b45671e9e00cf173d41b71dae9e1da3a27ea
-  languageName: node
-  linkType: hard
-
 "has-flag@npm:^3.0.0":
   version: 3.0.0
   resolution: "has-flag@npm:3.0.0"
@@ -1309,18 +1300,17 @@ __metadata:
 
 "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#main":
   version: 1.0.0
-  resolution: "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#commit=faffcdf2bbfadd877c1c1b6bd1744238bb445efd"
+  resolution: "omnilib-llms@https://github.com/manu-sapiens/omnilib-llms.git#commit=d73ba92e612c6c886fdb1a4edd1c072f1bd0bcac"
   dependencies:
-    gpt-tokenizer: ^2.1.1
     omnilib-utils: "https://github.com/manu-sapiens/omnilib-utils.git#main"
-  checksum: 79b9e6d6624bcbe318cf91c9aab31834ea901e1199c55029642d2fb4c58dee06f69bf3cba1933f7642c551a0705b2a7e7b3fb1e56e88a69c38d0a86dc891b6e0
+  checksum: c025e4a5f87c3d2189603285366cbb97c15c8e55dc704d1d99c5003fb5aeb8d105af4f2880038166abfcc775e9810580d79dbd12cf5c6acf584066c4b09c6536
   languageName: node
   linkType: hard
 
 "omnilib-utils@https://github.com/manu-sapiens/omnilib-utils.git#main":
   version: 1.0.0
-  resolution: "omnilib-utils@https://github.com/manu-sapiens/omnilib-utils.git#commit=c3e9d003108073075745dc5bdbee6a2214ab87c2"
-  checksum: b733087847508f850a80760e845b0156f0bb0e2fd89feb4696e0903f4478a475b021ebff95b81eec24e0d907a658be7c285d89b87cb6c2c8c6f86221acefc464
+  resolution: "omnilib-utils@https://github.com/manu-sapiens/omnilib-utils.git#commit=7b38a201bb4fc817ec2e3fd1969a627b27c8e2c2"
+  checksum: 0141cd90d9c4d6daf1f4e6c842d0acbe110842e944d7c4332e7f127f4a838d6cd6ecbf0f8b42bc20774f9d18f1c70c5856bed5a12b13bbb3cc663fc6bc504e39
   languageName: node
   linkType: hard
 
@@ -1381,13 +1371,6 @@ __metadata:
   version: 0.13.1
   resolution: "retry@npm:0.13.1"
   checksum: 47c4d5be674f7c13eee4cfe927345023972197dbbdfba5d3af7e461d13b44de1bfd663bfc80d2f601f8ef3fc8164c16dd99655a221921954a65d044a2fc1233b
-  languageName: node
-  linkType: hard
-
-"rfc4648@npm:^1.5.2":
-  version: 1.5.2
-  resolution: "rfc4648@npm:1.5.2"
-  checksum: bc3d9c4fbfdbbb363c640f9cb56fc01d2e1ca64305b2b6409aaf59cb85c1adecb2545c03deee8889cce2685e15fb7dd47581665c288e4f45068ffece2642f2e8
   languageName: node
   linkType: hard
 

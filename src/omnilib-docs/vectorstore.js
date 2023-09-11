@@ -2,7 +2,7 @@
 // import { faiss_from_texts } from "./vectorstore_Faiss.js";
 // import { lancedb_from_texts, loadDbTable } from "./vectorstore_Lancedb.js";
 import { memoryFromTexts } from "./vectorstore_Memory.js";
-import { console_log,   is_valid } from "omnilib-utils/utils.js";
+import { console_log,   is_valid } from 'omnilib-utils/utils.js';
 
 const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies
 const MEMORY_VECTORSTORE = "MEMORY";

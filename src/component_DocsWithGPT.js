@@ -9,7 +9,7 @@ import { read_text_files_function } from "./component_ReadTextFiles.js";
 import { chunkFiles_function } from './component_ChunkFiles.js';
 import { queryChunks } from './component_QueryChunks.js';
 import { loopGpt } from './component_LoopGPT.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from "omnilib-llms/llms.js"
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID} from 'omnilib-llms/llms.js'
 
 
 

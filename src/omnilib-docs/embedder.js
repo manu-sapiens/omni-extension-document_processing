@@ -5,7 +5,7 @@ import { Embeddings } from "langchain/embeddings/base";
 import { is_valid, console_log } from 'omnilib-utils/utils.js';
 import { DEFAULT_VECTORSTORE_NAME } from "./vectorstore.js";
 import { compute_chunk_id, initialize_hasher } from "./hashers.js";
-import { user_db_put, user_db_get, user_db_delete } from "omnilib-utils/database.js";
+import { user_db_put, user_db_get, user_db_delete } from 'omnilib-utils/database.js';
 
 // omnilib-docs/embedder.js
 const VECTORSTORE_KEY_LIST_ID = "vectorstore_key_list";

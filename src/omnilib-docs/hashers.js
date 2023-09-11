@@ -1,6 +1,6 @@
 //@ts-check
 import { Hasher_SHA256 } from "./hasher_SHA256.js";
-import { console_log, is_valid } from "omnilib-utils/utils.js";
+import { console_log, is_valid } from 'omnilib-utils/utils.js';
 
 const HASHER_MODEL_SHA256 = "SHA256";
 const DEFAULT_HASHER_MODEL = HASHER_MODEL_SHA256;

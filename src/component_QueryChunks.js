@@ -10,7 +10,7 @@ import { get_json_from_cdn } from 'omnilib-utils/cdn.js';
 import { is_valid } from 'omnilib-utils/utils.js';
 import { computeVectorstore, loadVectorstore } from './omnilib-docs/vectorstore.js';
 import { smartquery_from_vectorstore } from './smartquery.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from "omnilib-llms/llms.js";
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omnilib-llms/llms.js';
 import { loadEmbedderParameters } from './omnilib-docs/embedder.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { initializeEmbedder, DEFAULT_EMBEDDER_MODEL } from './omnilib-docs/embeddings.js';
