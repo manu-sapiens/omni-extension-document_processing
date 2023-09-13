@@ -22,6 +22,14 @@ const DESCRIPTION = 'Ingest Text into a Library for later querying'
 const SUMMARY = 'Ingest Text into Library'
 const CATEGORY = 'document processing'
 
+const libraries_block_name = `omni-extension-document_processing:document_processing.get_vectorstore_libraries`;
+const library_choices = {
+    "block": libraries_block_name,
+    "args": {},
+    "cache": "user",
+    "map": { "root": "libraries" }
+};
+
 const inputs = [
     { name: 'documents', title: 'Documents to ingest', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked', allowMultiple: true },
     { name: 'text', type: 'string', title: 'Text to ingest', customSocket: 'text', description: 'And/or some Text to ingest directly', allowMultiple: true  },
@@ -48,7 +56,8 @@ const inputs = [
     { name: 'chunk_size', type: 'number', defaultValue: 4096, minimum: 1, maximum:32768, step:1 },
     { name: 'chunk_overlap', type: 'number', defaultValue: 512, minimum: 0, maximum:32768, step:1 },
     { name: 'overwrite', type: 'boolean', defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-    { name: 'vectorstore_name', title: 'Library', type: 'string', defaultValue: "my_library_00", description: 'All injested information sharing the same Library will be grouped and queried together' },
+    { name: 'existing_library', type: 'string', defaultValue: `${DEFAULT_VECTORSTORE_NAME}   [empty]`, choices: library_choices, description: "If set, will ingest into the existing library with the given name"},
+    { name: 'new_library', title: 'New Library', type: 'string', description: "All injested information sharing the same Library will be grouped and queried together"},
   ];
 
 const outputs = [
@@ -66,14 +75,6 @@ async function ingestText_function(payload, ctx)
 {
     console.time("ingestText_function");
 
-    // --- DEBUG --
-    let libraries = await getVectorstoreLibraries(ctx);
-    for (const library of libraries)
-    {
-        omnilog.warn("Library: " + library.key + " has " + library.length + " chunks");
-    }
-    // --- DEBUG --
-
     const embedder_model =  DEFAULT_EMBEDDER_MODEL;
     const hasher_model = DEFAULT_HASHER_MODEL;
 
@@ -84,16 +85,26 @@ async function ingestText_function(payload, ctx)
     const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
     const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE; 
     const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-    let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
-    vectorstore_name = clean_vectorstore_name(vectorstore_name);
+    const new_library = clean_vectorstore_name(payload.new_library);
+    const existing_library = payload.existing_library;
+
+    let library_name = new_library;
+
+    if ( (!new_library || new_library.length == 0) && ( existing_library && existing_library.length > 0) ) 
+    {
+        let parts = existing_library.split("   ");  // Split the string by three spaces
+        library_name = parts[0];
+    }
+    if (!library_name || library_name.length == 0) throw new Error(`ERROR: no library name passed for ingestion`);
+
     const hasher = initialize_hasher(hasher_model);
     const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
-    const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name, overwrite);
+    const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, library_name, overwrite);
     
     // --------------- UPLOAD ----------------
     if (text && text.length > 0) 
     {
-        const text_cdn = await uploadTextWithCaching(ctx, text, vectorstore_name, hasher, overwrite);
+        const text_cdn = await uploadTextWithCaching(ctx, text, library_name, hasher, overwrite);
         if (!text_cdn) throw new Error(`ERROR: could not upload Text to CDN`);
         documents.push(text_cdn);
         info += `Uploaded text to CDN with fid ${text_cdn.fid} \n`;
@@ -114,8 +125,8 @@ async function ingestText_function(payload, ctx)
     for (let chapter_index = 0; chapter_index < chapters.length; chapter_index++)
     {
         const text = chapters[chapter_index];
-        const chapter_id = compute_document_id(ctx, [text], vectorstore_name, hasher);
-        let response = await processChapter(ctx, text, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
+        const chapter_id = compute_document_id(ctx, [text], library_name, hasher);
+        let response = await processChapter(ctx, text, library_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
         if (!response) throw new Error(`ERROR: could not process chapter ${chapter_id}`);
         const document_json = response.json;
         if (!document_json) throw new Error(`ERROR: could not process chapter ${chapter_id} with response: ${JSON.stringify(response)}`);
@@ -128,27 +139,18 @@ async function ingestText_function(payload, ctx)
     }
 
     omnilog.log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
-    const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
-    const collated_json = { id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: vectorstore_name, chunks: all_chunks, chapters: chapters };
+    const collated_document_id = compute_document_id(ctx, [all_texts], library_name, hasher);
+    const collated_json = { id: collated_document_id, hasher_model: hasher_model, embedder_model: embedder_model, splitter_model: splitter_model, vectorstore_name: library_name, chunks: all_chunks, chapters: chapters };
     const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);
 
     info += `Uploaded collated document to CDN with fid ${collated_document_cdn?.fid} \n`;
 
     // -------------- INGEST INTO VECTORSTORE ----------------
     const vectorstore = await computeVectorstore(all_chunks, embedder);
-    if (!vectorstore) throw new Error(`ERROR: could not compute Library ${vectorstore_name} from ${all_chunks.length} chunks`);
+    if (!vectorstore) throw new Error(`ERROR: could not compute Library ${library_name} from ${all_chunks.length} chunks`);
 
-    info += `Ingested ${all_chunks.length} chunks of documents into Library: ${vectorstore_name} \n`;
+    info += `Ingested ${all_chunks.length} chunks of documents into Library: ${library_name} \n`;
     console.timeEnd("ingestText_function");
-
-
-    // --- DEBUG --
-    libraries = await getVectorstoreLibraries(ctx);
-    for (const library of libraries)
-    {
-        omnilog.warn("Now: Library: " + library.key + " has " + library.length + " chunks");
-    }
-    // --- DEBUG --
 
     return { result: { "ok": true }, documents: [collated_document_cdn], info: info };
 }

@@ -2696,8 +2696,8 @@ function generateTitle(value) {
   const title = value.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
-function setComponentInputs(component, inputs3) {
-  inputs3.forEach(function(input) {
+function setComponentInputs(component, inputs4) {
+  inputs4.forEach(function(input) {
     var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, default_value = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step, allow_multiple = input.allowMultiple;
     if (!title || title == "")
       title = generateTitle(name);
@@ -2707,8 +2707,8 @@ function setComponentInputs(component, inputs3) {
   });
   return component;
 }
-function setComponentOutputs(component, outputs3) {
-  outputs3.forEach(function(output) {
+function setComponentOutputs(component, outputs4) {
+  outputs4.forEach(function(output) {
     var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
     if (!title || title == "")
       title = generateTitle(name);
@@ -2718,8 +2718,8 @@ function setComponentOutputs(component, outputs3) {
   });
   return component;
 }
-function setComponentControls(component, controls2) {
-  controls2.forEach(function(control) {
+function setComponentControls(component, controls3) {
+  controls3.forEach(function(control) {
     var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
     if (!title || title == "")
       title = generateTitle(name);
@@ -2729,19 +2729,19 @@ function setComponentControls(component, controls2) {
   });
   return component;
 }
-function createComponent(group_id, id, title, category, description, summary, links2, inputs3, outputs3, controls2, payloadParser) {
-  if (!links2)
-    links2 = {};
+function createComponent(group_id, id, title, category, description, summary, links3, inputs4, outputs4, controls3, payloadParser) {
+  if (!links3)
+    links3 = {};
   let baseComponent = OAIBaseComponent.create(group_id, id).fromScratch().set("title", title).set("category", category).set("description", description).setMethod("X-CUSTOM").setMeta({
     source: {
       summary,
-      links: links2
+      links: links3
     }
   });
-  baseComponent = setComponentInputs(baseComponent, inputs3);
-  baseComponent = setComponentOutputs(baseComponent, outputs3);
-  if (controls2)
-    baseComponent = setComponentControls(baseComponent, controls2);
+  baseComponent = setComponentInputs(baseComponent, inputs4);
+  baseComponent = setComponentOutputs(baseComponent, outputs4);
+  if (controls3)
+    baseComponent = setComponentControls(baseComponent, controls3);
   baseComponent.setMacro(OmniComponentMacroTypes.EXEC, payloadParser);
   const component = baseComponent.toJSON();
   return component;
@@ -3843,7 +3843,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMError?.(run);
     await this._endTrace(run);
   }
-  async handleChainStart(chain, inputs3, runId, parentRunId, tags, metadata, runType) {
+  async handleChainStart(chain, inputs4, runId, parentRunId, tags, metadata, runType) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const run = {
@@ -3858,7 +3858,7 @@ var BaseTracer = class extends BaseCallbackHandler {
           time: new Date(start_time).toISOString()
         }
       ],
-      inputs: inputs3,
+      inputs: inputs4,
       execution_order,
       child_execution_order: execution_order,
       run_type: runType ?? "chain",
@@ -3869,13 +3869,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs3, runId, _parentRunId, _tags, kwargs) {
+  async handleChainEnd(outputs4, runId, _parentRunId, _tags, kwargs) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = _coerceToDict(outputs3, "output");
+    run.outputs = _coerceToDict(outputs4, "output");
     run.events.push({
       name: "end",
       time: new Date(run.end_time).toISOString()
@@ -4173,8 +4173,8 @@ var ConsoleCallbackHandler = class extends BaseTracer {
    */
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
-    const inputs3 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p) => p.trim()) } : run.inputs;
-    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs3, "[inputs]")}`);
+    const inputs4 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p) => p.trim()) } : run.inputs;
+    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs4, "[inputs]")}`);
   }
   /**
    * Method used to log the end of an LLM run.
@@ -4936,7 +4936,7 @@ var Client = class _Client {
     }
     await response.json();
   }
-  async createExample(inputs3, outputs3, { datasetId, datasetName, createdAt }) {
+  async createExample(inputs4, outputs4, { datasetId, datasetName, createdAt }) {
     let datasetId_ = datasetId;
     if (datasetId_ === void 0 && datasetName === void 0) {
       throw new Error("Must provide either datasetName or datasetId");
@@ -4949,8 +4949,8 @@ var Client = class _Client {
     const createdAt_ = createdAt || /* @__PURE__ */ new Date();
     const data = {
       dataset_id: datasetId_,
-      inputs: inputs3,
-      outputs: outputs3,
+      inputs: inputs4,
+      outputs: outputs4,
       created_at: createdAt_.toISOString()
     };
     const response = await this.caller.call(fetch, `${this.apiUrl}/examples`, {
@@ -5841,11 +5841,11 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChainStart(chain, inputs3, runId = v4_default(), runType = void 0) {
+  async handleChainStart(chain, inputs4, runId = v4_default(), runType = void 0) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainStart?.(chain, inputs3, runId, this._parentRunId, this.tags, this.metadata, runType);
+          await handler.handleChainStart?.(chain, inputs4, runId, this._parentRunId, this.tags, this.metadata, runType);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainStart: ${err}`);
         }
@@ -6133,12 +6133,12 @@ var Runnable = class extends Serializable {
    * @param batchOptions.maxConcurrency Maximum number of calls to run at once.
    * @returns An array of RunOutputs
    */
-  async batch(inputs3, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs3.length);
-    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs3.length;
+  async batch(inputs4, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs4.length);
+    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs4.length;
     const batchResults = [];
-    for (let i = 0; i < inputs3.length; i += batchSize) {
-      const batchPromises = inputs3.slice(i, i + batchSize).map((input, j) => this.invoke(input, configList[j]));
+    for (let i = 0; i < inputs4.length; i += batchSize) {
+      const batchPromises = inputs4.slice(i, i + batchSize).map((input, j) => this.invoke(input, configList[j]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
@@ -6326,11 +6326,11 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
     await runManager?.handleChainEnd(_coerceToDict2(finalOutput, "output"));
     return finalOutput;
   }
-  async batch(inputs3, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs3.length);
+  async batch(inputs4, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs4.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
-    let nextStepInputs = inputs3;
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs4[i], "input"))));
+    let nextStepInputs = inputs4;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
@@ -6532,12 +6532,12 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
   async invoke(input, options) {
     return this.bound.invoke(input, { ...options, ...this.kwargs });
   }
-  async batch(inputs3, options, batchOptions) {
+  async batch(inputs4, options, batchOptions) {
     const mergedOptions = Array.isArray(options) ? options.map((individualOption) => ({
       ...individualOption,
       ...this.kwargs
     })) : { ...options, ...this.kwargs };
-    return this.bound.batch(inputs3, mergedOptions, batchOptions);
+    return this.bound.batch(inputs4, mergedOptions, batchOptions);
   }
   async stream(input, options) {
     return this.bound.stream(input, { ...options, ...this.kwargs });
@@ -6603,16 +6603,16 @@ var RunnableWithFallbacks = class extends Runnable {
     await runManager?.handleChainError(firstError);
     throw firstError;
   }
-  async batch(inputs3, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs3.length);
+  async batch(inputs4, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs4.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs4[i], "input"))));
     let firstError;
     for (const runnable of this.runnables()) {
       try {
-        const outputs3 = await runnable.batch(inputs3, runManagers.map((runManager, j) => this._patchConfig(configList[j], runManager?.getChild())), batchOptions);
-        await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(outputs3[i], "output"))));
-        return outputs3;
+        const outputs4 = await runnable.batch(inputs4, runManagers.map((runManager, j) => this._patchConfig(configList[j], runManager?.getChild())), batchOptions);
+        await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(outputs4[i], "output"))));
+        return outputs4;
       } catch (e) {
         if (firstError === void 0) {
           firstError = e;
@@ -7839,7 +7839,7 @@ async function loadVectorstore(embedder) {
 }
 function clean_vectorstore_name(vectorstore_name) {
   if (is_valid(vectorstore_name) == false)
-    throw new Error(`ERROR: vectorstore_name is invalid`);
+    return null;
   const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
   return clean_name;
 }
@@ -7999,7 +7999,7 @@ async function getVectorstoreLibraries(ctx) {
 }
 
 // node_modules/omnilib-utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs3 = {}) {
+async function runBlock(ctx, block_name, args, outputs4 = {}) {
   try {
     const app = ctx.app;
     if (!app) {
@@ -8009,7 +8009,7 @@ async function runBlock(ctx, block_name, args, outputs3 = {}) {
     if (!blocks) {
       throw new Error(`[runBlock] blocks not found in app`);
     }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
+    const result = await blocks.runBlock(ctx, block_name, args, outputs4);
     return result;
   } catch (err) {
     throw new Error(`Error running block ${block_name}: ${err}`);
@@ -8118,6 +8118,13 @@ var TITLE = "Ingest Text";
 var DESCRIPTION = "Ingest Text into a Library for later querying";
 var SUMMARY = "Ingest Text into Library";
 var CATEGORY = "document processing";
+var libraries_block_name = `omni-extension-document_processing:document_processing.get_vectorstore_libraries`;
+var library_choices = {
+  "block": libraries_block_name,
+  "args": {},
+  "cache": "user",
+  "map": { "root": "libraries" }
+};
 var inputs = [
   { name: "documents", title: "Documents to ingest", type: "array", customSocket: "documentArray", description: "Documents to be chunked", allowMultiple: true },
   { name: "text", type: "string", title: "Text to ingest", customSocket: "text", description: "And/or some Text to ingest directly", allowMultiple: true },
@@ -8150,7 +8157,8 @@ var inputs = [
   { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 1, maximum: 32768, step: 1 },
   { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 32768, step: 1 },
   { name: "overwrite", type: "boolean", defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-  { name: "vectorstore_name", title: "Library", type: "string", defaultValue: "my_library_00", description: "All injested information sharing the same Library will be grouped and queried together" }
+  { name: "existing_library", type: "string", defaultValue: `${DEFAULT_VECTORSTORE_NAME}   [empty]`, choices: library_choices, description: "If set, will ingest into the existing library with the given name" },
+  { name: "new_library", title: "New Library", type: "string", description: "All injested information sharing the same Library will be grouped and queried together" }
 ];
 var outputs = [
   { name: "info", type: "string", customSocket: "text", description: "Info on the result of the ingestion" },
@@ -8161,10 +8169,6 @@ var controls = null;
 var IngestTextComponent = createComponent(NAMESPACE, OPERATION_ID, TITLE, CATEGORY, DESCRIPTION, SUMMARY, links, inputs, outputs, controls, ingestText_function);
 async function ingestText_function(payload, ctx) {
   console.time("ingestText_function");
-  let libraries = await getVectorstoreLibraries(ctx);
-  for (const library of libraries) {
-    omnilog2.warn("Library: " + library.key + " has " + library.length + " chunks");
-  }
   const embedder_model = DEFAULT_EMBEDDER_MODEL;
   const hasher_model = DEFAULT_HASHER_MODEL;
   let info = "";
@@ -8174,13 +8178,20 @@ async function ingestText_function(payload, ctx) {
   const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
   const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
   const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-  let vectorstore_name = payload.vectorstore_name || DEFAULT_VECTORSTORE_NAME;
-  vectorstore_name = clean_vectorstore_name(vectorstore_name);
+  const new_library = clean_vectorstore_name(payload.new_library);
+  const existing_library = payload.existing_library;
+  let library_name = new_library;
+  if ((!new_library || new_library.length == 0) && (existing_library && existing_library.length > 0)) {
+    let parts = existing_library.split("   ");
+    library_name = parts[0];
+  }
+  if (!library_name || library_name.length == 0)
+    throw new Error(`ERROR: no library name passed for ingestion`);
   const hasher = initialize_hasher(hasher_model);
   const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
-  const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name, overwrite);
+  const embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, library_name, overwrite);
   if (text && text.length > 0) {
-    const text_cdn = await uploadTextWithCaching(ctx, text, vectorstore_name, hasher, overwrite);
+    const text_cdn = await uploadTextWithCaching(ctx, text, library_name, hasher, overwrite);
     if (!text_cdn)
       throw new Error(`ERROR: could not upload Text to CDN`);
     documents.push(text_cdn);
@@ -8194,8 +8205,8 @@ async function ingestText_function(payload, ctx) {
   let all_chunks = [];
   for (let chapter_index = 0; chapter_index < chapters.length; chapter_index++) {
     const text2 = chapters[chapter_index];
-    const chapter_id = compute_document_id(ctx, [text2], vectorstore_name, hasher);
-    let response = await processChapter(ctx, text2, vectorstore_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
+    const chapter_id = compute_document_id(ctx, [text2], library_name, hasher);
+    let response = await processChapter(ctx, text2, library_name, hasher, embedder, splitter, chapter_id, overwrite, hasher_model, embedder_model, splitter_model, countTokens);
     if (!response)
       throw new Error(`ERROR: could not process chapter ${chapter_id}`);
     const document_json = response.json;
@@ -8207,21 +8218,17 @@ async function ingestText_function(payload, ctx) {
 `;
   }
   omnilog2.log(`collating #${chapters.length} chapters with combined # of chunks = ${all_chunks.length}`);
-  const collated_document_id = compute_document_id(ctx, [all_texts], vectorstore_name, hasher);
-  const collated_json = { id: collated_document_id, hasher_model, embedder_model, splitter_model, vectorstore_name, chunks: all_chunks, chapters };
+  const collated_document_id = compute_document_id(ctx, [all_texts], library_name, hasher);
+  const collated_json = { id: collated_document_id, hasher_model, embedder_model, splitter_model, vectorstore_name: library_name, chunks: all_chunks, chapters };
   const collated_document_cdn = await save_json_to_cdn_as_buffer(ctx, collated_json);
   info += `Uploaded collated document to CDN with fid ${collated_document_cdn?.fid} 
 `;
   const vectorstore = await computeVectorstore(all_chunks, embedder);
   if (!vectorstore)
-    throw new Error(`ERROR: could not compute Library ${vectorstore_name} from ${all_chunks.length} chunks`);
-  info += `Ingested ${all_chunks.length} chunks of documents into Library: ${vectorstore_name} 
+    throw new Error(`ERROR: could not compute Library ${library_name} from ${all_chunks.length} chunks`);
+  info += `Ingested ${all_chunks.length} chunks of documents into Library: ${library_name} 
 `;
   console.timeEnd("ingestText_function");
-  libraries = await getVectorstoreLibraries(ctx);
-  for (const library of libraries) {
-    omnilog2.warn("Now: Library: " + library.key + " has " + library.length + " chunks");
-  }
   return { result: { "ok": true }, documents: [collated_document_cdn], info };
 }
 
@@ -8639,7 +8646,7 @@ async function async_getGptIxPComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
     { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -8647,16 +8654,16 @@ async function async_getGptIxPComponent() {
     { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
     { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs3);
-  const controls2 = [
+  component = setComponentInputs(component, inputs4);
+  const controls3 = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
-  component = setComponentControls(component, controls2);
-  const outputs3 = [
+  component = setComponentControls(component, controls3);
+  const outputs4 = [
     { name: "answers_text", type: "string", customSocket: "text", description: "combined answers", title: "Combined answers" },
     { name: "answers_json", type: "object", customSocket: "object", description: "Answers as a JSON", title: "JSON answers" }
   ];
-  component = setComponentOutputs(component, outputs3);
+  component = setComponentOutputs(component, outputs4);
   component.setMacro(OmniComponentMacroTypes3.EXEC, parsePayload);
   return component.toJSON();
 }
@@ -8732,7 +8739,7 @@ async function async_getLoopGptComponent() {
     }
   });
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
@@ -8740,16 +8747,16 @@ async function async_getLoopGptComponent() {
     { name: "top_p", type: "number", defaultValue: 1 },
     { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
   ];
-  component = setComponentInputs(component, inputs3);
-  const controls2 = [
+  component = setComponentInputs(component, inputs4);
+  const controls3 = [
     { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
   ];
-  component = setComponentControls(component, controls2);
-  const outputs3 = [
+  component = setComponentControls(component, controls3);
+  const outputs4 = [
     { name: "answer_text", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
     { name: "answer_json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
   ];
-  component = setComponentOutputs(component, outputs3);
+  component = setComponentOutputs(component, outputs4);
   component.setMacro(OmniComponentMacroTypes4.EXEC, parsePayload2);
   return component.toJSON();
 }
@@ -8875,22 +8882,22 @@ var DESCRIPTION2 = "Answer the Query using all document in the given Library";
 var SUMMARY2 = "Answer the Query using all document in the given Library, using OpenAI embeddings and Langchain";
 var CATEGORY2 = "document processing";
 async function async_getQueryLibraryComponent() {
-  const links2 = {
+  const links3 = {
     "Langchainjs Website": "https://docs.langchain.com/docs/",
     "Documentation": "https://js.langchain.com/docs/",
     "Langchainjs Github": "https://github.com/hwchase17/langchainjs"
   };
   const llm_choices = await getLlmChoices();
-  const inputs3 = [
+  const inputs4 = [
     { name: "query", type: "string", customSocket: "text" },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
     { name: "vectorstore_name", title: "Library", type: "string", description: "All injested information sharing the same vectorstore will be grouped and queried together", defaultValue: "my_library_00" }
   ];
-  const outputs3 = [
+  const outputs4 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
   ];
-  const controls2 = null;
-  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links2, inputs3, outputs3, controls2, queryLibrary);
+  const controls3 = null;
+  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs4, outputs4, controls3, queryLibrary);
   return component;
 }
 async function queryLibrary(payload, ctx) {
@@ -8914,6 +8921,40 @@ async function queryLibrary(payload, ctx) {
   return { result: { "ok": true }, answer: query_result };
 }
 
+// component_GetVectorstoreLibraries.js
+import { omnilog as omnilog6 } from "mercs_shared";
+var NAMESPACE3 = "document_processing";
+var OPERATION_ID3 = "get_vectorstore_libraries";
+var TITLE3 = "Get Vectorstore Libraries";
+var DESCRIPTION3 = "Get information about the non-empty Libraries currently present";
+var SUMMARY3 = "Get information about the non-empty Vectorstore Libraries currently present";
+var CATEGORY3 = "document processing";
+var inputs3 = [];
+var outputs3 = [
+  { name: "libraries", type: "array", description: "An array of libraries, each with a key and a length" }
+];
+var links2 = {};
+var controls2 = null;
+var VectorstoreLibrariesComponent = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links2, inputs3, outputs3, controls2, getVectorstoreLibraries_function);
+async function getVectorstoreLibraries_function(payload, ctx) {
+  console.time("getVectorstoreLibraries_function");
+  let libraries_info = await getVectorstoreLibraries(ctx);
+  if (!libraries_info)
+    return { result: { "ok": false }, libraries: [] };
+  const libraries = [];
+  var found_default = false;
+  for (const library of libraries_info) {
+    if (library.key == DEFAULT_VECTORSTORE_NAME)
+      found_default = true;
+    libraries.push(`${library.key}   [${library.length}]`);
+    omnilog6.warn("Library: " + library.key + " has " + library.length + " chunks and " + libraries.length + " entries");
+  }
+  if (found_default == false)
+    libraries.push(`${DEFAULT_VECTORSTORE_NAME}   [empty]`);
+  omnilog6.warn("Library has #" + libraries.length + " entries");
+  return { result: { "ok": true }, libraries };
+}
+
 // extension.js
 async function CreateComponents() {
   const GptIXPComponent = await async_getGptIxPComponent();
@@ -8924,7 +8965,8 @@ async function CreateComponents() {
     IngestTextComponent,
     LoopGPTComponent,
     QueryLibraryComponent,
-    ReadTextFilesComponent
+    ReadTextFilesComponent,
+    VectorstoreLibrariesComponent
   ];
   return {
     blocks: components,

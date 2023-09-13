@@ -94,7 +94,7 @@ async function loadVectorstore(embedder)
 
 function clean_vectorstore_name(vectorstore_name)
 {
-    if (is_valid(vectorstore_name) == false) throw new Error(`ERROR: vectorstore_name is invalid`);
+    if (is_valid(vectorstore_name) == false) return null;
     const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
     return clean_name;
 }

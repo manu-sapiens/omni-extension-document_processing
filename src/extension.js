@@ -5,6 +5,7 @@ import { ReadTextFilesComponent } from "./component_ReadTextFiles.js";
 import { async_getGptIxPComponent } from "./component_GptIxP.js";
 import { async_getLoopGptComponent } from "./component_LoopGPT.js";
 import { async_getQueryLibraryComponent } from "./component_QueryLibrary.js";
+import { VectorstoreLibrariesComponent } from "./component_GetVectorstoreLibraries.js";
 
 async function CreateComponents() 
 {
@@ -17,6 +18,7 @@ async function CreateComponents()
     LoopGPTComponent, 
     QueryLibraryComponent, 
     ReadTextFilesComponent, 
+    VectorstoreLibrariesComponent,
     ];
 
   return {
