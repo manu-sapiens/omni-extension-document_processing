@@ -111,16 +111,15 @@ var Embedder = class extends Embeddings {
                 {
                     throw new Error(`[embeddings] Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
                 }
-        
-                const keys = this.vectorstore_keys[this.vectorstore_name];
 
-                if (Array.isArray(keys) === false)
+                if (this.vectorstore_name in this.vectorstore_keys === false || this.vectorstore_keys[this.vectorstore_name] === null || this.vectorstore_keys[this.vectorstore_name] === undefined || Array.isArray(this.vectorstore_keys[this.vectorstore_name]) === false)
                 {
-                throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
+                    this.vectorstore_keys[this.vectorstore_name] = [embedding_id];
                 }
-                
-                // Add the key to the Set.
-                keys.push(embedding_id);
+                else
+                {
+                    this.vectorstore_keys[this.vectorstore_name].push(embedding_id);
+                }
 
                 // Save the updated list of keys to the database.
                 await this.saveVectorstoreKeys();
@@ -139,7 +138,13 @@ var Embedder = class extends Embeddings {
         const dbEntries = [];
         if (this.vectorstore_name in this.vectorstore_keys === false) return null;
 
+        if (this.vectorstore_name in this.vectorstore_keys === false)
+        {
+            throw new Error(`[embeddings] Error: Library: ${this.vectorstore_name} is empty. Libraries found are: ${JSON.stringify(this.vectorstore_keys)}`);
+        }
         const keys = this.vectorstore_keys[this.vectorstore_name];
+
+
         if (Array.isArray(keys) === false)
         {
           throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.vectorstoreKeys = ${JSON.stringify(this.vectorstore_keys)}, vectorstore_name= ${this.vectorstore_name}`);
@@ -207,7 +212,7 @@ async function getVectorstoreChoices(ctx)
     if (!vectorstore_keys) return null;
 
     const choices = [];
-
+    
     // Iterate through each key in the dictionary
     for (const [vectorstore_name, records] of Object.entries(vectorstore_keys)) {
       
@@ -223,4 +228,27 @@ async function getVectorstoreChoices(ctx)
     }
     return choices;
 }
-export { Embedder, saveEmbedderParameters, loadEmbedderParameters, loadVectorstoreKeys, getVectorstoreChoices };
+
+async function getVectorstoreLibraries(ctx)
+{
+    const loadedData = await user_db_get(ctx, VECTORSTORE_KEY_LIST_ID);
+    const vectorstore_keys = loadedData || null;
+    if (!vectorstore_keys) return null;
+
+    const nonZeroListKeys = [];
+      
+    for (const key in vectorstore_keys) 
+    {
+        if (vectorstore_keys.hasOwnProperty(key)) 
+        {
+            const value = vectorstore_keys[key];
+            if (Array.isArray(value) && value.length > 0) {
+                nonZeroListKeys.push({ key: key, length: value.length });
+            }
+        }
+    }
+
+    return nonZeroListKeys;
+}
+
+export { Embedder, saveEmbedderParameters, loadEmbedderParameters, loadVectorstoreKeys, getVectorstoreChoices, getVectorstoreLibraries };

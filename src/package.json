@@ -12,6 +12,14 @@
     "omnilib-utils": "https://github.com/manu-sapiens/omnilib-utils.git#main"
   },
   "devDependencies": {
-    "esbuild": "^0.19.2"
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "esbuild": "^0.19.2",
+    "eslint": "^8.0.1",
+    "eslint-config-standard-with-typescript": "latest",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^15.0.0 || ^16.0.0 ",
+    "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-vue": "latest",
+    "typescript": "*"
   }
 }

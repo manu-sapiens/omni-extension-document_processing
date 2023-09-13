@@ -1,27 +1,22 @@
 //@ts-check
 // extension.js
-import { ChunkFilesComponent } from "./component_ChunkFiles.js";
+import { IngestTextComponent } from "./component_IngestText.js";
 import { ReadTextFilesComponent } from "./component_ReadTextFiles.js";
 import { async_getGptIxPComponent } from "./component_GptIxP.js";
 import { async_getLoopGptComponent } from "./component_LoopGPT.js";
-import { async_getQueryChunksComponent } from "./component_QueryChunks.js";
-import { async_getDocsWithGptComponent } from "./component_DocsWithGPT.js";
-import { DownloadFilesComponent } from "./component_DownloadFiles.js";
+import { async_getQueryLibraryComponent } from "./component_QueryLibrary.js";
 
 async function CreateComponents() 
 {
   const GptIXPComponent = await async_getGptIxPComponent();
   const LoopGPTComponent = await async_getLoopGptComponent();
-  const DocsWithGPTComponent = await async_getDocsWithGptComponent();
-  const QueryChunksComponent = await async_getQueryChunksComponent();
+  const QueryLibraryComponent = await async_getQueryLibraryComponent();
   const components = [
     GptIXPComponent, 
-    ChunkFilesComponent, 
+    IngestTextComponent, 
     LoopGPTComponent, 
-    QueryChunksComponent, 
+    QueryLibraryComponent, 
     ReadTextFilesComponent, 
-    DocsWithGPTComponent,
-    DownloadFilesComponent, 
     ];
 
   return {

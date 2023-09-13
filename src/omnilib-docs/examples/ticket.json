@@ -1,0 +1,14 @@
+{                                                                                                                              cdn 11:41:12 AM
+  fid: '42,n3vz131szd',
+  ticket:
+   { fid: '42,n3vz131szd', count: 1, url: '127.0.0.1:3000', publicUrl: '127.0.0.1:3000' },
+  fileName: '42,n3vz131szd.txt',
+  size: 1855,
+  data: undefined,
+  url: '/fid/42,n3vz131szd',
+  mimeType: 'text/plain; charset=utf-8',
+  expires: 1696909272968,
+  meta: { created: 1694317272968 },
+  furl: 'fid://42,n3vz131szd.txt',
+  fileType: 'file' 
+}

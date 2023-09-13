@@ -7,7 +7,7 @@ import { console_log,   is_valid } from 'omnilib-utils/utils.js';
 const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies
 const MEMORY_VECTORSTORE = "MEMORY";
 const LANCEDB_VECTORSTORE = "LANCEDB"; // NOT SUPPORTED FOR NOW
-const DEFAULT_VECTORSTORE_NAME = 'omnitool';
+const DEFAULT_VECTORSTORE_NAME = 'my_library_00';
 const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
 
 async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE, vectorstore_name = DEFAULT_VECTORSTORE_NAME) 
