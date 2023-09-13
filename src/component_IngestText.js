@@ -17,9 +17,9 @@ import { countTokens } from 'omnilib-llms/tiktoken.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "ingest_text";
-const TITLE = 'Ingest Text'
-const DESCRIPTION = 'Ingest Text into a Library for later querying'
-const SUMMARY = 'Ingest Text into Library'
+const TITLE = 'Load Text into a Library'
+const DESCRIPTION = 'Load Text into a Library for later querying'
+const SUMMARY = 'Load Text into Library'
 const CATEGORY = 'document processing'
 
 const libraries_block_name = `omni-extension-document_processing:document_processing.get_vectorstore_libraries`;
@@ -62,6 +62,7 @@ const inputs = [
 
 const outputs = [
     { name: 'info', type: 'string', customSocket: "text", description: 'Info on the result of the ingestion'},
+    { name: 'library', type: 'string', customSocket: "text", description: 'The name of the library that was created or updated' },
     { name: 'documents', type: 'array', customSocket: 'documentArray', description: 'A chunked version of the ingested texts' },
   ];
 
@@ -152,7 +153,7 @@ async function ingestText_function(payload, ctx)
     info += `Ingested ${all_chunks.length} chunks of documents into Library: ${library_name} \n`;
     console.timeEnd("ingestText_function");
 
-    return { result: { "ok": true }, documents: [collated_document_cdn], info: info };
+    return { result: { "ok": true }, documents: [collated_document_cdn], library:library_name, info: info };
 }
 
 

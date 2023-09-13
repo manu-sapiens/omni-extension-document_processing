@@ -1,7 +1,7 @@
 //@ts-check
 // QueryChunksComponent.js
 import { createComponent } from 'omnilib-utils/component.js';
-import { loadVectorstore } from './omnilib-docs/vectorstore.js';
+import { loadVectorstore, DEFAULT_VECTORSTORE_NAME } from './omnilib-docs/vectorstore.js';
 import { smartquery_from_vectorstore } from './smartquery.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omnilib-llms/llms.js';
 import { loadEmbedderParameters } from './omnilib-docs/embedder.js';
@@ -15,6 +15,14 @@ const DESCRIPTION = 'Answer the Query using all document in the given Library'
 const SUMMARY = 'Answer the Query using all document in the given Library, using OpenAI embeddings and Langchain'
 const CATEGORY = 'document processing'
 
+const libraries_block_name = `omni-extension-document_processing:document_processing.get_vectorstore_libraries`;
+const library_choices = {
+    "block": libraries_block_name,
+    "args": {},
+    "cache": "user",
+    "map": { "root": "libraries" }
+};
+
 async function async_getQueryLibraryComponent()
 {
   const links=  {
@@ -27,7 +35,8 @@ async function async_getQueryLibraryComponent()
   const inputs = [
     { name: 'query', type: 'string', customSocket: 'text' },
     { name: 'model_id', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: 'vectorstore_name', title:'Library', type: 'string', description: 'All injested information sharing the same vectorstore will be grouped and queried together', defaultValue: "my_library_00" }, 
+    { name: 'existing_library', title:'Library', type: 'string', defaultValue: `${DEFAULT_VECTORSTORE_NAME}   [empty]`, choices: library_choices, description: "If set, will ingest into the existing library with the given name"},
+
   ];
 
   const outputs = [
@@ -46,19 +55,26 @@ async function queryLibrary(payload, ctx)
 
   const query = payload.query;
   const model_id = payload.model_id;
-  const vectorstore_name = payload.vectorstore_name;
+  let library_name = null;
+  const existing_library = payload.existing_library;
+  if ( existing_library && existing_library.length > 0) 
+  {
+      let parts = existing_library.split("   ");  // Split the string by three spaces
+      library_name = parts[0];
+  }
+  if (!library_name || library_name.length == 0) throw new Error(`ERROR: no library name passed for ingestion`);
 
   console.time("query_chunks_component_processTime");
   let vectorstore = null;
   let embedder = null;
-  const embedder_parameters = await loadEmbedderParameters(ctx, vectorstore_name);
+  const embedder_parameters = await loadEmbedderParameters(ctx, library_name);
   const hasher_model = embedder_parameters?.hasher_model || DEFAULT_HASHER_MODEL;
   const embedder_model = embedder_parameters?.embedder_model || DEFAULT_EMBEDDER_MODEL;
-  embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, vectorstore_name);
-  if (!embedder) throw new Error(`[query_chunks_component] Error loading vectorstore with embedder_model = ${embedder_model}, hasher_model = ${hasher_model}, Library = ${vectorstore_name}`)
+  embedder = await initializeEmbedder(ctx, embedder_model, hasher_model, library_name);
+  if (!embedder) throw new Error(`[query_chunks_component] Error loading vectorstore with embedder_model = ${embedder_model}, hasher_model = ${hasher_model}, Library = ${library_name}`)
  
   vectorstore = await loadVectorstore(embedder);
-  if (!vectorstore) throw new Error(`[query_chunks_component] Error loading vectorstore with embedder_model = ${embedder_model}, hasher_model = ${hasher_model}, Library = ${vectorstore_name}`)
+  if (!vectorstore) throw new Error(`[query_chunks_component] Error loading vectorstore with embedder_model = ${embedder_model}, hasher_model = ${hasher_model}, Library = ${library_name}`)
 
   const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
   console.timeEnd("query_chunks_component_processTime");
