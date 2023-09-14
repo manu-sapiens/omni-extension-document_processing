@@ -6,26 +6,26 @@ const HASHER_MODEL_SHA256 = "SHA256";
 const DEFAULT_HASHER_MODEL = HASHER_MODEL_SHA256;
 
 
-function compute_chunk_id(ctx, text, vectorstore_name, hasher)
+function computeChunkId(ctx, text, hasher)
 {
     const user = ctx.userId;
     const hash = hasher.hash(text);
-    const chunk_id = `chunk_${vectorstore_name}_${user}_${hash}`;
+    const chunk_id = `chunk_${user}_${hash}`;
 
-    console_log(`Computed chunk_id : ${chunk_id} for text length: ${text.length}, vectorstorename: ${vectorstore_name}, hash: ${hash}, user = ${user}, start = ${text.slice(0, 256)}, end = ${text.slice(-256)}`);
+    console_log(`Computed chunk_id : ${chunk_id} for text length: ${text.length}, hash: ${hash}, user = ${user}, start = ${text.slice(0, 256)}, end = ${text.slice(-256)}`);
 
     return chunk_id;
 }
 
 
-function compute_document_id(ctx, texts, vectorstore_name, hasher)
+export function computeDocumentId(ctx, texts, hasher, chunk_size, chunk_overlap)
 {
     // get the key so that we can pass it around
     if (is_valid(texts) == false) throw new Error(`ERROR: texts is invalid`);
 
     const user = ctx.userId;
     const document_hash = hasher.hash_list(texts);
-    const document_id = `doc_${vectorstore_name}_${user}_${document_hash}`;
+    const document_id = `doc_${user}_${document_hash}_${chunk_size}_${chunk_overlap}`;
 
     return document_id;
 }
@@ -58,5 +58,5 @@ function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL)
 }
 
 
-export { compute_chunk_id, compute_document_id, initialize_hasher}
+export { computeChunkId, initialize_hasher}
 export { DEFAULT_HASHER_MODEL }

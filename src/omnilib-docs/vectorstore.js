@@ -3,14 +3,15 @@
 // import { lancedb_from_texts, loadDbTable } from "./vectorstore_Lancedb.js";
 import { memoryFromTexts } from "./vectorstore_Memory.js";
 import { console_log,   is_valid } from 'omnilib-utils/utils.js';
+import { user_db_put, user_db_get } from 'omnilib-utils/database.js';
 
 const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies
 const MEMORY_VECTORSTORE = "MEMORY";
 const LANCEDB_VECTORSTORE = "LANCEDB"; // NOT SUPPORTED FOR NOW
-const DEFAULT_VECTORSTORE_NAME = 'my_library_00';
 const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
 
-async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE, vectorstore_name = DEFAULT_VECTORSTORE_NAME) 
+
+async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) 
 {
     console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
 
@@ -99,4 +100,95 @@ function clean_vectorstore_name(vectorstore_name)
     return clean_name;
 }
 
-export { queryVectorstore as query_vectorstore, computeVectorstore, clean_vectorstore_name, loadVectorstore, DEFAULT_VECTORSTORE_NAME }
+export const GLOBAL_INDEX_NAME = "global_index";
+const INDEXES_LIST = "omni_indexes_list";
+
+export async function loadIndexes(ctx) 
+{
+    const loadedData = await user_db_get(ctx, INDEXES_LIST);
+    const indexes = loadedData || {};
+    return indexes;
+}
+
+export function addToIndex(indexes, indexed_document_info, index_name)
+{
+    if (index_name in indexes === false || indexes[index_name] === null || indexes[index_name] === undefined || Array.isArray(indexes[index_name]) === false)
+    {
+        indexes[index_name] = [indexed_document_info];
+    }
+    else
+    {
+        indexes[index_name].push(indexed_document_info);
+    }
+}
+
+export function readCdnsFromIndex(indexes, index_name)
+{
+    if (index_name in indexes === false || indexes[index_name] === null || indexes[index_name] === undefined || Array.isArray(indexes[index_name]) === false) return null;
+    const indexed_document_cdns = indexes[index_name]
+    return indexed_document_cdns;
+}
+
+
+    // Function to save keys
+export async function saveIndexes(ctx, indexes)
+{
+    await user_db_put(ctx, indexes, INDEXES_LIST);
+}
+
+
+export async function getVectorstoreChoices(ctx)
+{
+    const loadedData = await user_db_get(ctx, INDEXES_LIST);
+    const vectorstore_keys = loadedData || null;
+    if (!vectorstore_keys) return null;
+
+    const choices = [];
+
+    // Iterate through each key in the dictionary
+    for (const [vectorstore_name, records] of Object.entries(vectorstore_keys))
+    {
+
+        // Check if the value is a non-null array
+        if (Array.isArray(records) && records !== null) 
+        {
+            const length = records.length;
+            const choice = { value: vectorstore_name, title: `${vectorstore_name} [${length}]`, description: `${vectorstore_name} with ${length} chunks recorded` };
+            // Add information to the result array
+            choices.push(choice);
+        }
+
+    }
+    return choices;
+}
+
+export async function getDocumentsIndexes(ctx)
+{
+    const loadedData = await user_db_get(ctx, INDEXES_LIST);
+    let indexes = loadedData || null;
+    if (!indexes || Object.keys(indexes).length == 0)
+    {
+        indexes = {};
+        indexes[GLOBAL_INDEX_NAME] = [];
+        await user_db_put(ctx, indexes, INDEXES_LIST);
+    }
+
+    const relevantIndexes = [];
+
+    for (const key in indexes) 
+    {
+        if (indexes.hasOwnProperty(key)) 
+        {
+            const value = indexes[key];
+            if (Array.isArray(value) && (value.length > 0 || key == GLOBAL_INDEX_NAME) )
+            {
+                relevantIndexes.push({ key: key, length: value.length });
+            }
+        }
+    }
+
+    return relevantIndexes;
+}
+
+
+export { queryVectorstore , computeVectorstore, clean_vectorstore_name, loadVectorstore, createVectorstoreFromTexts }

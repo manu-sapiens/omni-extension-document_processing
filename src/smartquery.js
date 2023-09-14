@@ -1,7 +1,7 @@
 //@ts-check
 // smartquery.js
 
-import { query_vectorstore } from './omnilib-docs/vectorstore.js';
+import { queryVectorstore } from './omnilib-docs/vectorstore.js';
 import { queryLlmByModelId, getModelMaxSize } from 'omnilib-llms/llms.js';
 import { console_log, is_valid } from 'omnilib-utils/utils.js';
 import { countTokens } from 'omnilib-llms/tiktoken.js';
@@ -13,10 +13,9 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 
     const splits = getModelNameAndProviderFromId(model_id);
     const model_name = splits.model_name;
-    const model_provider = splits.model_provider;
 
     if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
-    let vectorstore_responses = await query_vectorstore(vectorstore, query, 10, embedder);
+    let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
     // TBD we should have a better way of deciding how many results to return, also  we should check for a minimum score
 
     let total_tokens = 0;
