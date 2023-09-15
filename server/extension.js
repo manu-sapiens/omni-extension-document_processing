@@ -3063,13 +3063,6 @@ async function save_json_to_cdn_as_buffer(ctx, json) {
   console_log(`cdn_response = ${JSON.stringify(cdn_response)}`);
   return cdn_response;
 }
-async function get_chunks_from_cdn(ctx, chunks_cdn) {
-  const chunks_json = await get_json_from_cdn(ctx, chunks_cdn);
-  const chunks = chunks_json.chunks;
-  if (is_valid(chunks) == false)
-    throw new Error(`[get_chunks_from_cdn] Error getting chunks from database with cdn= ${JSON.stringify(chunks_cdn)}`);
-  return chunks;
-}
 async function get_cached_cdn(ctx, object_id, overwrite = false) {
   let cdn = null;
   if (overwrite) {
@@ -7337,16 +7330,6 @@ async function uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overla
   }
   return text_cdn;
 }
-async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) {
-  const document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
-  return document_cdn;
-}
-async function getIndexedDocumentInfoFromCdn(ctx, document_cdn) {
-  const document_info = await get_json_from_cdn(ctx, document_cdn);
-  if (!document_info)
-    throw new Error(`ERROR: could not get document_json from cdn`);
-  return document_info;
-}
 async function chunkText(ctx, document_text, hasher, embedder, splitter, tokenCounterFunction) {
   const text_batches = await breakTextIntoChunks(document_text, splitter);
   const document_chunks = await computeChunksEmbedding(ctx, text_batches, hasher, embedder, tokenCounterFunction);
@@ -7369,6 +7352,28 @@ var SPLITTER_MODEL_TOKEN = "TokenTextSplitter";
 var SPLITTER_MODEL_CODE = "CodeSplitter_";
 var DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
 var SPLITTER_TOKEN_ENCODING = "gpt2";
+function getSplitterChoices() {
+  const splitter_choices = [
+    { value: "RecursiveCharacterTextSplitter", title: "RecursiveCharacterTextSplitter" },
+    { value: "TokenTextSplitter", title: "TokenTextSplitter" },
+    { value: "CodeSplitter_cpp", title: "CodeSplitter_cpp" },
+    { value: "CodeSplitter_go", title: "CodeSplitter_go" },
+    { value: "CodeSplitter_java", title: "CodeSplitter_java" },
+    { value: "CodeSplitter_ruby", title: "CodeSplitter_ruby" },
+    { value: "CodeSplitter_js", title: "CodeSplitter_js" },
+    { value: "CodeSplitter_php", title: "CodeSplitter_php" },
+    { value: "CodeSplitter_proto", title: "CodeSplitter_proto" },
+    { value: "CodeSplitter_python", title: "CodeSplitter_python" },
+    { value: "CodeSplitter_rst", title: "CodeSplitter_rst" },
+    { value: "CodeSplitter_rust", title: "CodeSplitter_rust" },
+    { value: "CodeSplitter_scala", title: "CodeSplitter_scala" },
+    { value: "CodeSplitter_swift", title: "CodeSplitter_swift" },
+    { value: "CodeSplitter_markdown", title: "CodeSplitter_markdown" },
+    { value: "CodeSplitter_latex", title: "CodeSplitter_latex" },
+    { value: "CodeSplitter_html", title: "CodeSplitter_html" }
+  ];
+  return splitter_choices;
+}
 function extractCodeLanguage(str) {
   const pattern = new RegExp("^" + SPLITTER_MODEL_CODE + "(\\w+)$", "i");
   const match = str.match(pattern);
@@ -7381,7 +7386,7 @@ function extractCodeLanguage(str) {
   }
   return null;
 }
-function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
+function initializeSplitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP) {
   let splitter = null;
   if (splitter_model == SPLITTER_MODEL_RECURSIVE) {
     splitter = new RecursiveCharacterTextSplitter({
@@ -7410,7 +7415,7 @@ function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size
     }
   }
   if (splitter == null || splitter == void 0)
-    throw new Error(`initialize_splitter: Failed to initialize splitter_model ${splitter_model}`);
+    throw new Error(`initializeSplitter: Failed to initialize splitter_model ${splitter_model}`);
   return splitter;
 }
 
@@ -7503,7 +7508,7 @@ var Embedder = class extends Embeddings {
     }
   }
   /*
-      addToIndex(index_name, embedding_id)
+      addCdnToIndex(index_name, embedding_id)
       {
           if (index_name in this.indexes === false || this.indexes[index_name] === null || this.indexes[index_name] === undefined || Array.isArray(this.indexes[index_name]) === false)
           {
@@ -7656,6 +7661,18 @@ async function initializeEmbedder(ctx) {
   if (embedder == null || embedder == void 0)
     throw new Error(`get_embedder: Failed to initialize embeddings_model ${embedder_model}`);
   return embedder;
+}
+
+// node_modules/omnilib-llms/tiktoken.js
+import { encode } from "gpt-tokenizer";
+function countTokens(text) {
+  const tokens = encode(text);
+  if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
+    const num_tokens = tokens.length;
+    return num_tokens;
+  } else {
+    return 0;
+  }
 }
 
 // node_modules/langchain/dist/vectorstores/memory.js
@@ -8009,6 +8026,14 @@ var FAISS_VECTORSTORE = "FAISS";
 var MEMORY_VECTORSTORE = "MEMORY";
 var LANCEDB_VECTORSTORE = "LANCEDB";
 var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
+function getIndexesChoices() {
+  const index_choices = {
+    "block": `omni-extension-document_processing:document_processing.get_documents_indexes`,
+    "args": { ".bustCache": true },
+    "map": { "root": "indexes" }
+  };
+  return index_choices;
+}
 async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
   console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
   let vectorstore;
@@ -8055,11 +8080,21 @@ async function computeVectorstore(chunks, embedder) {
   const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
   return vectorstore;
 }
-function clean_vectorstore_name(vectorstore_name) {
+function sanitizeIndexName(vectorstore_name) {
   if (is_valid(vectorstore_name) == false)
     return null;
   const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
   return clean_name;
+}
+function getIndexName(existing_name, new_index) {
+  const sanitized_new_index = sanitizeIndexName(new_index);
+  let index_name = sanitized_new_index;
+  if ((!sanitized_new_index || sanitized_new_index.length == 0) && (existing_name && existing_name.length > 0)) {
+    index_name = existing_name;
+  }
+  if (!index_name || index_name.length == 0)
+    index_name = GLOBAL_INDEX_NAME;
+  return index_name;
 }
 var GLOBAL_INDEX_NAME = "global_index";
 var INDEXES_LIST = "omni_indexes_list";
@@ -8068,7 +8103,7 @@ async function loadIndexes(ctx) {
   const indexes = loadedData || {};
   return indexes;
 }
-function addToIndex(indexes, indexed_document_info, index_name) {
+function addCdnToIndex(indexes, indexed_document_info, index_name) {
   if (index_name in indexes === false || indexes[index_name] === null || indexes[index_name] === void 0 || Array.isArray(indexes[index_name]) === false) {
     indexes[index_name] = [indexed_document_info];
   } else {
@@ -8103,17 +8138,33 @@ async function getDocumentsIndexes(ctx) {
   }
   return relevantIndexes;
 }
-
-// node_modules/omnilib-llms/tiktoken.js
-import { encode } from "gpt-tokenizer";
-function countTokens(text) {
-  const tokens = encode(text);
-  if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
-    const num_tokens = tokens.length;
-    return num_tokens;
-  } else {
-    return 0;
+async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) {
+  const document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
+  return document_cdn;
+}
+async function getIndexedDocumentInfoFromCdn(ctx, document_cdn) {
+  const document_info = await get_json_from_cdn(ctx, document_cdn);
+  if (!document_info)
+    throw new Error(`ERROR: could not get document_json from cdn`);
+  return document_info;
+}
+async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents) {
+  let all_chunks = [];
+  let indexed_document_cdns = readCdnsFromIndex(indexes, index_name);
+  if (indexed_documents && Array.isArray(indexed_documents) && indexed_documents.length > 0)
+    indexed_document_cdns = indexed_document_cdns.concat(indexed_documents);
+  if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false)
+    throw new Error(`[query_chunks_component] Error reading from index ${index_name}`);
+  for (const indexed_document_cdn of indexed_document_cdns) {
+    const document_info = await getIndexedDocumentInfoFromCdn(ctx, indexed_document_cdn);
+    if (!document_info)
+      throw new Error(`ERROR: could not get document_info from cdn ${JSON.stringify(indexed_document_cdn)}`);
+    const indexed_document_chunks = document_info.chunks;
+    if (!indexed_document_chunks || Array.isArray(indexed_document_chunks) == false || indexed_document_chunks.length == 0)
+      continue;
+    all_chunks = all_chunks.concat(indexed_document_chunks);
   }
+  return all_chunks;
 }
 
 // component_IndexDocuments.js
@@ -8123,45 +8174,14 @@ var TITLE = "Index documents";
 var DESCRIPTION = "Index document(s), chunking them and computing the embedding for each chunk";
 var SUMMARY = "Index document(s), chunking them and computing the embedding for each chunk";
 var CATEGORY = "document processing";
-var indexes_block_name = `omni-extension-document_processing:document_processing.get_documents_indexes`;
-var index_choices = {
-  "block": indexes_block_name,
-  "args": {},
-  "map": { "root": "indexes" }
-};
 var inputs = [
   { name: "documents", title: "Documents to ingest", type: "array", customSocket: "documentArray", description: "Documents to be chunked", allowMultiple: true },
   { name: "text", type: "string", title: "Text to ingest", customSocket: "text", description: "And/or some Text to ingest directly", allowMultiple: true },
-  {
-    name: "splitter_model",
-    type: "string",
-    defaultValue: "RecursiveCharacterTextSplitter",
-    title: "Splitter Model",
-    description: "Choosing a splitter model that matches the type of document ingested will produce the best results",
-    choices: [
-      { value: "RecursiveCharacterTextSplitter", title: "RecursiveCharacterTextSplitter" },
-      { value: "TokenTextSplitter", title: "TokenTextSplitter" },
-      { value: "CodeSplitter_cpp", title: "CodeSplitter_cpp" },
-      { value: "CodeSplitter_go", title: "CodeSplitter_go" },
-      { value: "CodeSplitter_java", title: "CodeSplitter_java" },
-      { value: "CodeSplitter_ruby", title: "CodeSplitter_ruby" },
-      { value: "CodeSplitter_js", title: "CodeSplitter_js" },
-      { value: "CodeSplitter_php", title: "CodeSplitter_php" },
-      { value: "CodeSplitter_proto", title: "CodeSplitter_proto" },
-      { value: "CodeSplitter_python", title: "CodeSplitter_python" },
-      { value: "CodeSplitter_rst", title: "CodeSplitter_rst" },
-      { value: "CodeSplitter_rust", title: "CodeSplitter_rust" },
-      { value: "CodeSplitter_scala", title: "CodeSplitter_scala" },
-      { value: "CodeSplitter_swift", title: "CodeSplitter_swift" },
-      { value: "CodeSplitter_markdown", title: "CodeSplitter_markdown" },
-      { value: "CodeSplitter_latex", title: "CodeSplitter_latex" },
-      { value: "CodeSplitter_html", title: "CodeSplitter_html" }
-    ]
-  },
+  { name: "splitter_model", type: "string", defaultValue: "RecursiveCharacterTextSplitter", title: "Splitter Model", description: "Choosing a splitter model that matches the type of document ingested will produce the best results", choices: getSplitterChoices() },
   { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 0, maximum: 1e6, step: 1 },
   { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 5e5, step: 1 },
   { name: "overwrite", type: "boolean", defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-  { name: "existing_index", title: "Existing Indexes", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: index_choices, description: "If set, will ingest into the existing index with the given name" },
+  { name: "existing_index", title: "Existing Indexes", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
   { name: "new_index", title: "Index", type: "string", description: "All indexed information sharing the same index will be grouped and queried together" }
 ];
 var outputs = [
@@ -8182,15 +8202,9 @@ async function indexDocuments_function(payload, ctx) {
   const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
   const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
   const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-  const new_index = clean_vectorstore_name(payload.new_index);
-  const existing_index = payload.existing_index;
-  let index_name = new_index;
-  if ((!new_index || new_index.length == 0) && (existing_index && existing_index.length > 0)) {
-    index_name = existing_index;
-  }
-  index_name;
+  const index_name = getIndexName(payload.existing_index, payload.new_index);
   const hasher = initialize_hasher(hasher_model);
-  const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
+  const splitter = initializeSplitter(splitter_model, chunk_size, chunk_overlap);
   const embedder = await initializeEmbedder(ctx);
   const indexes = await loadIndexes(ctx);
   if (text && text.length > 0) {
@@ -8242,9 +8256,9 @@ async function indexDocuments_function(payload, ctx) {
     }
     if (!indexed_document_cdn)
       throw new Error(`ERROR: could not chunk document with index:${document_index}, id:${document_id}`);
-    addToIndex(indexes, indexed_document_cdn, GLOBAL_INDEX_NAME);
+    addCdnToIndex(indexes, indexed_document_cdn, GLOBAL_INDEX_NAME);
     if (index_name && index_name != GLOBAL_INDEX_NAME)
-      addToIndex(indexes, indexed_document_cdn, index_name);
+      addCdnToIndex(indexes, indexed_document_cdn, index_name);
     all_chunks = all_chunks.concat(indexed_document_chunks);
     all_cdns.push(indexed_document_cdn);
     info += `Uploaded document ${document_index} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}
@@ -8256,7 +8270,6 @@ async function indexDocuments_function(payload, ctx) {
 `;
   info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index_name} 
 `;
-  index_name;
   info += `Done`;
   console.timeEnd("indexDocuments_function");
   return { result: { "ok": true }, documents: all_cdns, index: index_name, info };
@@ -8754,116 +8767,84 @@ async function gptIxP(ctx, instruction, prompt, llm_functions = null, model_id =
 }
 
 // component_LoopGPT.js
-import { OAIBaseComponent as OAIBaseComponent4, OmniComponentMacroTypes as OmniComponentMacroTypes4 } from "mercs_rete";
-import { omnilog as omnilog4 } from "mercs_shared";
-var NS_ONMI3 = "document_processing";
-async function async_getLoopGptComponent() {
-  let component = OAIBaseComponent4.create(NS_ONMI3, "loop_gpt").fromScratch().set("title", "Loop GPT").set("category", "Text Manipulation").set("description", "Run GPT on an array of documents").setMethod("X-CUSTOM").setMeta({
-    source: {
-      summary: "chunk text files and save the chunks to the CDN using OpenAI embeddings and Langchain",
-      links: {
-        "Langchainjs Website": "https://docs.langchain.com/docs/",
-        "Documentation": "https://js.langchain.com/docs/",
-        "Langchainjs Github": "https://github.com/hwchase17/langchainjs"
-      }
-    }
-  });
+var NAMESPACE2 = "document_processing";
+var OPERATION_ID2 = "query_index_bruteforce";
+var TITLE2 = "Query Index (Brute Force)";
+var DESCRIPTION2 = "Run a LLM on an array of documents, one fragment at a time, and return the results in an array";
+var SUMMARY2 = DESCRIPTION2;
+var CATEGORY2 = "document processing";
+async function async_getQueryIndexBruteforceComponent() {
   const llm_choices = await getLlmChoices();
+  const links3 = {};
   const inputs4 = [
-    { name: "documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
+    { name: "indexed_documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
-    { name: "llm_functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
     { name: "temperature", type: "number", defaultValue: 0 },
-    { name: "top_p", type: "number", defaultValue: 1 },
-    { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices }
+    { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices },
+    { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
+    { name: "new_index", title: "index", type: "string", description: "All injested information sharing the same Index will be grouped and queried together" },
+    { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
+    { name: "llm_args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
-  component = setComponentInputs(component, inputs4);
-  const controls3 = [
-    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
-  ];
-  component = setComponentControls(component, controls3);
   const outputs4 = [
-    { name: "answer_text", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-    { name: "answer_json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
+    { name: "json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
   ];
-  component = setComponentOutputs(component, outputs4);
-  component.setMacro(OmniComponentMacroTypes4.EXEC, parsePayload2);
-  return component.toJSON();
+  const controls3 = null;
+  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs4, outputs4, controls3, queryIndexBruteforce);
+  return component;
 }
-async function parsePayload2(payload, ctx) {
-  const llm_functions = payload.llm_functions;
-  const documents = payload.documents;
+async function queryIndexBruteforce(payload, ctx) {
+  console.time("queryIndexBruteforce");
+  const indexed_documents = payload.indexed_documents;
+  const index_name = getIndexName(payload.existing_index, payload.new_index);
+  const indexes = await loadIndexes(ctx);
   const instruction = payload.instruction;
   const temperature = payload.temperature;
-  const top_p = payload.top_p;
   const model_id = payload.model_id;
-  const response = await loopGpt(ctx, documents, instruction, llm_functions, model_id, temperature, top_p);
-  return response;
-}
-async function loopGpt(ctx, chapters_cdns, instruction, llm_functions, model_id, temperature = 0, top_p = 1, chunk_size = 2e3) {
+  const chunk_size = payload.chunk_size;
+  const llm_args = payload.llm_args;
   const splits = getModelNameAndProviderFromId(model_id);
   const model_name = splits.model_name;
-  const model_provider = splits.model_provider;
   let max_size = chunk_size;
-  if (chunk_size == -1) {
+  if (chunk_size == 0) {
     max_size = getModelMaxSize(model_name);
   } else if (chunk_size > 0) {
     max_size = Math.min(chunk_size, getModelMaxSize(model_name));
   }
-  console.time("loop_llm_component_processTime");
-  const chunks_results = [];
-  omnilog4.log(`Processing ${chapters_cdns.length} chapter(s)`);
-  for (let chapter_index = 0; chapter_index < chapters_cdns.length; chapter_index++) {
-    const chunks_cdn = chapters_cdns[chapter_index];
-    const chunks = await get_chunks_from_cdn(ctx, chunks_cdn);
-    if (is_valid(chunks) == false)
-      throw new Error(`[component_loop_llm_on_chunks] Error getting chunks from database with id ${JSON.stringify(chunks_cdn)}`);
-    let total_token_cost = 0;
-    let combined_text = "";
-    omnilog4.log(`Processing chapter #${chapter_index} with ${chunks.length} chunk(s)`);
-    for (let chunk_index = 0; chunk_index < chunks.length; chunk_index++) {
-      const chunk = chunks[chunk_index];
-      if (is_valid(chunk) && is_valid(chunk.text)) {
-        const text = chunk.text;
-        const token_cost = countTokens(text);
-        omnilog4.log(`total_token_cost = ${total_token_cost} + token_cost = ${token_cost} <? max_size = ${max_size}`);
-        const can_fit = total_token_cost + token_cost <= max_size;
-        const is_last_index = chunk_index == chunks.length - 1;
-        if (can_fit) {
-          combined_text = combineStringsWithoutOverlap(combined_text, text);
-          total_token_cost += token_cost;
-        }
-        if (!can_fit || is_last_index) {
-          const query_args = { function: llm_functions, top_p };
-          const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, query_args);
-          const sanetized_results = sanitizeJSON(gpt_results);
-          const chunk_result = { text: sanetized_results?.answer_text || "", function_arguments_string: sanetized_results?.answer_json?.function_arguments_string, function_arguments: sanetized_results?.answer_json?.function_arguments };
-          omnilog4.log("sanetized_results = " + JSON.stringify(sanetized_results, null, 2) + "\n\n");
-          chunks_results.push(chunk_result);
-          combined_text = text;
-          total_token_cost = token_cost;
-        }
-      } else {
-        omnilog4.warn(`[WARNING][loop_llm_component]: chunk is invalid or chunk.text is invalid. chunk = ${JSON.stringify(chunk)}`);
-      }
+  const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
+  let chunk_index = 0;
+  let total_token_cost = 0;
+  let combined_text = "";
+  let llm_results = [];
+  let answer_text = "";
+  for (const chunk of chunks) {
+    const text = chunk?.text;
+    if (!is_valid(text))
+      continue;
+    const token_cost = chunk.token_count;
+    const can_fit = total_token_cost + token_cost <= max_size;
+    const is_last_index = chunk_index == chunks.length - 1;
+    if (can_fit) {
+      combined_text = combineStringsWithoutOverlap(combined_text, text);
+      total_token_cost += token_cost;
     }
+    if (!can_fit || is_last_index) {
+      const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, llm_args);
+      const sanetized_results = sanitizeJSON(gpt_results);
+      const chunk_result = { text: sanetized_results?.answer_text || "", function_arguments_string: sanetized_results?.answer_json?.function_arguments_string, function_arguments: sanetized_results?.answer_json?.function_arguments };
+      llm_results.push(chunk_result);
+      const answer = chunk_result.text;
+      if (answer && answer.length > 0) {
+        answer_text += answer + "\n\n";
+      }
+      combined_text = text;
+      total_token_cost = token_cost;
+    }
+    chunk_index += 1;
   }
-  let combined_answer = "";
-  let combined_function_arguments = [];
-  omnilog4.log(`chunks_results.length = ${chunks_results.length}`);
-  for (let i = 0; i < chunks_results.length; i++) {
-    const chunk_result = chunks_results[i];
-    omnilog4.log(`chunk_result = ${JSON.stringify(chunk_result)}`);
-    const result_text = chunk_result.text || "";
-    const function_string = chunk_result.function_arguments_string || "";
-    const function_arguments = chunk_result.function_arguments || [];
-    combined_answer += result_text + function_string + "\n\n";
-    omnilog4.log(`[$[i}] combined_answer = ${combined_answer}`);
-    combined_function_arguments = combined_function_arguments.concat(function_arguments);
-  }
-  const answer_json = { answer_text: combined_answer, function_arguments: combined_function_arguments };
-  const response = { result: { "ok": true }, answer_text: combined_answer, answer_json };
-  console.timeEnd("loop_llm_component_processTime");
+  const response = { result: { "ok": true }, answer: answer_text, json: { "answers": llm_results } };
+  console.timeEnd("queryIndexBruteforce");
   return response;
 }
 
@@ -8904,18 +8885,12 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
 }
 
 // component_QueryIndex.js
-var NAMESPACE2 = "document_processing";
-var OPERATION_ID2 = "query_index";
-var TITLE2 = "Query Index";
-var DESCRIPTION2 = "Answer the Query using all document in the given Index, using OpenAI embeddings and Langchain";
-var SUMMARY2 = "Answer the Query using all document in the given Index, using OpenAI embeddings and Langchain";
-var CATEGORY2 = "document processing";
-var indexes_block_name2 = `omni-extension-document_processing:document_processing.get_documents_indexes`;
-var index_choices2 = {
-  "block": indexes_block_name2,
-  "args": {},
-  "map": { "root": "indexes" }
-};
+var NAMESPACE3 = "document_processing";
+var OPERATION_ID3 = "query_index";
+var TITLE3 = "Query Index";
+var DESCRIPTION3 = "Answer the Query using all document in the given Index, using OpenAI embeddings and Langchain";
+var SUMMARY3 = "Answer the Query using all document in the given Index, using OpenAI embeddings and Langchain";
+var CATEGORY3 = "document processing";
 async function async_getQueryIndexComponent() {
   const links3 = {
     "Langchainjs Website": "https://docs.langchain.com/docs/",
@@ -8926,30 +8901,23 @@ async function async_getQueryIndexComponent() {
   const inputs4 = [
     { name: "query", type: "string", customSocket: "text" },
     { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be queried", allowMultiple: true },
-    { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: index_choices2, description: "If set, will ingest into the existing index with the given name" },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
+    { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
     { name: "new_index", title: "index", type: "string", description: "All injested information sharing the same Index will be grouped and queried together" }
   ];
   const outputs4 = [
-    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" }
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
   ];
   const controls3 = null;
-  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs4, outputs4, controls3, queryIndex);
+  const component = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs4, outputs4, controls3, queryIndex);
   return component;
 }
 async function queryIndex(payload, ctx) {
+  console.time("queryIndex");
   const query = payload.query;
   const model_id = payload.model_id;
-  const new_index = clean_vectorstore_name(payload.new_index);
-  const existing_index = payload.existing_index;
   const indexed_documents = payload.indexed_documents;
-  let index_name = new_index;
-  if ((!new_index || new_index.length == 0) && (existing_index && existing_index.length > 0)) {
-    index_name = existing_index;
-  }
-  if (!index_name || index_name.length == 0)
-    index_name = GLOBAL_INDEX_NAME;
-  console.time("query_chunks_component_processTime");
+  const index_name = getIndexName(payload.existing_index, payload.new_index);
   const embedder = await initializeEmbedder(ctx);
   if (!embedder)
     throw new Error(`Cannot initialize embedded`);
@@ -8958,46 +8926,30 @@ async function queryIndex(payload, ctx) {
     throw new Error(`[query_chunks_component] Error loading indexes`);
   if (index_name in indexes == false)
     throw new Error(`[query_chunks_component] index ${index_name} not found in indexes`);
-  let indexed_document_cdns = readCdnsFromIndex(indexes, index_name);
-  if (indexed_documents && Array.isArray(indexed_documents) && indexed_documents.length > 0)
-    indexed_document_cdns = indexed_document_cdns.concat(indexed_documents);
-  if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false)
-    throw new Error(`[query_chunks_component] Error reading from index ${index_name}`);
-  if (indexed_document_cdns.length == 0)
-    throw new Error(`Index ${index_name} is empty`);
-  let all_chunks = [];
-  for (const indexed_document_cdn of indexed_document_cdns) {
-    const document_info = await getIndexedDocumentInfoFromCdn(ctx, indexed_document_cdn);
-    if (!document_info)
-      throw new Error(`ERROR: could not get document_info from cdn ${JSON.stringify(indexed_document_cdn)}`);
-    const indexed_document_chunks = document_info.chunks;
-    if (!indexed_document_chunks || Array.isArray(indexed_document_chunks) == false || indexed_document_chunks.length == 0)
-      continue;
-    all_chunks = all_chunks.concat(indexed_document_chunks);
-  }
+  const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
   const vectorstore = await computeVectorstore(all_chunks, embedder);
   if (!vectorstore)
     throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
   const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
-  console.timeEnd("query_chunks_component_processTime");
+  console.timeEnd("queryIndex");
   return { result: { "ok": true }, answer: query_result };
 }
 
 // component_GetDocumentsIndexes.js
-import { omnilog as omnilog5 } from "mercs_shared";
-var NAMESPACE3 = "document_processing";
-var OPERATION_ID3 = "get_documents_indexes";
-var TITLE3 = "Get Documents Indexes";
-var DESCRIPTION3 = "Get information about the non-empty Indexes currently present";
-var SUMMARY3 = "Get information about the non-empty Indexes currently present";
-var CATEGORY3 = "document processing";
+import { omnilog as omnilog4 } from "mercs_shared";
+var NAMESPACE4 = "document_processing";
+var OPERATION_ID4 = "get_documents_indexes";
+var TITLE4 = "Get Documents Indexes";
+var DESCRIPTION4 = "Get information about the non-empty Indexes currently present";
+var SUMMARY4 = "Get information about the non-empty Indexes currently present";
+var CATEGORY4 = "document processing";
 var inputs3 = [];
 var outputs3 = [
   { name: "indexes", type: "array", description: "An array of Index names" }
 ];
 var links2 = {};
 var controls2 = null;
-var DocumentsIndexesComponent = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links2, inputs3, outputs3, controls2, getDocumentsIndexes_function);
+var DocumentsIndexesComponent = createComponent(NAMESPACE4, OPERATION_ID4, TITLE4, CATEGORY4, DESCRIPTION4, SUMMARY4, links2, inputs3, outputs3, controls2, getDocumentsIndexes_function);
 async function getDocumentsIndexes_function(payload, ctx) {
   console.time("getDocumentsIndexes_function");
   let indexes_info = await getDocumentsIndexes(ctx);
@@ -9007,14 +8959,14 @@ async function getDocumentsIndexes_function(payload, ctx) {
   for (const index of indexes_info) {
     indexes.push(index.key);
   }
-  omnilog5.warn("indexes has #" + indexes.length + " entries");
+  omnilog4.warn("indexes has #" + indexes.length + " entries");
   return { result: { "ok": true }, indexes };
 }
 
 // extension.js
 async function CreateComponents() {
   const GptIXPComponent = await async_getGptIxPComponent();
-  const LoopGPTComponent = await async_getLoopGptComponent();
+  const LoopGPTComponent = await async_getQueryIndexBruteforceComponent();
   const QueryIndexComponent = await async_getQueryIndexComponent();
   const components = [
     GptIXPComponent,

@@ -79,20 +79,6 @@ async function uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overla
   return text_cdn;
 }
 
-export async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) 
-{
-  const document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
-  // note it is OK for this to be null (i.e. we did not find it in the DB)
-  return document_cdn;
-}
-
-export async function getIndexedDocumentInfoFromCdn(ctx, document_cdn)
-{
-  const document_info = await get_json_from_cdn(ctx, document_cdn);
-  if (!document_info) throw new Error(`ERROR: could not get document_json from cdn`);
-
-  return document_info;
-}
 async function chunkText(ctx, document_text, hasher, embedder, splitter, tokenCounterFunction)
 {
     const text_batches = await breakTextIntoChunks(document_text, splitter);
@@ -112,6 +98,7 @@ export async function saveIndexedDocument(ctx, document_id, chunks, chunk_size, 
   return indexed_document_cdn;
 
 }
+
 
 export { chunkText, uploadTextWithCaching };
 export { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP };

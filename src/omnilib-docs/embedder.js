@@ -119,8 +119,8 @@ var Embedder = class extends Embeddings
                 }
 
                 /*
-                this.addToIndex(GLOBAL_INDEX_NAME, embedding_id);
-                if (index_name && index_name != "" && index_name != GLOBAL_INDEX_NAME) this.addToIndex(index_name, embedding_id);
+                this.addCdnToIndex(GLOBAL_INDEX_NAME, embedding_id);
+                if (index_name && index_name != "" && index_name != GLOBAL_INDEX_NAME) this.addCdnToIndex(index_name, embedding_id);
                 
 
                 // Save the updated list of keys to the database.
@@ -136,7 +136,7 @@ var Embedder = class extends Embeddings
         }
     }
     /*
-    addToIndex(index_name, embedding_id)
+    addCdnToIndex(index_name, embedding_id)
     {
         if (index_name in this.indexes === false || this.indexes[index_name] === null || this.indexes[index_name] === undefined || Array.isArray(this.indexes[index_name]) === false)
         {

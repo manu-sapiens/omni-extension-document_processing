@@ -12,6 +12,29 @@ const SPLITTER_MODEL_CODE = "CodeSplitter_"; // see extractCodeLanguage()
 const DEFAULT_SPLITTER_MODEL = SPLITTER_MODEL_RECURSIVE;
 const SPLITTER_TOKEN_ENCODING = "gpt2";
 
+export function getSplitterChoices()
+{
+    const splitter_choices = [
+        {value: "RecursiveCharacterTextSplitter", title: "RecursiveCharacterTextSplitter"},
+        {value: "TokenTextSplitter", title: "TokenTextSplitter"},
+        {value: "CodeSplitter_cpp", title: "CodeSplitter_cpp"},
+        {value: "CodeSplitter_go", title: "CodeSplitter_go"},
+        {value: "CodeSplitter_java",  title: "CodeSplitter_java"},
+        {value: "CodeSplitter_ruby",  title: "CodeSplitter_ruby"},
+        {value: "CodeSplitter_js",  title: "CodeSplitter_js"},
+        {value: "CodeSplitter_php",  title: "CodeSplitter_php"},
+        {value: "CodeSplitter_proto",  title: "CodeSplitter_proto"},
+        {value: "CodeSplitter_python",  title: "CodeSplitter_python"},
+        {value: "CodeSplitter_rst",  title: "CodeSplitter_rst"},
+        {value: "CodeSplitter_rust",  title: "CodeSplitter_rust"},
+        {value:  "CodeSplitter_scala",  title: "CodeSplitter_scala"},
+        {value: "CodeSplitter_swift",  title: "CodeSplitter_swift"},
+        {value: "CodeSplitter_markdown",  title: "CodeSplitter_markdown"},
+        {value: "CodeSplitter_latex",  title: "CodeSplitter_latex"},
+        {value: "CodeSplitter_html", title: "CodeSplitter_html"},
+    ];
+    return splitter_choices;
+}
 function extractCodeLanguage(str)
 {
     const pattern = new RegExp('^' + SPLITTER_MODEL_CODE + '(\\w+)$', 'i');
@@ -37,7 +60,7 @@ function extractCodeLanguage(str)
     return null;
 }
 
-function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
+function initializeSplitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size = DEFAULT_CHUNK_SIZE, chunk_overlap = DEFAULT_CHUNK_OVERLAP)
 {
 
     let splitter = null;
@@ -70,8 +93,8 @@ function initialize_splitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size
     }
     // TBD: more splitters here
 
-    if (splitter == null || splitter == undefined) throw new Error(`initialize_splitter: Failed to initialize splitter_model ${splitter_model}`);
+    if (splitter == null || splitter == undefined) throw new Error(`initializeSplitter: Failed to initialize splitter_model ${splitter_model}`);
     return splitter;
 }
 
-export { initialize_splitter, DEFAULT_SPLITTER_MODEL }
+export { initializeSplitter, DEFAULT_SPLITTER_MODEL }

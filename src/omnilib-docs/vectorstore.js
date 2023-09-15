@@ -4,12 +4,23 @@
 import { memoryFromTexts } from "./vectorstore_Memory.js";
 import { console_log,   is_valid } from 'omnilib-utils/utils.js';
 import { user_db_put, user_db_get } from 'omnilib-utils/database.js';
+import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from 'omnilib-utils/cdn.js';
+
 
 const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies
 const MEMORY_VECTORSTORE = "MEMORY";
 const LANCEDB_VECTORSTORE = "LANCEDB"; // NOT SUPPORTED FOR NOW
 const DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
 
+export function getIndexesChoices()
+{
+    const index_choices = {
+        "block": `omni-extension-document_processing:document_processing.get_documents_indexes`,
+        "args": {".bustCache": true },
+        "map": { "root": "indexes" }
+    };
+    return index_choices;
+}
 
 async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) 
 {
@@ -93,11 +104,25 @@ async function loadVectorstore(embedder)
     return vectorstore;
 }
 
-function clean_vectorstore_name(vectorstore_name)
+function sanitizeIndexName(vectorstore_name)
 {
     if (is_valid(vectorstore_name) == false) return null;
     const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
     return clean_name;
+}
+
+export function getIndexName(existing_name, new_index)
+{
+    const sanitized_new_index = sanitizeIndexName(new_index);
+    
+    let index_name = sanitized_new_index;
+    if ( (!sanitized_new_index || sanitized_new_index.length == 0) && ( existing_name && existing_name.length > 0) )
+    {
+        index_name = existing_name;
+    }
+
+    if (!index_name || index_name.length == 0) index_name = GLOBAL_INDEX_NAME;
+    return index_name;
 }
 
 export const GLOBAL_INDEX_NAME = "global_index";
@@ -110,7 +135,7 @@ export async function loadIndexes(ctx)
     return indexes;
 }
 
-export function addToIndex(indexes, indexed_document_info, index_name)
+export function addCdnToIndex(indexes, indexed_document_info, index_name)
 {
     if (index_name in indexes === false || indexes[index_name] === null || indexes[index_name] === undefined || Array.isArray(indexes[index_name]) === false)
     {
@@ -190,5 +215,41 @@ export async function getDocumentsIndexes(ctx)
     return relevantIndexes;
 }
 
+export async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) 
+{
+  const document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
+  // note it is OK for this to be null (i.e. we did not find it in the DB)
+  return document_cdn;
+}
 
-export { queryVectorstore , computeVectorstore, clean_vectorstore_name, loadVectorstore, createVectorstoreFromTexts }
+export async function getIndexedDocumentInfoFromCdn(ctx, document_cdn)
+{
+  const document_info = await get_json_from_cdn(ctx, document_cdn);
+  if (!document_info) throw new Error(`ERROR: could not get document_json from cdn`);
+
+  return document_info;
+}
+
+export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents)
+{
+  let all_chunks = [];
+
+  let indexed_document_cdns = readCdnsFromIndex(indexes, index_name);
+  if (indexed_documents && Array.isArray(indexed_documents) && indexed_documents.length > 0) indexed_document_cdns = indexed_document_cdns.concat(indexed_documents);
+  if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false) throw new Error(`[query_chunks_component] Error reading from index ${index_name}`);
+
+  for (const indexed_document_cdn of indexed_document_cdns)  
+  {
+    const document_info = await getIndexedDocumentInfoFromCdn(ctx, indexed_document_cdn);
+    if (!document_info) throw new Error(`ERROR: could not get document_info from cdn ${JSON.stringify(indexed_document_cdn)}`);
+
+    const indexed_document_chunks = document_info.chunks;
+    if (!indexed_document_chunks || Array.isArray(indexed_document_chunks) == false || indexed_document_chunks.length == 0) continue;
+    all_chunks = all_chunks.concat(indexed_document_chunks);
+  }
+
+  return all_chunks;
+}
+
+
+export { queryVectorstore , computeVectorstore, sanitizeIndexName, loadVectorstore, createVectorstoreFromTexts }

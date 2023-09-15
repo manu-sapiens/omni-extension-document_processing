@@ -2,15 +2,14 @@
 import { createComponent} from 'omnilib-utils/component.js';
 import { initialize_hasher, computeDocumentId } from './omnilib-docs/hashers.js';
 import { downloadTextsFromCdn } from 'omnilib-utils/cdn.js';
-import { initialize_splitter } from './omnilib-docs/splitter.js';
+import { initializeSplitter, getSplitterChoices } from './omnilib-docs/splitter.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
 import { chunkText, uploadTextWithCaching } from './omnilib-docs/chunking.js';
-import { computeVectorstore, clean_vectorstore_name } from './omnilib-docs/vectorstore.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
-import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP,getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn, saveIndexedDocument } from './omnilib-docs/chunking.js';
+import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, saveIndexedDocument } from './omnilib-docs/chunking.js';
 import { countTokens as countTokensFunction } from 'omnilib-llms/tiktoken.js';
-import { GLOBAL_INDEX_NAME, loadIndexes, addToIndex as addCdnToIndex, saveIndexes } from './omnilib-docs/vectorstore.js';
+import { GLOBAL_INDEX_NAME, loadIndexes, addCdnToIndex as addCdnToIndex, saveIndexes, getIndexesChoices, getIndexName, getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "index_documents";
@@ -19,40 +18,14 @@ const DESCRIPTION = 'Index document(s), chunking them and computing the embeddin
 const SUMMARY = 'Index document(s), chunking them and computing the embedding for each chunk'
 const CATEGORY = 'document processing'
 
-const indexes_block_name = `omni-extension-document_processing:document_processing.get_documents_indexes`;
-const index_choices = {
-    "block": indexes_block_name,
-    "args": {},
-    "map": { "root": "indexes" }
-};
-
 const inputs = [
     { name: 'documents', title: 'Documents to ingest', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked', allowMultiple: true },
     { name: 'text', type: 'string', title: 'Text to ingest', customSocket: 'text', description: 'And/or some Text to ingest directly', allowMultiple: true  },
-    { name: 'splitter_model', type: 'string', defaultValue: 'RecursiveCharacterTextSplitter', title: "Splitter Model", description: "Choosing a splitter model that matches the type of document ingested will produce the best results",
-        choices: [
-            {value: "RecursiveCharacterTextSplitter", title: "RecursiveCharacterTextSplitter"},
-            {value: "TokenTextSplitter", title: "TokenTextSplitter"},
-            {value: "CodeSplitter_cpp", title: "CodeSplitter_cpp"},
-            {value: "CodeSplitter_go", title: "CodeSplitter_go"},
-            {value: "CodeSplitter_java",  title: "CodeSplitter_java"},
-            {value: "CodeSplitter_ruby",  title: "CodeSplitter_ruby"},
-            {value: "CodeSplitter_js",  title: "CodeSplitter_js"},
-            {value: "CodeSplitter_php",  title: "CodeSplitter_php"},
-            {value: "CodeSplitter_proto",  title: "CodeSplitter_proto"},
-            {value: "CodeSplitter_python",  title: "CodeSplitter_python"},
-            {value: "CodeSplitter_rst",  title: "CodeSplitter_rst"},
-            {value: "CodeSplitter_rust",  title: "CodeSplitter_rust"},
-            {value:  "CodeSplitter_scala",  title: "CodeSplitter_scala"},
-            {value: "CodeSplitter_swift",  title: "CodeSplitter_swift"},
-            {value: "CodeSplitter_markdown",  title: "CodeSplitter_markdown"},
-            {value: "CodeSplitter_latex",  title: "CodeSplitter_latex"},
-            {value: "CodeSplitter_html", title: "CodeSplitter_html"},]
-        },
+    { name: 'splitter_model', type: 'string', defaultValue: 'RecursiveCharacterTextSplitter', title: "Splitter Model", description: "Choosing a splitter model that matches the type of document ingested will produce the best results", choices: getSplitterChoices()},
     { name: 'chunk_size', type: 'number', defaultValue: 4096, minimum: 0, maximum:1000000, step:1 },
     { name: 'chunk_overlap', type: 'number', defaultValue: 512, minimum: 0, maximum:500000, step:1 },
     { name: 'overwrite', type: 'boolean', defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-    { name: 'existing_index', title: 'Existing Indexes', type: 'string', defaultValue: GLOBAL_INDEX_NAME, choices: index_choices, description: "If set, will ingest into the existing index with the given name"},
+    { name: 'existing_index', title: 'Existing Indexes', type: 'string', defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name"},
     { name: 'new_index', title: 'Index', type: 'string', description: "All indexed information sharing the same index will be grouped and queried together"},
   ];
 
@@ -82,16 +55,10 @@ async function indexDocuments_function(payload, ctx)
     const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE; 
     const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
 
-    const new_index = clean_vectorstore_name(payload.new_index);
-    const existing_index = payload.existing_index;
-    let index_name = new_index;
-    if ( (!new_index || new_index.length == 0) && ( existing_index && existing_index.length > 0) ) 
-    {
-        index_name = existing_index;
-    }index_name
-
+    const index_name = getIndexName(payload.existing_index, payload.new_index);
+    
     const hasher = initialize_hasher(hasher_model);
-    const splitter = initialize_splitter(splitter_model, chunk_size, chunk_overlap);
+    const splitter = initializeSplitter(splitter_model, chunk_size, chunk_overlap);
     const embedder = await initializeEmbedder(ctx);
     const indexes = await loadIndexes(ctx);
     
@@ -166,7 +133,6 @@ async function indexDocuments_function(payload, ctx)
     saveIndexes(ctx, indexes);
     info += `Saved Indexes to DB\n`;
     info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index_name} \n`;
-    index_name
     info += `Done`;
 
     console.timeEnd("indexDocuments_function");
