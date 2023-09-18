@@ -89,7 +89,7 @@ async function indexDocuments_function(payload, ctx)
         let indexed_document_cdn = await getIndexedDocumentCdnFromId(ctx, document_id, overwrite);
         if (!indexed_document_cdn)
         {
-            indexed_document_chunks = await chunkText(ctx, document_text, hasher, embedder, splitter, countTokensFunction);
+            indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokensFunction);
             if (!indexed_document_chunks) throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
     
             let total_token_count = 0;

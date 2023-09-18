@@ -2693,8 +2693,8 @@ function generateTitle(value) {
   const title = value.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
 }
-function setComponentInputs(component, inputs4) {
-  inputs4.forEach(function(input) {
+function setComponentInputs(component, inputs3) {
+  inputs3.forEach(function(input) {
     var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, default_value = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step, allow_multiple = input.allowMultiple;
     if (!title || title == "")
       title = generateTitle(name);
@@ -2704,8 +2704,8 @@ function setComponentInputs(component, inputs4) {
   });
   return component;
 }
-function setComponentOutputs(component, outputs4) {
-  outputs4.forEach(function(output) {
+function setComponentOutputs(component, outputs3) {
+  outputs3.forEach(function(output) {
     var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
     if (!title || title == "")
       title = generateTitle(name);
@@ -2726,7 +2726,7 @@ function setComponentControls(component, controls3) {
   });
   return component;
 }
-function createComponent(group_id, id, title, category, description, summary, links3, inputs4, outputs4, controls3, payloadParser) {
+function createComponent(group_id, id, title, category, description, summary, links3, inputs3, outputs3, controls3, payloadParser) {
   if (!links3)
     links3 = {};
   let baseComponent = OAIBaseComponent.create(group_id, id).fromScratch().set("title", title).set("category", category).set("description", description).setMethod("X-CUSTOM").setMeta({
@@ -2735,8 +2735,8 @@ function createComponent(group_id, id, title, category, description, summary, li
       links: links3
     }
   });
-  baseComponent = setComponentInputs(baseComponent, inputs4);
-  baseComponent = setComponentOutputs(baseComponent, outputs4);
+  baseComponent = setComponentInputs(baseComponent, inputs3);
+  baseComponent = setComponentOutputs(baseComponent, outputs3);
   if (controls3)
     baseComponent = setComponentControls(baseComponent, controls3);
   baseComponent.setMacro(OmniComponentMacroTypes.EXEC, payloadParser);
@@ -2782,7 +2782,7 @@ var Hasher_SHA256 = class extends Hasher {
 };
 
 // node_modules/omnilib-utils/utils.js
-import { omnilog } from "mercs_shared";
+import { omnilog } from "omni-shared";
 var VERBOSE = true;
 function is_valid(value) {
   if (value === null || value === void 0) {
@@ -2857,6 +2857,11 @@ function console_log(...args) {
     omnilog.log(...args);
   }
 }
+function console_warn(...args) {
+  if (VERBOSE == true) {
+    omnilog.warn(...args);
+  }
+}
 function combineStringsWithoutOverlap(str1, str2) {
   let overlap = 0;
   for (let i = 1; i <= Math.min(str1.length, str2.length); i++) {
@@ -2865,63 +2870,6 @@ function combineStringsWithoutOverlap(str1, str2) {
     }
   }
   return str1 + str2.substring(overlap);
-}
-function rebuildToTicketObjectsIfNeeded(data) {
-  const documents = [];
-  if (Array.isArray(data) && data.every((item) => typeof item === "object" && item !== null && item.ticket)) {
-    return data;
-  }
-  if (Array.isArray(data) && data.every((item) => typeof item === "string")) {
-    for (let i = 0; i < data.length; i++) {
-      const url = data[i];
-      const fidRegex = /\/fid\/(.+)/;
-      const match = url.match(fidRegex);
-      if (match) {
-        const baseurl = url.substring(0, match.index);
-        const fid = match[1];
-        const filename = `${fid}.txt`;
-        const rebuilt_cdn = {
-          ticket: {
-            fid,
-            count: 1,
-            url: baseurl,
-            publicUrl: baseurl
-          },
-          fileName: filename,
-          size: 0,
-          url,
-          furl: `fid://${filename}`,
-          mimeType: "text/plain; charset=utf-8",
-          expires: 0,
-          meta: {
-            created: 0
-          }
-        };
-        documents.push(rebuilt_cdn);
-        console_log(`rebuild url = ${url} into rebuilt_cdn = ${JSON.stringify(rebuilt_cdn)}`);
-      }
-    }
-  }
-  return documents;
-}
-function parse_text_to_array(candidate_text) {
-  var texts = [];
-  if (is_valid(candidate_text) == false)
-    return texts;
-  try {
-    const parsedArray = JSON.parse(candidate_text);
-    if (Array.isArray(parsedArray) && parsedArray.every((elem) => typeof elem === "string")) {
-      texts = parsedArray;
-    }
-  } catch (error) {
-    texts = [candidate_text];
-  }
-  console_log(`parse_text_to_array: texts = ${JSON.stringify(texts)}`);
-  if (texts.length == 0)
-    return null;
-  if (texts.length == 1 && texts[0] == "")
-    return [];
-  return texts;
 }
 
 // omnilib-docs/hashers.js
@@ -3405,7 +3353,7 @@ for (let i = 0; i < 256; ++i) {
   byteToHex.push((i + 256).toString(16).slice(1));
 }
 function unsafeStringify(arr, offset = 0) {
-  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
 }
 
 // node_modules/uuid/dist/esm-node/native.js
@@ -3833,7 +3781,7 @@ var BaseTracer = class extends BaseCallbackHandler {
     await this.onLLMError?.(run);
     await this._endTrace(run);
   }
-  async handleChainStart(chain, inputs4, runId, parentRunId, tags, metadata, runType) {
+  async handleChainStart(chain, inputs3, runId, parentRunId, tags, metadata, runType) {
     const execution_order = this._getExecutionOrder(parentRunId);
     const start_time = Date.now();
     const run = {
@@ -3848,7 +3796,7 @@ var BaseTracer = class extends BaseCallbackHandler {
           time: new Date(start_time).toISOString()
         }
       ],
-      inputs: inputs4,
+      inputs: inputs3,
       execution_order,
       child_execution_order: execution_order,
       run_type: runType ?? "chain",
@@ -3859,13 +3807,13 @@ var BaseTracer = class extends BaseCallbackHandler {
     this._startTrace(run);
     await this.onChainStart?.(run);
   }
-  async handleChainEnd(outputs4, runId, _parentRunId, _tags, kwargs) {
+  async handleChainEnd(outputs3, runId, _parentRunId, _tags, kwargs) {
     const run = this.runMap.get(runId);
     if (!run) {
       throw new Error("No chain run to end.");
     }
     run.end_time = Date.now();
-    run.outputs = _coerceToDict(outputs4, "output");
+    run.outputs = _coerceToDict(outputs3, "output");
     run.events.push({
       name: "end",
       time: new Date(run.end_time).toISOString()
@@ -4163,8 +4111,8 @@ var ConsoleCallbackHandler = class extends BaseTracer {
    */
   onLLMStart(run) {
     const crumbs = this.getBreadcrumbs(run);
-    const inputs4 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p) => p.trim()) } : run.inputs;
-    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs4, "[inputs]")}`);
+    const inputs3 = "prompts" in run.inputs ? { prompts: run.inputs.prompts.map((p) => p.trim()) } : run.inputs;
+    console.log(`${wrap(color.green, "[llm/start]")} [${crumbs}] Entering LLM run with input: ${tryJsonStringify(inputs3, "[inputs]")}`);
   }
   /**
    * Method used to log the end of an LLM run.
@@ -4336,6 +4284,21 @@ var AsyncCaller2 = class {
   }
 };
 
+// node_modules/langsmith/dist/utils/messages.js
+function isLangChainMessage(message) {
+  return typeof message?._getType === "function";
+}
+function convertLangChainMessageToExample(message) {
+  const converted = {
+    type: message._getType(),
+    data: { content: message.content }
+  };
+  if (message?.additional_kwargs && Object.keys(message.additional_kwargs).length > 0) {
+    converted.data.additional_kwargs = { ...message.additional_kwargs };
+  }
+  return converted;
+}
+
 // node_modules/langsmith/dist/utils/env.js
 var isBrowser = () => typeof window !== "undefined" && typeof window.document !== "undefined";
 var isWebWorker = () => typeof globalThis === "object" && globalThis.constructor && globalThis.constructor.name === "DedicatedWorkerGlobalScope";
@@ -4443,6 +4406,18 @@ function trimQuotes(str) {
     return void 0;
   }
   return str.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+}
+function hideInputs(inputs3) {
+  if (getEnvironmentVariable("LANGCHAIN_HIDE_INPUTS") === "true") {
+    return {};
+  }
+  return inputs3;
+}
+function hideOutputs(outputs3) {
+  if (getEnvironmentVariable("LANGCHAIN_HIDE_OUTPUTS") === "true") {
+    return {};
+  }
+  return outputs3;
 }
 var Client = class _Client {
   constructor(config = {}) {
@@ -4563,6 +4538,10 @@ var Client = class _Client {
         }
       }
     };
+    runCreate.inputs = hideInputs(runCreate.inputs);
+    if (runCreate.outputs) {
+      runCreate.outputs = hideOutputs(runCreate.outputs);
+    }
     const response = await this.caller.call(fetch, `${this.apiUrl}/runs`, {
       method: "POST",
       headers,
@@ -4572,6 +4551,12 @@ var Client = class _Client {
     await raiseForStatus(response, "create run");
   }
   async updateRun(runId, run) {
+    if (run.inputs) {
+      run.inputs = hideInputs(run.inputs);
+    }
+    if (run.outputs) {
+      run.outputs = hideOutputs(run.outputs);
+    }
     const headers = { ...this.headers, "Content-Type": "application/json" };
     const response = await this.caller.call(fetch, `${this.apiUrl}/runs/${runId}`, {
       method: "PATCH",
@@ -4707,7 +4692,7 @@ var Client = class _Client {
     }
     return `${this.getHostUrl()}/public/${result["share_token"]}/r`;
   }
-  async createProject({ projectName, projectExtra, upsert }) {
+  async createProject({ projectName, projectExtra, upsert, referenceDatasetId }) {
     const upsert_ = upsert ? `?upsert=true` : "";
     const endpoint = `${this.apiUrl}/sessions${upsert_}`;
     const body = {
@@ -4715,6 +4700,9 @@ var Client = class _Client {
     };
     if (projectExtra !== void 0) {
       body["extra"] = projectExtra;
+    }
+    if (referenceDatasetId !== void 0) {
+      body["reference_dataset_id"] = referenceDatasetId;
     }
     const response = await this.caller.call(fetch, endpoint, {
       method: "POST",
@@ -4926,7 +4914,7 @@ var Client = class _Client {
     }
     await response.json();
   }
-  async createExample(inputs4, outputs4, { datasetId, datasetName, createdAt }) {
+  async createExample(inputs3, outputs3, { datasetId, datasetName, createdAt, exampleId }) {
     let datasetId_ = datasetId;
     if (datasetId_ === void 0 && datasetName === void 0) {
       throw new Error("Must provide either datasetName or datasetId");
@@ -4939,9 +4927,10 @@ var Client = class _Client {
     const createdAt_ = createdAt || /* @__PURE__ */ new Date();
     const data = {
       dataset_id: datasetId_,
-      inputs: inputs4,
-      outputs: outputs4,
-      created_at: createdAt_.toISOString()
+      inputs: inputs3,
+      outputs: outputs3,
+      created_at: createdAt_.toISOString(),
+      id: exampleId
     };
     const response = await this.caller.call(fetch, `${this.apiUrl}/examples`, {
       method: "POST",
@@ -4954,6 +4943,19 @@ var Client = class _Client {
     }
     const result = await response.json();
     return result;
+  }
+  async createLLMExample(input, generation, options) {
+    return this.createExample({ input }, { output: generation }, options);
+  }
+  async createChatExample(input, generations, options) {
+    const finalInput = input.map((message) => {
+      if (isLangChainMessage(message)) {
+        return convertLangChainMessageToExample(message);
+      }
+      return message;
+    });
+    const finalOutput = isLangChainMessage(generations) ? convertLangChainMessageToExample(generations) : generations;
+    return this.createExample({ input: finalInput }, { output: finalOutput }, options);
   }
   async readExample(exampleId) {
     const path = `/examples/${exampleId}`;
@@ -5030,23 +5032,19 @@ var Client = class _Client {
       comment: feedbackResult.comment,
       correction: feedbackResult.correction,
       sourceInfo: sourceInfo_,
-      feedbackSourceType: "MODEL"
+      feedbackSourceType: "model"
     });
   }
-  async createFeedback(runId, key, { score, value, correction, comment, sourceInfo, feedbackSourceType = "API", sourceRunId }) {
-    let feedback_source;
-    if (feedbackSourceType === "API") {
-      feedback_source = { type: "api", metadata: sourceInfo ?? {} };
-    } else if (feedbackSourceType === "MODEL") {
-      feedback_source = { type: "model", metadata: sourceInfo ?? {} };
-    } else {
-      throw new Error(`Unknown feedback source type ${feedbackSourceType}`);
-    }
+  async createFeedback(runId, key, { score, value, correction, comment, sourceInfo, feedbackSourceType = "api", sourceRunId, feedbackId }) {
+    const feedback_source = {
+      type: feedbackSourceType ?? "api",
+      metadata: sourceInfo ?? {}
+    };
     if (sourceRunId !== void 0 && feedback_source?.metadata !== void 0 && !feedback_source.metadata["__run"]) {
       feedback_source.metadata["__run"] = { run_id: sourceRunId };
     }
     const feedback = {
-      id: v4_default(),
+      id: feedbackId ?? v4_default(),
       run_id: runId,
       key,
       score,
@@ -5061,11 +5059,8 @@ var Client = class _Client {
       body: JSON.stringify(feedback),
       signal: AbortSignal.timeout(this.timeout_ms)
     });
-    if (!response.ok) {
-      throw new Error(`Failed to create feedback for run ${runId}: ${response.status} ${response.statusText}`);
-    }
-    const result = await response.json();
-    return result;
+    await raiseForStatus(response, "create feedback");
+    return feedback;
   }
   async updateFeedback(feedbackId, { score, value, correction, comment }) {
     const feedbackUpdate = {};
@@ -5106,10 +5101,20 @@ var Client = class _Client {
     }
     await response.json();
   }
-  async *listFeedback({ runIds } = {}) {
+  async *listFeedback({ runIds, feedbackKeys, feedbackSourceTypes } = {}) {
     const queryParams = new URLSearchParams();
     if (runIds) {
       queryParams.append("run", runIds.join(","));
+    }
+    if (feedbackKeys) {
+      for (const key of feedbackKeys) {
+        queryParams.append("key", key);
+      }
+    }
+    if (feedbackSourceTypes) {
+      for (const type of feedbackSourceTypes) {
+        queryParams.append("source", type);
+      }
     }
     for await (const feedbacks of this._getPaginated("/feedback", queryParams)) {
       yield* feedbacks;
@@ -5831,11 +5836,11 @@ var CallbackManager = class _CallbackManager extends BaseCallbackManager {
       return new CallbackManagerForLLMRun(runId, this.handlers, this.inheritableHandlers, this.tags, this.inheritableTags, this.metadata, this.inheritableMetadata, this._parentRunId);
     }));
   }
-  async handleChainStart(chain, inputs4, runId = v4_default(), runType = void 0) {
+  async handleChainStart(chain, inputs3, runId = v4_default(), runType = void 0) {
     await Promise.all(this.handlers.map((handler) => consumeCallback(async () => {
       if (!handler.ignoreChain) {
         try {
-          await handler.handleChainStart?.(chain, inputs4, runId, this._parentRunId, this.tags, this.metadata, runType);
+          await handler.handleChainStart?.(chain, inputs3, runId, this._parentRunId, this.tags, this.metadata, runType);
         } catch (err) {
           console.error(`Error in handler ${handler.constructor.name}, handleChainStart: ${err}`);
         }
@@ -6123,12 +6128,12 @@ var Runnable = class extends Serializable {
    * @param batchOptions.maxConcurrency Maximum number of calls to run at once.
    * @returns An array of RunOutputs
    */
-  async batch(inputs4, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs4.length);
-    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs4.length;
+  async batch(inputs3, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs3.length);
+    const batchSize = batchOptions?.maxConcurrency && batchOptions.maxConcurrency > 0 ? batchOptions?.maxConcurrency : inputs3.length;
     const batchResults = [];
-    for (let i = 0; i < inputs4.length; i += batchSize) {
-      const batchPromises = inputs4.slice(i, i + batchSize).map((input, j) => this.invoke(input, configList[j]));
+    for (let i = 0; i < inputs3.length; i += batchSize) {
+      const batchPromises = inputs3.slice(i, i + batchSize).map((input, j) => this.invoke(input, configList[j]));
       const batchResult = await Promise.all(batchPromises);
       batchResults.push(batchResult);
     }
@@ -6316,11 +6321,11 @@ var RunnableSequence = class _RunnableSequence extends Runnable {
     await runManager?.handleChainEnd(_coerceToDict2(finalOutput, "output"));
     return finalOutput;
   }
-  async batch(inputs4, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs4.length);
+  async batch(inputs3, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs3.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs4[i], "input"))));
-    let nextStepInputs = inputs4;
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
+    let nextStepInputs = inputs3;
     let finalOutputs;
     try {
       for (let i = 0; i < [this.first, ...this.middle].length; i += 1) {
@@ -6522,12 +6527,12 @@ var RunnableBinding = class _RunnableBinding extends Runnable {
   async invoke(input, options) {
     return this.bound.invoke(input, { ...options, ...this.kwargs });
   }
-  async batch(inputs4, options, batchOptions) {
+  async batch(inputs3, options, batchOptions) {
     const mergedOptions = Array.isArray(options) ? options.map((individualOption) => ({
       ...individualOption,
       ...this.kwargs
     })) : { ...options, ...this.kwargs };
-    return this.bound.batch(inputs4, mergedOptions, batchOptions);
+    return this.bound.batch(inputs3, mergedOptions, batchOptions);
   }
   async stream(input, options) {
     return this.bound.stream(input, { ...options, ...this.kwargs });
@@ -6593,16 +6598,16 @@ var RunnableWithFallbacks = class extends Runnable {
     await runManager?.handleChainError(firstError);
     throw firstError;
   }
-  async batch(inputs4, options, batchOptions) {
-    const configList = this._getOptionsList(options ?? {}, inputs4.length);
+  async batch(inputs3, options, batchOptions) {
+    const configList = this._getOptionsList(options ?? {}, inputs3.length);
     const callbackManagers = await Promise.all(configList.map((config) => CallbackManager.configure(config?.callbacks, void 0, config?.tags, void 0, config?.metadata)));
-    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs4[i], "input"))));
+    const runManagers = await Promise.all(callbackManagers.map((callbackManager, i) => callbackManager?.handleChainStart(this.toJSON(), _coerceToDict2(inputs3[i], "input"))));
     let firstError;
     for (const runnable of this.runnables()) {
       try {
-        const outputs4 = await runnable.batch(inputs4, runManagers.map((runManager, j) => this._patchConfig(configList[j], runManager?.getChild())), batchOptions);
-        await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(outputs4[i], "output"))));
-        return outputs4;
+        const outputs3 = await runnable.batch(inputs3, runManagers.map((runManager, j) => this._patchConfig(configList[j], runManager?.getChild())), batchOptions);
+        await Promise.all(runManagers.map((runManager, i) => runManager?.handleChainEnd(_coerceToDict2(outputs3[i], "output"))));
+        return outputs3;
       } catch (e) {
         if (firstError === void 0) {
           firstError = e;
@@ -7286,20 +7291,24 @@ var TokenTextSplitter = class extends TextSplitter {
 var DEFAULT_CHUNK_SIZE = 4096;
 var DEFAULT_CHUNK_OVERLAP = 512;
 var EMBEDDING_BATCH_SIZE = 10;
-async function breakTextIntoChunks(text, splitter) {
+function createBatches(arr, size) {
+  const batches = [];
+  for (let i = 0; i < arr.length; i += size) {
+    const start_index = i;
+    const end_index = Math.min(i + size, arr.length);
+    const batch = arr.slice(start_index, end_index);
+    batches.push(batch);
+  }
+  return batches;
+}
+async function breakTextIntoBatches(text, splitter) {
   const splitted_texts = await splitter.splitText(text);
-  const createBatches = (arr, size) => {
-    const batches = [];
-    for (let i = 0; i < arr.length; i += size) {
-      batches.push(arr.slice(i, i + size));
-    }
-    return batches;
-  };
   const textBatches = createBatches(splitted_texts, EMBEDDING_BATCH_SIZE);
   return textBatches;
 }
-async function computeChunksEmbedding(ctx, textBatches, hasher, embedder, tokenCounterFunction) {
+async function computeChunks(ctx, document_id, textBatches, hasher, embedder, tokenCounterFunction) {
   const chunks = [];
+  let index = 0;
   for (const textBatch of textBatches) {
     const embeddingPromises = textBatch.map(async (chunk_text) => {
       const nb_of_chars = chunk_text.length;
@@ -7307,12 +7316,13 @@ async function computeChunksEmbedding(ctx, textBatches, hasher, embedder, tokenC
         const chunk_id = computeChunkId(ctx, chunk_text, hasher);
         await embedder.embedQuery(chunk_text);
         const chunk_token_count = tokenCounterFunction(chunk_text);
-        const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count };
+        const chunk_json = { source: document_id, index, id: chunk_id, token_count: chunk_token_count, text: chunk_text };
         return chunk_json;
       }
     });
     const batchResults = await Promise.all(embeddingPromises);
     chunks.push(...batchResults);
+    index += 1;
   }
   if (is_valid(chunks) === false) {
     throw new Error(`ERROR could not chunk the documents`);
@@ -7330,9 +7340,9 @@ async function uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overla
   }
   return text_cdn;
 }
-async function chunkText(ctx, document_text, hasher, embedder, splitter, tokenCounterFunction) {
-  const text_batches = await breakTextIntoChunks(document_text, splitter);
-  const document_chunks = await computeChunksEmbedding(ctx, text_batches, hasher, embedder, tokenCounterFunction);
+async function chunkText(ctx, document_id, document_text, hasher, embedder, splitter, tokenCounterFunction) {
+  const text_batches = await breakTextIntoBatches(document_text, splitter);
+  const document_chunks = await computeChunks(ctx, document_id, text_batches, hasher, embedder, tokenCounterFunction);
   return document_chunks;
 }
 async function saveIndexedDocument(ctx, document_id, chunks, chunk_size, chunk_overlap, token_to_chunking_size_ratio, splitter_model) {
@@ -7563,7 +7573,7 @@ var Embedder = class extends Embeddings {
 };
 
 // node_modules/omnilib-utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs4 = {}) {
+async function runBlock(ctx, block_name, args, outputs3 = {}) {
   try {
     const app = ctx.app;
     if (!app) {
@@ -7573,7 +7583,7 @@ async function runBlock(ctx, block_name, args, outputs4 = {}) {
     if (!blocks) {
       throw new Error(`[runBlock] blocks not found in app`);
     }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs4);
+    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
     return result;
   } catch (err) {
     throw new Error(`Error running block ${block_name}: ${err}`);
@@ -8034,15 +8044,15 @@ function getIndexesChoices() {
   };
   return index_choices;
 }
-async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
-  console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
+async function createVectorstoreFromChunks(chunks, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
+  const texts = getChunksTexts(chunks);
   let vectorstore;
   switch (vectorstore_type) {
     case FAISS_VECTORSTORE:
       vectorstore = null;
       break;
     case MEMORY_VECTORSTORE:
-      vectorstore = await memoryFromTexts(texts, text_ids, embedder);
+      vectorstore = await memoryFromTexts(texts, chunks, embedder);
       break;
     case LANCEDB_VECTORSTORE:
       vectorstore = null;
@@ -8057,27 +8067,21 @@ async function queryVectorstore(vector_store, query, nb_of_results = 1, embedder
   const results = await vector_store.similaritySearchVectorWithScore(vector_query, nb_of_results);
   return results;
 }
-function getTextsAndIds(chunks) {
+function getChunksTexts(chunks) {
   if (is_valid(chunks) == false)
     throw new Error(`get_texts_and_ids: chunks_list is invalid`);
   let chunk_texts = [];
-  let chunk_ids = [];
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     const chunk_text = chunk.text;
-    const chunk_id = chunk.id;
-    chunk_ids.push({ id: chunk_id });
     chunk_texts.push(chunk_text);
   }
-  return [chunk_texts, chunk_ids];
+  return chunk_texts;
 }
 async function computeVectorstore(chunks, embedder) {
-  console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
   if (is_valid(chunks) == false)
-    throw new Error(`[computeVectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
-  const [all_texts, all_ids] = getTextsAndIds(chunks);
-  console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
-  const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
+    throw new Error(`[computeVectorstore] Error getting chunks`);
+  const vectorstore = await createVectorstoreFromChunks(chunks, embedder);
   return vectorstore;
 }
 function sanitizeIndexName(vectorstore_name) {
@@ -8228,7 +8232,7 @@ async function indexDocuments_function(payload, ctx) {
       throw new Error(`ERROR: could not compute document_id for document with index:${document_index}, id:${document_id}`);
     let indexed_document_cdn = await getIndexedDocumentCdnFromId(ctx, document_id, overwrite);
     if (!indexed_document_cdn) {
-      indexed_document_chunks = await chunkText(ctx, document_text, hasher, embedder, splitter, countTokens);
+      indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokens);
       if (!indexed_document_chunks)
         throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
       let total_token_count = 0;
@@ -8274,67 +8278,6 @@ async function indexDocuments_function(payload, ctx) {
   console.timeEnd("indexDocuments_function");
   return { result: { "ok": true }, documents: all_cdns, index: index_name, info };
 }
-
-// component_ReadTextFiles.js
-import { OAIBaseComponent as OAIBaseComponent2, OmniComponentMacroTypes as OmniComponentMacroTypes2 } from "mercs_rete";
-var NS_ONMI = "document_processing";
-var read_text_files_component = OAIBaseComponent2.create(NS_ONMI, "read_text_files").fromScratch().set("title", "Read text files").set("category", "Text Manipulation").setMethod("X-CUSTOM").setMeta({
-  source: {
-    summary: "Read text files"
-  }
-});
-var inputs2 = [
-  { name: "text_or_url", type: "string", title: "Text or URL(s)", customSocket: "text", description: "text or url(s) of text files" }
-];
-read_text_files_component = setComponentInputs(read_text_files_component, inputs2);
-var outputs2 = [
-  { name: "documents", type: "array", customSocket: "documentArray", description: "The read documents" }
-];
-read_text_files_component = setComponentOutputs(read_text_files_component, outputs2);
-read_text_files_component.setMacro(OmniComponentMacroTypes2.EXEC, read_text_files_parse);
-async function read_text_files_parse(payload, ctx) {
-  const text_or_url = payload.text_or_url;
-  const documents = await read_text_files_function(ctx, text_or_url);
-  return { result: { "ok": true }, documents, files: documents };
-}
-async function read_text_files_function(ctx, url_or_text) {
-  const returned_documents = [];
-  if (is_valid(url_or_text)) {
-    console.time("read_text_file_component_processTime");
-    const parsedArray = parse_text_to_array(url_or_text);
-    const cdn_tickets = rebuildToTicketObjectsIfNeeded(parsedArray);
-    if (!parsedArray)
-      return [];
-    if (cdn_tickets.length > 0) {
-      for (let i = 0; i < cdn_tickets.length; i++) {
-        const cdn_ticket = cdn_tickets[i];
-        returned_documents.push(cdn_ticket);
-      }
-    } else if (parsedArray.length === 1 && typeof parsedArray[0] === "string") {
-      const individual_text = parsedArray[0];
-      const buffer = Buffer.from(individual_text);
-      const document_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: "text/plain; charset=utf-8", userId: ctx.userId });
-      returned_documents.push(document_cdn);
-    } else {
-      for (let i = 0; i < cdn_tickets.length; i++) {
-        const cdn_ticket = cdn_tickets[i];
-        returned_documents.push(cdn_ticket);
-      }
-    }
-    if (is_valid(returned_documents) == false)
-      throw new Error(`ERROR: could not convert to documents`);
-    console.timeEnd("read_text_file_component_processTime");
-  }
-  return returned_documents;
-}
-var ReadTextFilesComponent = read_text_files_component.toJSON();
-
-// component_GptIxP.js
-import { OAIBaseComponent as OAIBaseComponent3, OmniComponentMacroTypes as OmniComponentMacroTypes3 } from "mercs_rete";
-import { omnilog as omnilog3 } from "mercs_shared";
-
-// node_modules/omnilib-llms/llm.js
-import { omnilog as omnilog2 } from "mercs_shared";
 
 // node_modules/omnilib-utils/files.js
 import { ClientExtension, ClientUtils } from "mercs_client";
@@ -8679,94 +8622,7 @@ function getModelContextSize(model_name) {
   return context_size;
 }
 
-// component_GptIxP.js
-var NS_ONMI2 = "document_processing";
-async function async_getGptIxPComponent() {
-  let component = OAIBaseComponent3.create(NS_ONMI2, "gpt_ixp").fromScratch().set("title", "GPT IxP").set("category", "Text Manipulation").set("description", "Run GPT on every combination of instruction(s) and prompt(s)").setMethod("X-CUSTOM").setMeta({
-    source: {
-      summary: "Run GPT on every combination of instruction(s) and prompt(s)",
-      links: {}
-    }
-  });
-  const llm_choices = await getLlmChoices();
-  const inputs4 = [
-    { name: "instruction", title: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
-    { name: "prompt", title: "prompt", type: "string", customSocket: "text", description: "Prompt(s)" },
-    { name: "llm_functions", title: "functions", type: "array", customSocket: "objectArray", description: "Optional functions to constrain the LLM output" },
-    { name: "temperature", title: "temperature", type: "number", defaultValue: 0 },
-    { name: "top_p", title: "top_p", type: "number", defaultValue: 1 },
-    { name: "model_id", title: "model", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices }
-  ];
-  component = setComponentInputs(component, inputs4);
-  const controls3 = [
-    { name: "llm_functions", title: "LLM Functions", placeholder: "AlpineCodeMirrorComponent", description: "Functions to constrain the output of the LLM" }
-  ];
-  component = setComponentControls(component, controls3);
-  const outputs4 = [
-    { name: "answers_text", type: "string", customSocket: "text", description: "combined answers", title: "Combined answers" },
-    { name: "answers_json", type: "object", customSocket: "object", description: "Answers as a JSON", title: "JSON answers" }
-  ];
-  component = setComponentOutputs(component, outputs4);
-  component.setMacro(OmniComponentMacroTypes3.EXEC, parsePayload);
-  return component.toJSON();
-}
-async function parsePayload(payload, ctx) {
-  if (!payload)
-    return { result: { "ok": false }, answers_text: "", answers_json: null };
-  const instruction = payload.instruction;
-  const prompt = payload.prompt;
-  const llm_functions = payload.llm_functions;
-  const temperature = payload.temperature;
-  const top_p = payload.top_p;
-  const model_id = payload.model_id;
-  const answers_json = await gptIxP(ctx, instruction, prompt, llm_functions, model_id, temperature, top_p);
-  if (!answers_json)
-    return { result: { "ok": false }, answers_text: "", answers_json: null };
-  const return_value = { result: { "ok": true }, answers_text: answers_json["combined_answers"], answers_json };
-  return return_value;
-}
-async function gptIxP(ctx, instruction, prompt, llm_functions = null, model_id = DEFAULT_LLM_MODEL_ID, temperature = 0, top_p = 1) {
-  console.time("advanced_llm_component_processTime");
-  const instructions = parse_text_to_array(instruction);
-  const prompts = parse_text_to_array(prompt);
-  if (!instructions || !prompts)
-    return null;
-  const answers_json = {};
-  let answer_string = "";
-  for (let i = 0; i < instructions.length; i++) {
-    const instruction2 = instructions[i];
-    for (let p = 0; p < prompts.length; p++) {
-      let id = "answer";
-      if (instructions.length > 1)
-        id += `_i${i + 1}`;
-      if (prompts.length > 1)
-        id += `_p${p + 1}`;
-      const prompt2 = prompts[p];
-      omnilog3.log(`instruction = ${instruction2}, prompt = ${prompt2}, id = ${id}`);
-      const query_args = { function: llm_functions, top_p };
-      const answer_object = await queryLlmByModelId(ctx, prompt2, instruction2, model_id, temperature, query_args);
-      if (!answer_object)
-        continue;
-      if (is_valid(answer_object) == false)
-        continue;
-      const answer_text = answer_object.answer_text;
-      const answer_fa = answer_object.answer_json?.function_arguments;
-      const answer_fa_string = answer_object.answer_json?.function_arguments_string;
-      if (is_valid(answer_text)) {
-        answers_json[id] = answer_text;
-        answer_string += answer_text + "\n";
-      } else {
-        answers_json[id] = answer_fa;
-        answer_string += answer_fa_string + "\n";
-      }
-    }
-  }
-  answers_json["combined_answers"] = answer_string;
-  console.timeEnd("advanced_llm_component_processTime");
-  return answers_json;
-}
-
-// component_LoopGPT.js
+// component_QueryIndexBruteforce.js
 var NAMESPACE2 = "document_processing";
 var OPERATION_ID2 = "query_index_bruteforce";
 var TITLE2 = "Query Index (Brute Force)";
@@ -8776,7 +8632,7 @@ var CATEGORY2 = "document processing";
 async function async_getQueryIndexBruteforceComponent() {
   const llm_choices = await getLlmChoices();
   const links3 = {};
-  const inputs4 = [
+  const inputs3 = [
     { name: "indexed_documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
@@ -8786,12 +8642,12 @@ async function async_getQueryIndexBruteforceComponent() {
     { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
     { name: "llm_args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
-  const outputs4 = [
+  const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
     { name: "json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
   ];
   const controls3 = null;
-  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs4, outputs4, controls3, queryIndexBruteforce);
+  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs3, outputs3, controls3, queryIndexBruteforce);
   return component;
 }
 async function queryIndexBruteforce(payload, ctx) {
@@ -8849,8 +8705,7 @@ async function queryIndexBruteforce(payload, ctx) {
 }
 
 // smartquery.js
-async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id) {
-  console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
+async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
   const splits = getModelNameAndProviderFromId(model_id);
   const model_name = splits.model_name;
   if (is_valid(query) == false)
@@ -8864,19 +8719,25 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     const [vectorstore_response, score] = vectorestore_response_array;
     console_log(`vectorstore_responses[${i}] score = ${score}`);
     const raw_text = vectorstore_response?.pageContent;
-    const text = `[...] ${raw_text} [...]
+    const chunk = vectorstore_response?.metadata;
+    const chunk_id = chunk?.id;
+    const chunk_source = chunk?.source;
+    const chunk_index = chunk?.index;
+    const token_cost = chunk?.token_count + 50;
+    const text = `Fragment ID = [${chunk_id}]
+Fragment Text = [${raw_text}]
 
 `;
-    const token_cost = countTokens(text);
-    const metadata = vectorstore_response?.metadata;
-    console_log(`vectorstore_responses[${i}] metadata = ${JSON.stringify(metadata)}`);
+    console_warn(`text = ${text}`);
     if (total_tokens + token_cost > max_size)
       break;
     total_tokens += token_cost;
     combined_text += text;
   }
-  const instruction = `Here are some quotes. ${combined_text}`;
-  const prompt = `Based on the quotes, answer this question: ${query}`;
+  const instruction = `Based on the provided document fragments (and their IDs), answer the question of the user's. Always provide the ID(s) of the document fragment(s) that you are answering from. For example, say 'From fragment ID:<fragment_id here>, we know that...`;
+  const prompt = `Fragments:
+${combined_text}
+User's question: ${query}`;
   const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
   const answer_text = response?.answer_text || null;
   if (is_valid(answer_text) == false)
@@ -8898,18 +8759,18 @@ async function async_getQueryIndexComponent() {
     "Langchainjs Github": "https://github.com/hwchase17/langchainjs"
   };
   const llm_choices = await getLlmChoices();
-  const inputs4 = [
+  const inputs3 = [
     { name: "query", type: "string", customSocket: "text" },
     { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be queried", allowMultiple: true },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
     { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
     { name: "new_index", title: "index", type: "string", description: "All injested information sharing the same Index will be grouped and queried together" }
   ];
-  const outputs4 = [
+  const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
   ];
   const controls3 = null;
-  const component = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs4, outputs4, controls3, queryIndex);
+  const component = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs3, outputs3, controls3, queryIndex);
   return component;
 }
 async function queryIndex(payload, ctx) {
@@ -8930,26 +8791,25 @@ async function queryIndex(payload, ctx) {
   const vectorstore = await computeVectorstore(all_chunks, embedder);
   if (!vectorstore)
     throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
-  const query_result = await smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id);
+  const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);
   console.timeEnd("queryIndex");
   return { result: { "ok": true }, answer: query_result };
 }
 
 // component_GetDocumentsIndexes.js
-import { omnilog as omnilog4 } from "mercs_shared";
 var NAMESPACE4 = "document_processing";
 var OPERATION_ID4 = "get_documents_indexes";
 var TITLE4 = "Get Documents Indexes";
 var DESCRIPTION4 = "Get information about the non-empty Indexes currently present";
 var SUMMARY4 = "Get information about the non-empty Indexes currently present";
 var CATEGORY4 = "document processing";
-var inputs3 = [];
-var outputs3 = [
+var inputs2 = [];
+var outputs2 = [
   { name: "indexes", type: "array", description: "An array of Index names" }
 ];
 var links2 = {};
 var controls2 = null;
-var DocumentsIndexesComponent = createComponent(NAMESPACE4, OPERATION_ID4, TITLE4, CATEGORY4, DESCRIPTION4, SUMMARY4, links2, inputs3, outputs3, controls2, getDocumentsIndexes_function);
+var DocumentsIndexesComponent = createComponent(NAMESPACE4, OPERATION_ID4, TITLE4, CATEGORY4, DESCRIPTION4, SUMMARY4, links2, inputs2, outputs2, controls2, getDocumentsIndexes_function);
 async function getDocumentsIndexes_function(payload, ctx) {
   console.time("getDocumentsIndexes_function");
   let indexes_info = await getDocumentsIndexes(ctx);
@@ -8959,21 +8819,17 @@ async function getDocumentsIndexes_function(payload, ctx) {
   for (const index of indexes_info) {
     indexes.push(index.key);
   }
-  omnilog4.warn("indexes has #" + indexes.length + " entries");
   return { result: { "ok": true }, indexes };
 }
 
 // extension.js
 async function CreateComponents() {
-  const GptIXPComponent = await async_getGptIxPComponent();
   const LoopGPTComponent = await async_getQueryIndexBruteforceComponent();
   const QueryIndexComponent = await async_getQueryIndexComponent();
   const components = [
-    GptIXPComponent,
     IndexDocumentsComponent,
     LoopGPTComponent,
     QueryIndexComponent,
-    ReadTextFilesComponent,
     DocumentsIndexesComponent
   ];
   return {

@@ -3,14 +3,11 @@
 
 import { queryVectorstore } from './omnilib-docs/vectorstore.js';
 import { queryLlmByModelId, getModelMaxSize } from 'omnilib-llms/llms.js';
-import { console_log, is_valid } from 'omnilib-utils/utils.js';
-import { countTokens } from 'omnilib-llms/tiktoken.js';
+import { console_log,console_warn,is_valid } from 'omnilib-utils/utils.js';
 import { getModelNameAndProviderFromId } from 'omnilib-llms/llm.js'
 
-async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, model_id)
+async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id)
 {
-    console_log(`[smartquery_from_vectorstore] query = ${query}, embedder = ${embedder != null}, vectorstore = ${vectorstore != null}`);
-
     const splits = getModelNameAndProviderFromId(model_id);
     const model_name = splits.model_name;
 
@@ -32,18 +29,23 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
         console_log(`vectorstore_responses[${i}] score = ${score}`);
 
         const raw_text = vectorstore_response?.pageContent;
-        const text = `[...] ${raw_text} [...]\n\n`;
-        const token_cost = countTokens(text);
-        const metadata = vectorstore_response?.metadata; // TBD: contains reference to the chunk that was matched. We could read the token_cost from there
-        console_log(`vectorstore_responses[${i}] metadata = ${JSON.stringify(metadata)}`);
-
+        const chunk = vectorstore_response?.metadata;
+        const chunk_id = chunk?.id;
+        const chunk_source = chunk?.source;
+        const chunk_index = chunk?.index;
+        // TBD: use source and chunk_index to organize the combined text (if it seems needed)
+        const token_cost = chunk?.token_count + 50; // TBD: we could increase the cost by the of 'Source: ' , etc. We use 50 here, which is very generous
+        const text = `Fragment ID = [${chunk_id}]\nFragment Text = [${raw_text}]\n\n`;
+        console_warn(`text = ${text}`);
         if (total_tokens + token_cost > max_size) break;
         total_tokens += token_cost;
         combined_text += text;
+
+        
     }
 
-    const instruction = `Here are some quotes. ${combined_text}`;
-    const prompt = `Based on the quotes, answer this question: ${query}`;
+    const instruction = `Based on the provided document fragments (and their IDs), answer the question of the user's. Always provide the ID(s) of the document fragment(s) that you are answering from. For example, say 'From fragment ID:<fragment_id here>, we know that...`;
+    const prompt = `Fragments:\n${combined_text}\nUser's question: ${query}`;
     
     const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
     const answer_text = response?.answer_text || null;
@@ -52,4 +54,4 @@ async function smartquery_from_vectorstore(ctx, vectorstore, query, embedder, mo
     return answer_text;
 }
 
-export {smartquery_from_vectorstore}
+export {smartqueryFromVectorstore}

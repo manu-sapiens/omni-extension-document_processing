@@ -11,30 +11,34 @@ const AVERAGE_CHARACTER_PER_WORD = 5;
 const AVERAGE_WORD_PER_TOKEN = 0.75;
 const EMBEDDING_BATCH_SIZE = 10;
 
-async function breakTextIntoChunks(text, splitter)
+function createBatches(arr, size)
+{
+  const batches = [];
+  for (let i = 0; i < arr.length; i += size)
+  {
+    const start_index = i;
+    const end_index = Math.min(i + size, arr.length);
+    const batch = arr.slice(start_index, end_index);
+    batches.push(batch);
+  }
+  return batches;
+};
+
+// Function to group splitted_texts into batches of EMBEDDING_BATCH_SIZE
+async function breakTextIntoBatches(text, splitter)
 {
   const splitted_texts = await splitter.splitText(text);
-
-  // Function to group splitted_texts into batches of EMBEDDING_BATCH_SIZE
-  const createBatches = (arr, size) =>
-  {
-    const batches = [];
-    for (let i = 0; i < arr.length; i += size)
-    {
-      batches.push(arr.slice(i, i + size));
-    }
-    return batches;
-  };
-
   const textBatches = createBatches(splitted_texts, EMBEDDING_BATCH_SIZE);
   return textBatches;
 }
-async function computeChunksEmbedding(ctx, textBatches, hasher, embedder, tokenCounterFunction )
+
+async function computeChunks(ctx, document_id, textBatches, hasher, embedder, tokenCounterFunction )
 {
   const chunks = [];
-
+  let index = 0;
   for (const textBatch of textBatches)
   {
+    
     const embeddingPromises = textBatch.map(async (chunk_text) =>
     {
       const nb_of_chars = chunk_text.length;
@@ -43,13 +47,15 @@ async function computeChunksEmbedding(ctx, textBatches, hasher, embedder, tokenC
         const chunk_id = computeChunkId(ctx, chunk_text, hasher);
         await embedder.embedQuery(chunk_text); // No need to save it as the embedder is automatically caching the embedding of each chunk in the DB
         const chunk_token_count = tokenCounterFunction(chunk_text);
-        const chunk_json = { text: chunk_text, id: chunk_id, token_count: chunk_token_count };
+        const chunk_json = { source: document_id, index: index, id: chunk_id, token_count: chunk_token_count, text: chunk_text };
         return chunk_json;
       }
     });
 
     const batchResults = await Promise.all(embeddingPromises);
     chunks.push(...batchResults);
+
+    index += 1;
   }
 
   if (is_valid(chunks) === false)
@@ -79,10 +85,10 @@ async function uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overla
   return text_cdn;
 }
 
-async function chunkText(ctx, document_text, hasher, embedder, splitter, tokenCounterFunction)
+async function chunkText(ctx, document_id, document_text, hasher, embedder, splitter, tokenCounterFunction)
 {
-    const text_batches = await breakTextIntoChunks(document_text, splitter);
-    const document_chunks = await computeChunksEmbedding(ctx, text_batches, hasher, embedder, tokenCounterFunction);
+    const text_batches = await breakTextIntoBatches(document_text, splitter);
+    const document_chunks = await computeChunks(ctx, document_id, text_batches, hasher, embedder, tokenCounterFunction);
     return document_chunks;
 }
 

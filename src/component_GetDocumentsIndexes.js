@@ -1,6 +1,5 @@
 //@ts-check
 // ChunkFilesComponent.js
-import { omnilog } from 'mercs_shared'
 import { createComponent} from 'omnilib-utils/component.js';
 import { getDocumentsIndexes} from './omnilib-docs/vectorstore.js';
 const NAMESPACE = 'document_processing';
@@ -36,7 +35,6 @@ async function getDocumentsIndexes_function(payload, ctx)
         indexes.push(index.key);
     }
 
-    omnilog.warn("indexes has #"+ indexes.length + " entries");
     return { result: { "ok": true }, indexes: indexes };
 }
 

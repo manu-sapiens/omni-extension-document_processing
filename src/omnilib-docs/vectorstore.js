@@ -22,10 +22,9 @@ export function getIndexesChoices()
     return index_choices;
 }
 
-async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) 
+async function createVectorstoreFromChunks(chunks, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) 
 {
-    console_log(`create vectorstore from: texts #= ${texts.length}, text_ids #= ${text_ids.length}, embedder = ${embedder != null}`);
-
+    const texts = getChunksTexts(chunks);
     let vectorstore;
 
     switch (vectorstore_type) {
@@ -33,7 +32,7 @@ async function createVectorstoreFromTexts(texts, text_ids, embedder, vectorstore
             vectorstore = null;//await faiss_from_texts(texts, text_ids, embedder);
             break;
         case MEMORY_VECTORSTORE:
-            vectorstore = await memoryFromTexts(texts, text_ids, embedder);
+            vectorstore = await memoryFromTexts(texts, chunks, embedder);
             break;
         case LANCEDB_VECTORSTORE:
             vectorstore = null;
@@ -75,6 +74,20 @@ function getTextsAndIds(chunks)
     return [chunk_texts, chunk_ids];
 }
 
+function getChunksTexts(chunks)
+{
+    if (is_valid(chunks) == false) throw new Error(`get_texts_and_ids: chunks_list is invalid`);
+    let chunk_texts = [];
+    for (let i = 0; i < chunks.length; i++)
+    {
+        const chunk = chunks[i];
+
+        const chunk_text = chunk.text;
+        chunk_texts.push(chunk_text);
+    }
+    return chunk_texts;
+}
+
 
 async function computeVectorstore(chunks, embedder)
 {
@@ -83,24 +96,8 @@ async function computeVectorstore(chunks, embedder)
     // However, the embedding class itself will check if the embeddings have been
     // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
 
-    console_log(`----= grab_vectorstore: all_chunks# = ${chunks.length} =----`);
-    if (is_valid(chunks) == false) throw new Error(`[computeVectorstore] Error getting chunks from database with id ${JSON.stringify(chunks)}`);
-
-    const [all_texts, all_ids] = getTextsAndIds(chunks);
-    console_log(`all_texts length = ${all_texts.length}, all_ids length = ${all_ids.length}`);
-    const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
-    return vectorstore;
-}
-
-async function loadVectorstore(embedder)
-{
-    // we recompute the vectorstore from each chunk's text each time because the load/save ability of embeddings in langchain 
-    // is bound to disk operations and I find it distateful to save to temp files on the disk just to handle that.
-    // However, the embedding class itself will check if the embeddings have been
-    // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
-
-    const [all_texts, all_ids] = await embedder.getAllTextsAndIds();
-    const vectorstore = await createVectorstoreFromTexts(all_texts, all_ids, embedder);
+    if (is_valid(chunks) == false) throw new Error(`[computeVectorstore] Error getting chunks`);
+    const vectorstore = await createVectorstoreFromChunks(chunks, embedder);
     return vectorstore;
 }
 
@@ -252,4 +249,4 @@ export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_
 }
 
 
-export { queryVectorstore , computeVectorstore, sanitizeIndexName, loadVectorstore, createVectorstoreFromTexts }
+export { queryVectorstore , computeVectorstore, sanitizeIndexName, createVectorstoreFromChunks }
