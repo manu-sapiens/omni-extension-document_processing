@@ -88,19 +88,6 @@ function getChunksTexts(chunks)
     return chunk_texts;
 }
 
-
-async function computeVectorstore(chunks, embedder)
-{
-    // we recompute the vectorstore from each chunk's text each time because the load/save ability of embeddings in langchain 
-    // is bound to disk operations and I find it distateful to save to temp files on the disk just to handle that.
-    // However, the embedding class itself will check if the embeddings have been
-    // computed already and will not recompute them - given the exact same text hash and vectorstore_name.
-
-    if (is_valid(chunks) == false) throw new Error(`[computeVectorstore] Error getting chunks`);
-    const vectorstore = await createVectorstoreFromChunks(chunks, embedder);
-    return vectorstore;
-}
-
 function sanitizeIndexName(vectorstore_name)
 {
     if (is_valid(vectorstore_name) == false) return null;
@@ -249,4 +236,4 @@ export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_
 }
 
 
-export { queryVectorstore , computeVectorstore, sanitizeIndexName, createVectorstoreFromChunks }
+export { queryVectorstore , sanitizeIndexName, createVectorstoreFromChunks }

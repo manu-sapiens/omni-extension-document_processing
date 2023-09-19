@@ -8078,12 +8078,6 @@ function getChunksTexts(chunks) {
   }
   return chunk_texts;
 }
-async function computeVectorstore(chunks, embedder) {
-  if (is_valid(chunks) == false)
-    throw new Error(`[computeVectorstore] Error getting chunks`);
-  const vectorstore = await createVectorstoreFromChunks(chunks, embedder);
-  return vectorstore;
-}
 function sanitizeIndexName(vectorstore_name) {
   if (is_valid(vectorstore_name) == false)
     return null;
@@ -8734,7 +8728,7 @@ Fragment Text = [${raw_text}]
     total_tokens += token_cost;
     combined_text += text;
   }
-  const instruction = `Based on the provided document fragments (and their IDs), answer the question of the user's. Always provide the ID(s) of the document fragment(s) that you are answering from. For example, say 'From fragment ID:<fragment_id here>, we know that...`;
+  const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment ID you use in your answer. For example, say 'Alice is married to Bob [1] and they have one son [2]. [1] <fragment_id>, [2]: <fragment_id>...`;
   const prompt = `Fragments:
 ${combined_text}
 User's question: ${query}`;
@@ -8788,7 +8782,7 @@ async function queryIndex(payload, ctx) {
   if (index_name in indexes == false)
     throw new Error(`[query_chunks_component] index ${index_name} not found in indexes`);
   const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
-  const vectorstore = await computeVectorstore(all_chunks, embedder);
+  const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
   if (!vectorstore)
     throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
   const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);

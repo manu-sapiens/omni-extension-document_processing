@@ -1,7 +1,7 @@
 //@ts-check
 // QueryChunksComponent.js
 import { createComponent } from 'omnilib-utils/component.js';
-import { computeVectorstore, sanitizeIndexName } from './omnilib-docs/vectorstore.js';
+import { createVectorstoreFromChunks } from './omnilib-docs/vectorstore.js';
 import { smartqueryFromVectorstore } from './smartquery.js';
 import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omnilib-llms/llms.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
@@ -65,7 +65,7 @@ async function queryIndex(payload, ctx)
   if (index_name in indexes == false) throw new Error(`[query_chunks_component] index ${index_name} not found in indexes`);
 
   const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
-  const vectorstore = await computeVectorstore(all_chunks, embedder);
+  const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
   if (!vectorstore) throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
 
   const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);

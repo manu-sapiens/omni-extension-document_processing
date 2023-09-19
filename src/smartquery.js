@@ -44,7 +44,9 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
         
     }
 
-    const instruction = `Based on the provided document fragments (and their IDs), answer the question of the user's. Always provide the ID(s) of the document fragment(s) that you are answering from. For example, say 'From fragment ID:<fragment_id here>, we know that...`;
+    //const instruction = `Based on the provided document fragments (and their IDs), answer the question of the user's. Always provide the ID(s) of the document fragment(s) that you are answering from. For example, say 'From fragment ID:<fragment_id here>, we know that...`;
+    const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment ID you use in your answer. For example, say 'Alice is married to Bob [1] and they have one son [2]. [1] <fragment_id>, [2]: <fragment_id>...`;
+
     const prompt = `Fragments:\n${combined_text}\nUser's question: ${query}`;
     
     const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
