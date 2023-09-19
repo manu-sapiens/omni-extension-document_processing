@@ -4,8 +4,8 @@ import { computeChunkId, computeDocumentId } from './hashers.js';
 import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from 'omnilib-utils/cdn.js';
 import { is_valid, console_log } from 'omnilib-utils/utils.js';
 
-const DEFAULT_CHUNK_SIZE = 4096;
-const DEFAULT_CHUNK_OVERLAP = 512;
+const DEFAULT_CHUNK_SIZE = 8092;
+const DEFAULT_CHUNK_OVERLAP = 4096; // !!!!!
 
 const AVERAGE_CHARACTER_PER_WORD = 5;
 const AVERAGE_WORD_PER_TOKEN = 0.75;
@@ -30,6 +30,28 @@ async function breakTextIntoBatches(text, splitter)
   const splitted_texts = await splitter.splitText(text);
   const textBatches = createBatches(splitted_texts, EMBEDDING_BATCH_SIZE);
   return textBatches;
+}
+
+export function computeTokenToChunkingSizeRatio(chunks, chunk_size, chunk_overlap)
+{
+  let total_token_count = 0;
+  let total_chunk_size = 0;
+
+  let index = 0;
+  for (const chunk of chunks)
+  {
+      if (index != chunks.length - 1) 
+      {
+          if (chunk && chunk.token_count) total_token_count += chunk.token_count;
+          total_chunk_size += (chunk_size + chunk_overlap);
+      }
+      index += 1;
+  }
+
+  let token_to_chunking_size_ratio = -1;
+  if (total_chunk_size != 0) token_to_chunking_size_ratio = total_token_count / total_chunk_size;
+
+    return token_to_chunking_size_ratio;
 }
 
 async function computeChunks(ctx, document_id, textBatches, hasher, embedder, tokenCounterFunction )

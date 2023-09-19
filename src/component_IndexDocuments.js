@@ -7,7 +7,7 @@ import { initializeEmbedder } from './omnilib-docs/embeddings.js';
 import { chunkText, uploadTextWithCaching } from './omnilib-docs/chunking.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
-import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, saveIndexedDocument } from './omnilib-docs/chunking.js';
+import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, saveIndexedDocument, computeTokenToChunkingSizeRatio } from './omnilib-docs/chunking.js';
 import { countTokens as countTokensFunction } from 'omnilib-llms/tiktoken.js';
 import { GLOBAL_INDEX_NAME, loadIndexes, addCdnToIndex as addCdnToIndex, saveIndexes, getIndexesChoices, getIndexName, getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn } from './omnilib-docs/vectorstore.js';
 
@@ -92,23 +92,9 @@ async function indexDocuments_function(payload, ctx)
             indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokensFunction);
             if (!indexed_document_chunks) throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
     
-            let total_token_count = 0;
-            let total_chunk_size = 0;
-
-            let index = 0;
-            for (const chunk of indexed_document_chunks)
-            {
-                if (index != indexed_document_chunks.length - 1) 
-                {
-                    if (chunk && chunk.token_count) total_token_count += chunk.token_count;
-                    total_chunk_size += (chunk_size + chunk_overlap);
-                }
-                index += 1;
-            }
-
-            let token_to_chunking_size_ratio = -1;
-            if (total_chunk_size != 0) token_to_chunking_size_ratio = total_token_count / total_chunk_size;
-
+            // compute token_to_chunking_size_ratio. This is somewhat optional, but it is useful to know the rough ratio of tokens to chunking size
+            const token_to_chunking_size_ratio = computeTokenToChunkingSizeRatio(indexed_document_chunks, chunk_size, chunk_overlap);
+            
             indexed_document_cdn = await saveIndexedDocument(ctx, document_id, indexed_document_chunks, chunk_size, chunk_overlap, token_to_chunking_size_ratio, splitter_model);
         }
         else

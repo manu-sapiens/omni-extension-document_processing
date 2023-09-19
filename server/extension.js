@@ -7288,9 +7288,9 @@ var TokenTextSplitter = class extends TextSplitter {
 };
 
 // omnilib-docs/chunking.js
-var DEFAULT_CHUNK_SIZE = 4096;
-var DEFAULT_CHUNK_OVERLAP = 512;
-var EMBEDDING_BATCH_SIZE = 10;
+var DEFAULT_CHUNK_SIZE = 8092;
+var DEFAULT_CHUNK_OVERLAP = 4096;
+var EMBEDDING_BATCH_SIZE = 1024;
 function createBatches(arr, size) {
   const batches = [];
   for (let i = 0; i < arr.length; i += size) {
@@ -7305,6 +7305,23 @@ async function breakTextIntoBatches(text, splitter) {
   const splitted_texts = await splitter.splitText(text);
   const textBatches = createBatches(splitted_texts, EMBEDDING_BATCH_SIZE);
   return textBatches;
+}
+function computeTokenToChunkingSizeRatio(chunks, chunk_size, chunk_overlap) {
+  let total_token_count = 0;
+  let total_chunk_size = 0;
+  let index = 0;
+  for (const chunk of chunks) {
+    if (index != chunks.length - 1) {
+      if (chunk && chunk.token_count)
+        total_token_count += chunk.token_count;
+      total_chunk_size += chunk_size + chunk_overlap;
+    }
+    index += 1;
+  }
+  let token_to_chunking_size_ratio = -1;
+  if (total_chunk_size != 0)
+    token_to_chunking_size_ratio = total_token_count / total_chunk_size;
+  return token_to_chunking_size_ratio;
 }
 async function computeChunks(ctx, document_id, textBatches, hasher, embedder, tokenCounterFunction) {
   const chunks = [];
@@ -8229,20 +8246,7 @@ async function indexDocuments_function(payload, ctx) {
       indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokens);
       if (!indexed_document_chunks)
         throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
-      let total_token_count = 0;
-      let total_chunk_size = 0;
-      let index = 0;
-      for (const chunk of indexed_document_chunks) {
-        if (index != indexed_document_chunks.length - 1) {
-          if (chunk && chunk.token_count)
-            total_token_count += chunk.token_count;
-          total_chunk_size += chunk_size + chunk_overlap;
-        }
-        index += 1;
-      }
-      let token_to_chunking_size_ratio = -1;
-      if (total_chunk_size != 0)
-        token_to_chunking_size_ratio = total_token_count / total_chunk_size;
+      const token_to_chunking_size_ratio = computeTokenToChunkingSizeRatio(indexed_document_chunks, chunk_size, chunk_overlap);
       indexed_document_cdn = await saveIndexedDocument(ctx, document_id, indexed_document_chunks, chunk_size, chunk_overlap, token_to_chunking_size_ratio, splitter_model);
     } else {
       const document_info = await getIndexedDocumentInfoFromCdn(ctx, indexed_document_cdn);
@@ -8699,6 +8703,7 @@ async function queryIndexBruteforce(payload, ctx) {
 }
 
 // smartquery.js
+import { omnilog as omnilog2 } from "omni-shared";
 async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
   const splits = getModelNameAndProviderFromId(model_id);
   const model_name = splits.model_name;
@@ -8708,6 +8713,7 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
   let total_tokens = 0;
   let max_size = getModelMaxSize(model_name);
   let combined_text = "";
+  let text_json = [];
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
     const [vectorstore_response, score] = vectorestore_response_array;
@@ -8717,25 +8723,27 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
     const chunk_id = chunk?.id;
     const chunk_source = chunk?.source;
     const chunk_index = chunk?.index;
+    text_json.push({ fragment_text: raw_text, fragment_id: chunk_id, fragment_index: chunk_index, fragment_source: chunk_source });
     const token_cost = chunk?.token_count + 50;
-    const text = `Fragment ID = [${chunk_id}]
-Fragment Text = [${raw_text}]
-
-`;
-    console_warn(`text = ${text}`);
     if (total_tokens + token_cost > max_size)
       break;
     total_tokens += token_cost;
-    combined_text += text;
   }
-  const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment ID you use in your answer. For example, say 'Alice is married to Bob [1] and they have one son [2]. [1] <fragment_id>, [2]: <fragment_id>...`;
-  const prompt = `Fragments:
+  combined_text = JSON.stringify(text_json);
+  console_warn(`combined_text = 
+${combined_text}`);
+  const instruction = `Based on the provided document json, answer the user' question, providing citation that lists the fragment_id that is the source of each relevant information. For example, say 'Question: What is the relathionship between Alice and Bob. Answer: Alice is married to Bob [1] and they have one son [2] but wish to have one more child [3][4]. Citations: [1] <fragment id here>, [2]: <another fragment id here>, etc. Thanks!`;
+  const prompt = `Document Json:
 ${combined_text}
 User's question: ${query}`;
   const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
   const answer_text = response?.answer_text || null;
   if (is_valid(answer_text) == false)
     throw new Error(`ERROR: query_answer is invalid`);
+  console_warn(`instruction = 
+${instruction}`);
+  console_warn(`prompt = 
+${prompt}`);
   return answer_text;
 }
 
@@ -8835,3 +8843,4 @@ var extension_default = { createComponents: CreateComponents };
 export {
   extension_default as default
 };
+//!!!!! 1024: 4m25s // 64: 4:53.470 (4m53s)
