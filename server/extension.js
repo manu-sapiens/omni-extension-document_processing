@@ -2688,7 +2688,7 @@ var require_lib5 = __commonJS({
 });
 
 // node_modules/omnilib-utils/component.js
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "mercs_rete";
+import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "omni-sockets";
 function generateTitle(value) {
   const title = value.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
   return title;
@@ -8274,7 +8274,7 @@ async function indexDocuments_function(payload, ctx) {
 }
 
 // node_modules/omnilib-utils/files.js
-import { ClientExtension, ClientUtils } from "mercs_client";
+import { ClientExtension, ClientUtils } from "omni-client-services";
 
 // node_modules/omnilib-llms/llm.js
 var DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
