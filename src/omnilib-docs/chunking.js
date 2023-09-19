@@ -9,7 +9,7 @@ const DEFAULT_CHUNK_OVERLAP = 4096; // !!!!!
 
 const AVERAGE_CHARACTER_PER_WORD = 5;
 const AVERAGE_WORD_PER_TOKEN = 0.75;
-const EMBEDDING_BATCH_SIZE = 10;
+const EMBEDDING_BATCH_SIZE = 10; // This is the number of chunks that will be embedded in parallel
 
 function createBatches(arr, size)
 {

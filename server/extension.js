@@ -7290,7 +7290,7 @@ var TokenTextSplitter = class extends TextSplitter {
 // omnilib-docs/chunking.js
 var DEFAULT_CHUNK_SIZE = 8092;
 var DEFAULT_CHUNK_OVERLAP = 4096;
-var EMBEDDING_BATCH_SIZE = 1024;
+var EMBEDDING_BATCH_SIZE = 10;
 function createBatches(arr, size) {
   const batches = [];
   for (let i = 0; i < arr.length; i += size) {
@@ -8703,7 +8703,6 @@ async function queryIndexBruteforce(payload, ctx) {
 }
 
 // smartquery.js
-import { omnilog as omnilog2 } from "omni-shared";
 async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
   const splits = getModelNameAndProviderFromId(model_id);
   const model_name = splits.model_name;
@@ -8723,7 +8722,7 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
     const chunk_id = chunk?.id;
     const chunk_source = chunk?.source;
     const chunk_index = chunk?.index;
-    text_json.push({ fragment_text: raw_text, fragment_id: chunk_id, fragment_index: chunk_index, fragment_source: chunk_source });
+    text_json.push({ fragment_text: raw_text, fragment_id: chunk_id });
     const token_cost = chunk?.token_count + 50;
     if (total_tokens + token_cost > max_size)
       break;
@@ -8732,7 +8731,7 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
   combined_text = JSON.stringify(text_json);
   console_warn(`combined_text = 
 ${combined_text}`);
-  const instruction = `Based on the provided document json, answer the user' question, providing citation that lists the fragment_id that is the source of each relevant information. For example, say 'Question: What is the relathionship between Alice and Bob. Answer: Alice is married to Bob [1] and they have one son [2] but wish to have one more child [3][4]. Citations: [1] <fragment id here>, [2]: <another fragment id here>, etc. Thanks!`;
+  const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment_id you use in your answer. For example, say 'Alice is married to Bob [fragment_id] and they have one son [fragment_id]`;
   const prompt = `Document Json:
 ${combined_text}
 User's question: ${query}`;
@@ -8843,4 +8842,3 @@ var extension_default = { createComponents: CreateComponents };
 export {
   extension_default as default
 };
-//!!!!! 1024: 4m25s // 64: 4:53.470 (4m53s)
