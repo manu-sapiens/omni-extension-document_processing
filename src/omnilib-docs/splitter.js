@@ -1,7 +1,5 @@
 //@ts-check
 
-// splitter.js
-
 import { TokenTextSplitter } from "langchain/text_splitter";
 import { SupportedTextSplitterLanguages, RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP } from "./chunking.js";

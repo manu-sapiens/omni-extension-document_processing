@@ -1,10 +1,9 @@
 //@ts-check
-// smartquery.js
+import { queryLlmByModelId, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
+import { console_log,console_warn,is_valid } from 'omni-utils'; //'omnilib-utils/utils.js';
+import { getModelNameAndProviderFromId } from 'omni-utils'; //'omnilib-llms/llm.js'
 
 import { queryVectorstore } from './omnilib-docs/vectorstore.js';
-import { queryLlmByModelId, getModelMaxSize } from 'omnilib-llms/llms.js';
-import { console_log,console_warn,is_valid } from 'omnilib-utils/utils.js';
-import { getModelNameAndProviderFromId } from 'omnilib-llms/llm.js'
 
 async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id)
 {

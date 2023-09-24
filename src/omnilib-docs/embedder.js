@@ -1,10 +1,9 @@
 //@ts-check
-// embeddings.js
+import { is_valid, console_log } from 'omni-utils';//'omnilib-utils/utils.js';
+import { user_db_put, user_db_get, user_db_delete } from 'omni-utils';//'omnilib-utils/database.js';
 
 import { Embeddings } from "langchain/embeddings/base";
-import { is_valid, console_log } from 'omnilib-utils/utils.js';
 import { computeChunkId, initialize_hasher } from "./hashers.js";
-import { user_db_put, user_db_get, user_db_delete } from 'omnilib-utils/database.js';
 
 
 

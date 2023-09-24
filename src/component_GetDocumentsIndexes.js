@@ -1,6 +1,6 @@
 //@ts-check
 // ChunkFilesComponent.js
-import { createComponent} from 'omnilib-utils/component.js';
+import { createComponent} from 'omni-utils'; //'omnilib-utils/component.js';
 import { getDocumentsIndexes} from './omnilib-docs/vectorstore.js';
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "get_documents_indexes";

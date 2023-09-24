@@ -1,12 +1,12 @@
 //@ts-check
 // QueryChunksComponent.js
-import { createComponent } from 'omnilib-utils/component.js';
+import { createComponent } from 'omni-utils'; //'omnilib-utils/component.js';
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omni-utils'; //'omnilib-llms/llms.js';
+
 import { createVectorstoreFromChunks } from './omnilib-docs/vectorstore.js';
 import { smartqueryFromVectorstore } from './smartquery.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omnilib-llms/llms.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
-import { GLOBAL_INDEX_NAME, loadIndexes, readCdnsFromIndex, getIndexesChoices, getIndexName, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
-
+import { GLOBAL_INDEX_NAME, loadIndexes, getIndexesChoices, getIndexName, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "query_index";

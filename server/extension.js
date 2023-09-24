@@ -816,14 +816,14 @@ var require_dist = __commonJS({
       _isIntervalPaused() {
         const now = Date.now();
         if (this._intervalId === void 0) {
-          const delay2 = this._intervalEnd - now;
-          if (delay2 < 0) {
+          const delay = this._intervalEnd - now;
+          if (delay < 0) {
             this._intervalCount = this._carryoverConcurrencyCount ? this._pendingCount : 0;
           } else {
             if (this._timeoutId === void 0) {
               this._timeoutId = setTimeout(() => {
                 this._onResumeInterval();
-              }, delay2);
+              }, delay);
             }
             return true;
           }
@@ -2687,62 +2687,13 @@ var require_lib5 = __commonJS({
   }
 });
 
-// node_modules/omnilib-utils/component.js
-import { OAIBaseComponent, WorkerContext, OmniComponentMacroTypes } from "omni-sockets";
-function generateTitle(value) {
-  const title = value.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
-  return title;
-}
-function setComponentInputs(component, inputs3) {
-  inputs3.forEach(function(input) {
-    var name = input.name, type = input.type, customSocket = input.customSocket, description = input.description, default_value = input.defaultValue, title = input.title, choices = input.choices, minimum = input.minimum, maximum = input.maximum, step = input.step, allow_multiple = input.allowMultiple;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addInput(
-      component.createInput(name, type, customSocket).set("title", title || "").set("description", description || "").set("choices", choices || null).set("minimum", minimum || null).set("maximum", maximum || null).set("step", step || null).set("allowMultiple", allow_multiple || null).setDefault(default_value).toOmniIO()
-    );
-  });
-  return component;
-}
-function setComponentOutputs(component, outputs3) {
-  outputs3.forEach(function(output) {
-    var name = output.name, type = output.type, customSocket = output.customSocket, description = output.description, title = output.title;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addOutput(
-      component.createOutput(name, type, customSocket).set("title", title || "").set("description", description || "").toOmniIO()
-    );
-  });
-  return component;
-}
-function setComponentControls(component, controls3) {
-  controls3.forEach(function(control) {
-    var name = control.name, title = control.title, placeholder = control.placeholder, description = control.description;
-    if (!title || title == "")
-      title = generateTitle(name);
-    component.addControl(
-      component.createControl(name).set("title", title || "").set("placeholder", placeholder || "").set("description", description || "").toOmniControl()
-    );
-  });
-  return component;
-}
-function createComponent(group_id, id, title, category, description, summary, links3, inputs3, outputs3, controls3, payloadParser) {
-  if (!links3)
-    links3 = {};
-  let baseComponent = OAIBaseComponent.create(group_id, id).fromScratch().set("title", title).set("category", category).set("description", description).setMethod("X-CUSTOM").setMeta({
-    source: {
-      summary,
-      links: links3
-    }
-  });
-  baseComponent = setComponentInputs(baseComponent, inputs3);
-  baseComponent = setComponentOutputs(baseComponent, outputs3);
-  if (controls3)
-    baseComponent = setComponentControls(baseComponent, controls3);
-  baseComponent.setMacro(OmniComponentMacroTypes.EXEC, payloadParser);
-  const component = baseComponent.toJSON();
-  return component;
-}
+// component_IndexDocuments.js
+import { createComponent } from "omni-utils";
+import { countTokens as countTokensFunction } from "omni-utils";
+import { downloadTextsFromCdn } from "omni-utils";
+
+// omnilib-docs/hashers.js
+import { console_log, is_valid } from "omni-utils";
 
 // omnilib-docs/hasher.js
 var Hasher = class {
@@ -2781,97 +2732,6 @@ var Hasher_SHA256 = class extends Hasher {
   }
 };
 
-// node_modules/omnilib-utils/utils.js
-import { omnilog } from "omni-shared";
-var VERBOSE = true;
-function is_valid(value) {
-  if (value === null || value === void 0) {
-    return false;
-  }
-  if (Array.isArray(value) && value.length === 0) {
-    return false;
-  }
-  if (typeof value === "object" && Object.keys(value).length === 0) {
-    return false;
-  }
-  if (typeof value === "string" && value.trim() === "") {
-    return false;
-  }
-  return true;
-}
-function clean_string(original) {
-  if (is_valid(original) == false) {
-    return "";
-  }
-  let text = sanitizeString(original);
-  text = text.replace(/\n+/g, " ");
-  text = text.replace(/ +/g, " ");
-  return text;
-}
-function sanitizeString(original, use_escape_character = false) {
-  return use_escape_character ? original.replace(/'/g, "\\'").replace(/"/g, '\\"') : original.replace(/'/g, "\u2018").replace(/"/g, "\u201C");
-}
-function sanitizeJSON(jsonData) {
-  if (!is_valid(jsonData))
-    return null;
-  if (typeof jsonData === "string") {
-    return sanitizeString(jsonData);
-  }
-  if (typeof jsonData === "object") {
-    if (Array.isArray(jsonData)) {
-      const new_json_array = [];
-      for (let i = 0; i < jsonData.length; i++) {
-        const data = jsonData[i];
-        const sanetized_data = sanitizeJSON(data);
-        if (is_valid(sanetized_data))
-          new_json_array.push(sanetized_data);
-      }
-      return new_json_array;
-    } else {
-      let new_json = {};
-      for (const key in jsonData) {
-        if (jsonData.hasOwnProperty(key)) {
-          const value = jsonData[key];
-          if (is_valid(value)) {
-            const new_value = sanitizeJSON(value);
-            if (is_valid(new_value))
-              new_json[key] = new_value;
-          }
-        }
-      }
-      return new_json;
-    }
-  }
-  return jsonData;
-}
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-async function pauseForSeconds(seconds) {
-  console_log("Before pause");
-  await delay(seconds * 1e3);
-  console_log("After pause");
-}
-function console_log(...args) {
-  if (VERBOSE == true) {
-    omnilog.log(...args);
-  }
-}
-function console_warn(...args) {
-  if (VERBOSE == true) {
-    omnilog.warn(...args);
-  }
-}
-function combineStringsWithoutOverlap(str1, str2) {
-  let overlap = 0;
-  for (let i = 1; i <= Math.min(str1.length, str2.length); i++) {
-    if (str1.endsWith(str2.substring(0, i))) {
-      overlap = i;
-    }
-  }
-  return str1 + str2.substring(overlap);
-}
-
 // omnilib-docs/hashers.js
 var HASHER_MODEL_SHA256 = "SHA256";
 var DEFAULT_HASHER_MODEL = HASHER_MODEL_SHA256;
@@ -2907,148 +2767,6 @@ function initialize_hasher(hasher_model = DEFAULT_HASHER_MODEL) {
     throw new Error(`get_hasher: Failed to initialize hasher_model ${hasher_model} with error: ${e}`);
   }
   return hasher;
-}
-
-// node_modules/omnilib-utils/database.js
-var OMNITOOL_DOCUMENT_TYPES_USERDOC = "udoc";
-function get_effective_key(ctx, key) {
-  return `${ctx.userId}:${key}`;
-}
-function get_db(ctx) {
-  const db = ctx.app.services.get("db");
-  return db;
-}
-async function user_db_delete(ctx, key, rev = void 0) {
-  const db = get_db(ctx);
-  const effectiveKey = get_effective_key(ctx, key);
-  console_log(`DELETING key: ${effectiveKey}`);
-  let effective_rev = rev;
-  if (effective_rev == void 0) {
-    try {
-      const get_result = await db.getDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey);
-      effective_rev = get_result._rev;
-      console_log(`fixing rev SUCCEEDED - deleteted rev ${effective_rev}`);
-      try {
-        await db.deleteDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey, effective_rev);
-      } catch (e) {
-        console.warn(`deleting ${key} = ${effectiveKey} failed with error: ${e}`);
-      }
-      return true;
-    } catch (e) {
-      console_log(`deleting: fixing rev failed`);
-    }
-  }
-}
-async function user_db_put(ctx, value, key, rev = void 0) {
-  const db = get_db(ctx);
-  const effectiveKey = get_effective_key(ctx, key);
-  console_log(`put: ${key} = ${effectiveKey} with rev ${rev}`);
-  let effective_rev = rev;
-  if (effective_rev == void 0) {
-    try {
-      const get_result = await db.getDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey);
-      effective_rev = get_result._rev;
-      console_log(`fixing rev SUCCEEDED - deleteted rev ${effective_rev}`);
-    } catch (e) {
-      console_log(`fixing rev failed`);
-    }
-  }
-  try {
-    let json = await db.putDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey, { value }, effective_rev);
-    if (json == null) {
-      console_log(`put: ${key} = ${effectiveKey} failed`);
-      return false;
-    } else {
-      console_log(`put: ${key} = ${effectiveKey} succeeded`);
-    }
-  } catch (e) {
-    throw new Error(`put: ${key} = ${effectiveKey} failed with error: ${e}`);
-  }
-  return true;
-}
-async function user_db_get(ctx, key) {
-  const effectiveKey = get_effective_key(ctx, key);
-  const db = get_db(ctx);
-  let json = null;
-  try {
-    json = await db.getDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey);
-  } catch (e) {
-    console_log(`usr_db_get: ${key} = ${effectiveKey} failed with error: ${e}`);
-  }
-  if (json == null)
-    return null;
-  const json_value = json.value;
-  if (json_value == null) {
-    console_log(`usr_db_get NULL VALUE. DELETING IT: ${key} = ${effectiveKey} json = ${JSON.stringify(json)}`);
-    await db.deleteDocumentById(OMNITOOL_DOCUMENT_TYPES_USERDOC, effectiveKey, json._rev);
-    return null;
-  }
-  return json_value;
-}
-
-// node_modules/omnilib-utils/cdn.js
-async function get_json_from_cdn(ctx, cdn_response) {
-  if ("ticket" in cdn_response == false)
-    throw new Error(`get_json_from_cdn: cdn_response = ${JSON.stringify(cdn_response)} is invalid`);
-  const response_from_cdn = await ctx.app.cdn.get(cdn_response.ticket, null, "asBase64");
-  if (response_from_cdn == null)
-    throw new Error(`get_json_from_cdn: document = ${JSON.stringify(response_from_cdn)} is invalid`);
-  let json = null;
-  try {
-    const str = response_from_cdn.data.toString();
-    const buffer = Buffer.from(str, "base64");
-    const json_string = buffer.toString("utf8");
-    json = JSON.parse(json_string);
-  } catch (e) {
-    throw new Error(`get_json_from_cdn: error converting response_from_cdn.data to utf-8, error = ${e}`);
-  }
-  return json;
-}
-async function save_json_to_cdn_as_buffer(ctx, json) {
-  const responses_string = JSON.stringify(json, null, 2).trim();
-  const buffer = Buffer.from(responses_string);
-  const cdn_response = await ctx.app.cdn.putTemp(buffer, { userId: ctx.userId });
-  console_log(`cdn_response = ${JSON.stringify(cdn_response)}`);
-  return cdn_response;
-}
-async function get_cached_cdn(ctx, object_id, overwrite = false) {
-  let cdn = null;
-  if (overwrite) {
-    await user_db_delete(ctx, object_id);
-  } else {
-    cdn = await user_db_get(ctx, object_id);
-  }
-  console_log(`[get_cached_cdn] cdn = ${JSON.stringify(cdn)}, typeof cdn = ${typeof cdn}`);
-  return cdn;
-}
-async function save_chunks_cdn_to_db(ctx, chunks_cdn, chunks_id) {
-  const success = await user_db_put(ctx, chunks_cdn, chunks_id);
-  if (success == false)
-    throw new Error(`ERROR: could not save chunks_cdn to db`);
-  return success;
-}
-async function downloadTextsFromCdn(ctx, documents_cdns) {
-  if (is_valid(documents_cdns) == false)
-    throw new Error(`ERROR: documents is invalid. documents = ${JSON.stringify(documents_cdns)}`);
-  let texts = [];
-  for (let i = 0; i < documents_cdns.length; i++) {
-    const document_cdn = documents_cdns[i];
-    try {
-      const document = await ctx.app.cdn.get(document_cdn.ticket);
-      const text = document.data.toString() || "";
-      if (is_valid(text) == false) {
-        console_log(`WARNING: text is null or undefined or empty for document = ${JSON.stringify(document)}`);
-        continue;
-      }
-      const clearn_text = clean_string(text);
-      texts.push(clearn_text);
-    } catch (error) {
-      console_log(`WARNING: document ${JSON.stringify(document_cdn)} cannot be retrieved from cdn`);
-    }
-  }
-  if (is_valid(texts) == false)
-    throw new Error(`ERROR: texts is invalid`);
-  return texts;
 }
 
 // node_modules/langchain/dist/document.js
@@ -4433,6 +4151,12 @@ var Client = class _Client {
       writable: true,
       value: void 0
     });
+    Object.defineProperty(this, "webUrl", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
     Object.defineProperty(this, "caller", {
       enumerable: true,
       configurable: true,
@@ -4445,9 +4169,16 @@ var Client = class _Client {
       writable: true,
       value: void 0
     });
+    Object.defineProperty(this, "_tenantId", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: null
+    });
     const defaultConfig = _Client.getDefaultClientConfig();
     this.apiUrl = trimQuotes(config.apiUrl ?? defaultConfig.apiUrl) ?? "";
     this.apiKey = trimQuotes(config.apiKey ?? defaultConfig.apiKey);
+    this.webUrl = trimQuotes(config.webUrl ?? defaultConfig.webUrl);
     this.validateApiKeyIfHosted();
     this.timeout_ms = config.timeout_ms ?? 4e3;
     this.caller = new AsyncCaller2(config.callerOptions ?? {});
@@ -4457,7 +4188,8 @@ var Client = class _Client {
     const apiUrl = getEnvironmentVariable("LANGCHAIN_ENDPOINT") ?? (apiKey ? "https://api.smith.langchain.com" : "http://localhost:1984");
     return {
       apiUrl,
-      apiKey
+      apiKey,
+      webUrl: void 0
     };
   }
   validateApiKeyIfHosted() {
@@ -4467,11 +4199,16 @@ var Client = class _Client {
     }
   }
   getHostUrl() {
-    if (isLocalhost(this.apiUrl)) {
+    if (this.webUrl) {
+      return this.webUrl;
+    } else if (isLocalhost(this.apiUrl)) {
+      this.webUrl = "http://localhost";
       return "http://localhost";
     } else if (this.apiUrl.split(".", 1)[0].includes("dev")) {
+      this.webUrl = "https://dev.smith.langchain.com";
       return "https://dev.smith.langchain.com";
     } else {
+      this.webUrl = "https://smith.langchain.com";
       return "https://smith.langchain.com";
     }
   }
@@ -4573,19 +4310,39 @@ var Client = class _Client {
     }
     return run;
   }
-  async getRunUrl({ runId }) {
-    const run = await this.readRun(runId);
-    if (!run.app_path) {
-      return void 0;
+  async getRunUrl({ runId, run, projectOpts }) {
+    if (run !== void 0) {
+      let sessionId;
+      if (run.session_id) {
+        sessionId = run.session_id;
+      } else if (projectOpts?.projectName) {
+        sessionId = (await this.readProject({ projectName: projectOpts?.projectName })).id;
+      } else if (projectOpts?.projectId) {
+        sessionId = projectOpts?.projectId;
+      } else {
+        const project = await this.readProject({
+          projectName: getEnvironmentVariable("LANGCHAIN_PROJECT") || "default"
+        });
+        sessionId = project.id;
+      }
+      const tenantId = await this._getTenantId();
+      return `${this.getHostUrl()}/o/${tenantId}/projects/p/${sessionId}/r/${run.id}?poll=true`;
+    } else if (runId !== void 0) {
+      const run_ = await this.readRun(runId);
+      if (!run_.app_path) {
+        throw new Error(`Run ${runId} has no app_path`);
+      }
+      const baseUrl = this.getHostUrl();
+      return `${baseUrl}${run_.app_path}`;
+    } else {
+      throw new Error("Must provide either runId or run");
     }
-    const baseUrl = this.getHostUrl();
-    return `${baseUrl}${run.app_path}`;
   }
   async _loadChildRuns(run) {
     const childRuns = await toArray(this.listRuns({ id: run.child_run_ids }));
     const treemap = {};
     const runs = {};
-    childRuns.sort((a, b) => a.execution_order - b.execution_order);
+    childRuns.sort((a, b) => (a?.dotted_order ?? "").localeCompare(b?.dotted_order ?? ""));
     for (const childRun of childRuns) {
       if (childRun.parent_run_id === null || childRun.parent_run_id === void 0) {
         throw new Error(`Child run ${childRun.id} has no parent`);
@@ -4739,6 +4496,17 @@ var Client = class _Client {
       result = response;
     }
     return result;
+  }
+  async _getTenantId() {
+    if (this._tenantId !== null) {
+      return this._tenantId;
+    }
+    const queryParams = new URLSearchParams({ limit: "1" });
+    for await (const projects of this._getPaginated("/sessions", queryParams)) {
+      this._tenantId = projects[0].tenant_id;
+      return projects[0].tenant_id;
+    }
+    throw new Error("No projects found to resolve tenant.");
   }
   async *listProjects({ projectIds, name, nameContains, referenceDatasetId, referenceDatasetName, referenceFree } = {}) {
     const params = new URLSearchParams();
@@ -7288,6 +7056,8 @@ var TokenTextSplitter = class extends TextSplitter {
 };
 
 // omnilib-docs/chunking.js
+import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from "omni-utils";
+import { is_valid as is_valid2, console_log as console_log2 } from "omni-utils";
 var DEFAULT_CHUNK_SIZE = 8092;
 var DEFAULT_CHUNK_OVERLAP = 4096;
 var EMBEDDING_BATCH_SIZE = 10;
@@ -7341,7 +7111,7 @@ async function computeChunks(ctx, document_id, textBatches, hasher, embedder, to
     chunks.push(...batchResults);
     index += 1;
   }
-  if (is_valid(chunks) === false) {
+  if (is_valid2(chunks) === false) {
     throw new Error(`ERROR could not chunk the documents`);
   }
   return chunks;
@@ -7349,11 +7119,11 @@ async function computeChunks(ctx, document_id, textBatches, hasher, embedder, to
 async function uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overlap, overwrite) {
   const text_id = computeDocumentId(ctx, [text], hasher, chunk_size, chunk_overlap);
   let text_cdn = await get_cached_cdn(ctx, text_id, overwrite);
-  if (!is_valid(text_cdn)) {
+  if (!is_valid2(text_cdn)) {
     const buffer = Buffer.from(text);
     text_cdn = await ctx.app.cdn.putTemp(buffer, { mimeType: "text/plain; charset=utf-8", userId: ctx.userId });
   } else {
-    console_log(`[ingestText] Found text_cdn: ${JSON.stringify(text_cdn)} in the DB under id: ${text_id}. Skipping uploading to CDN...`);
+    console_log2(`[ingestText] Found text_cdn: ${JSON.stringify(text_cdn)} in the DB under id: ${text_id}. Skipping uploading to CDN...`);
   }
   return text_cdn;
 }
@@ -7446,6 +7216,10 @@ function initializeSplitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size 
   return splitter;
 }
 
+// omnilib-docs/embedder.js
+import { is_valid as is_valid3, console_log as console_log3 } from "omni-utils";
+import { user_db_put, user_db_get, user_db_delete } from "omni-utils";
+
 // node_modules/langchain/dist/embeddings/base.js
 var Embeddings = class {
   constructor(params) {
@@ -7485,7 +7259,7 @@ var Embedder = class extends Embeddings {
   */
   async embedDocuments(texts) {
     const embeddings = [];
-    if (is_valid(texts)) {
+    if (is_valid3(texts)) {
       for (let i = 0; i < texts.length; i += 1) {
         let text = texts[i];
         const embedding = await this.embedQuery(text);
@@ -7495,10 +7269,10 @@ var Embedder = class extends Embeddings {
     return embeddings;
   }
   async embedQuery(text, index_name = "", save_embedding = true) {
-    if (!is_valid(text)) {
+    if (!is_valid3(text)) {
       throw new Error(`[embeddings] passed text is invalid ${text}`);
     }
-    console_log(`[embeddings] embedQuery of: ${text.slice(0, 128)}[...]`);
+    console_log3(`[embeddings] embedQuery of: ${text.slice(0, 128)}[...]`);
     const embedding_id = computeChunkId(this.ctx, text, this.hasher);
     let embedding = null;
     if (save_embedding) {
@@ -7508,20 +7282,20 @@ var Embedder = class extends Embeddings {
         const db_entry = await user_db_get(this.ctx, embedding_id);
         embedding = db_entry?.embedding;
       }
-      if (is_valid(embedding)) {
-        console_log(`[embeddings]: embedding found in DB - returning it`);
+      if (is_valid3(embedding)) {
+        console_log3(`[embeddings]: embedding found in DB - returning it`);
         return embedding;
       }
     }
-    console_log(`[embeddings] Not found in DB. Generating embedding for ${text.slice(0, 128)}[...]`);
+    console_log3(`[embeddings] Not found in DB. Generating embedding for ${text.slice(0, 128)}[...]`);
     try {
-      console_log(`[embeddings] Using embedded: ${this.embedder}`);
+      console_log3(`[embeddings] Using embedded: ${this.embedder}`);
       embedding = await this.embedder.embedQuery(text);
-      if (!is_valid(embedding)) {
-        console_log(`[embeddings]: [WARNING] embedding ${embedding} is invalid - returning null <---------------`);
+      if (!is_valid3(embedding)) {
+        console_log3(`[embeddings]: [WARNING] embedding ${embedding} is invalid - returning null <---------------`);
         return null;
       }
-      console_log(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
+      console_log3(`[embeddings]: computed embedding: ${embedding.slice(0, 128)}[...]`);
       if (save_embedding) {
         const db_value = { embedding, text, id: embedding_id };
         const success = await user_db_put(this.ctx, db_value, embedding_id);
@@ -7589,25 +7363,9 @@ var Embedder = class extends Embeddings {
       */
 };
 
-// node_modules/omnilib-utils/blocks.js
-async function runBlock(ctx, block_name, args, outputs3 = {}) {
-  try {
-    const app = ctx.app;
-    if (!app) {
-      throw new Error(`[runBlock] app not found in ctx`);
-    }
-    const blocks = app.blocks;
-    if (!blocks) {
-      throw new Error(`[runBlock] blocks not found in app`);
-    }
-    const result = await blocks.runBlock(ctx, block_name, args, outputs3);
-    return result;
-  } catch (err) {
-    throw new Error(`Error running block ${block_name}: ${err}`);
-  }
-}
-
 // omnilib-docs/embedding_Openai.js
+import { is_valid as is_valid4, console_log as console_log4 } from "omni-utils";
+import { runBlock } from "omni-utils";
 var Embedding_Openai = class extends Embeddings {
   constructor(ctx, params = null) {
     super(params);
@@ -7615,7 +7373,7 @@ var Embedding_Openai = class extends Embeddings {
   }
   async embedDocuments(texts) {
     const embeddings = [];
-    if (is_valid(texts)) {
+    if (is_valid4(texts)) {
       for (let i = 0; i < texts.length; i += 1) {
         let text = texts[i];
         const embedding = await this.embedQuery(text);
@@ -7625,19 +7383,19 @@ var Embedding_Openai = class extends Embeddings {
     return embeddings;
   }
   async embedQuery(text) {
-    console_log(`[OmniOpenAIEmbeddings] embedQuery: Requested to embed text: ${text.slice(0, 128)}[...]`);
-    if (!is_valid(text)) {
-      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: passed text is invalid ${text}`);
+    console_log4(`[OmniOpenAIEmbeddings] embedQuery: Requested to embed text: ${text.slice(0, 128)}[...]`);
+    if (!is_valid4(text)) {
+      console_log4(`[OmniOpenAIEmbeddings] WARNING embedQuery: passed text is invalid ${text}`);
       return null;
     }
-    console_log(`[OmniOpenAIEmbeddings] generating embedding for ${text.slice(0, 128)}`);
+    console_log4(`[OmniOpenAIEmbeddings] generating embedding for ${text.slice(0, 128)}`);
     try {
       const response = await this.compute_embedding_via_runblock(this.ctx, text);
-      console_log(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
+      console_log4(`[OmniOpenAIEmbeddings] embedQuery: response: ${JSON.stringify(response)}`);
       const embedding = response;
       return embedding;
     } catch (error) {
-      console_log(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text}
+      console_log4(`[OmniOpenAIEmbeddings] WARNING embedQuery: Error generating embedding via runBlock for ctx=${this.ctx} and text=${text}
 Error: ${error}`);
       return null;
     }
@@ -7662,7 +7420,7 @@ Error: ${error}`);
       throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response.error: ${response.error}`);
     }
     let data = response?.data || null;
-    if (is_valid(data) == false) {
+    if (is_valid4(data) == false) {
       throw new Error(`[OmniOpenAIEmbeddings] embedding runBlock response is invalid: ${JSON.stringify(response)}`);
     }
     ;
@@ -7690,17 +7448,10 @@ async function initializeEmbedder(ctx) {
   return embedder;
 }
 
-// node_modules/omnilib-llms/tiktoken.js
-import { encode } from "gpt-tokenizer";
-function countTokens(text) {
-  const tokens = encode(text);
-  if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
-    const num_tokens = tokens.length;
-    return num_tokens;
-  } else {
-    return 0;
-  }
-}
+// omnilib-docs/vectorstore.js
+import { console_log as console_log5, is_valid as is_valid5 } from "omni-utils";
+import { user_db_put as user_db_put2, user_db_get as user_db_get2 } from "omni-utils";
+import { get_cached_cdn as get_cached_cdn2, save_chunks_cdn_to_db as save_chunks_cdn_to_db2, get_json_from_cdn as get_json_from_cdn2, save_json_to_cdn_as_buffer as save_json_to_cdn_as_buffer2 } from "omni-utils";
 
 // node_modules/langchain/dist/vectorstores/memory.js
 var import_ml_distance = __toESM(require_lib5(), 1);
@@ -8085,7 +7836,7 @@ async function queryVectorstore(vector_store, query, nb_of_results = 1, embedder
   return results;
 }
 function getChunksTexts(chunks) {
-  if (is_valid(chunks) == false)
+  if (is_valid5(chunks) == false)
     throw new Error(`get_texts_and_ids: chunks_list is invalid`);
   let chunk_texts = [];
   for (let i = 0; i < chunks.length; i++) {
@@ -8096,7 +7847,7 @@ function getChunksTexts(chunks) {
   return chunk_texts;
 }
 function sanitizeIndexName(vectorstore_name) {
-  if (is_valid(vectorstore_name) == false)
+  if (is_valid5(vectorstore_name) == false)
     return null;
   const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
   return clean_name;
@@ -8114,7 +7865,7 @@ function getIndexName(existing_name, new_index) {
 var GLOBAL_INDEX_NAME = "global_index";
 var INDEXES_LIST = "omni_indexes_list";
 async function loadIndexes(ctx) {
-  const loadedData = await user_db_get(ctx, INDEXES_LIST);
+  const loadedData = await user_db_get2(ctx, INDEXES_LIST);
   const indexes = loadedData || {};
   return indexes;
 }
@@ -8132,15 +7883,15 @@ function readCdnsFromIndex(indexes, index_name) {
   return indexed_document_cdns;
 }
 async function saveIndexes(ctx, indexes) {
-  await user_db_put(ctx, indexes, INDEXES_LIST);
+  await user_db_put2(ctx, indexes, INDEXES_LIST);
 }
 async function getDocumentsIndexes(ctx) {
-  const loadedData = await user_db_get(ctx, INDEXES_LIST);
+  const loadedData = await user_db_get2(ctx, INDEXES_LIST);
   let indexes = loadedData || null;
   if (!indexes || Object.keys(indexes).length == 0) {
     indexes = {};
     indexes[GLOBAL_INDEX_NAME] = [];
-    await user_db_put(ctx, indexes, INDEXES_LIST);
+    await user_db_put2(ctx, indexes, INDEXES_LIST);
   }
   const relevantIndexes = [];
   for (const key in indexes) {
@@ -8154,11 +7905,11 @@ async function getDocumentsIndexes(ctx) {
   return relevantIndexes;
 }
 async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) {
-  const document_cdn = await get_cached_cdn(ctx, document_id, overwrite);
+  const document_cdn = await get_cached_cdn2(ctx, document_id, overwrite);
   return document_cdn;
 }
 async function getIndexedDocumentInfoFromCdn(ctx, document_cdn) {
-  const document_info = await get_json_from_cdn(ctx, document_cdn);
+  const document_info = await get_json_from_cdn2(ctx, document_cdn);
   if (!document_info)
     throw new Error(`ERROR: could not get document_json from cdn`);
   return document_info;
@@ -8243,7 +7994,7 @@ async function indexDocuments_function(payload, ctx) {
       throw new Error(`ERROR: could not compute document_id for document with index:${document_index}, id:${document_id}`);
     let indexed_document_cdn = await getIndexedDocumentCdnFromId(ctx, document_id, overwrite);
     if (!indexed_document_cdn) {
-      indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokens);
+      indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokensFunction);
       if (!indexed_document_chunks)
         throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
       const token_to_chunking_size_ratio = computeTokenToChunkingSizeRatio(indexed_document_chunks, chunk_size, chunk_overlap);
@@ -8277,350 +8028,11 @@ async function indexDocuments_function(payload, ctx) {
   return { result: { "ok": true }, documents: all_cdns, index: index_name, info };
 }
 
-// node_modules/omnilib-utils/files.js
-import { ClientExtension, ClientUtils } from "omni-client-services";
-
-// node_modules/omnilib-llms/llm.js
-var DEFAULT_UNKNOWN_CONTEXT_SIZE = 2048;
-function generateModelId(model_name, model_provider) {
-  return `${model_name}|${model_provider}`;
-}
-function getModelNameAndProviderFromId(model_id) {
-  if (!model_id)
-    throw new Error(`getModelNameAndProviderFromId: model_id is not valid: ${model_id}`);
-  const splits = model_id.split("|");
-  if (splits.length != 2)
-    throw new Error(`splitModelNameFromType: model_id is not valid: ${model_id}`);
-  return { model_name: splits[0], model_provider: splits[1] };
-}
-function deduceLlmTitle(model_name, model_provider, provider_icon = "?") {
-  const title = provider_icon + model_name.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) + " (" + model_provider + ")";
-  return title;
-}
-function deduceLlmDescription(model_name, context_size = 0) {
-  let description = model_name.substring(0, model_name.length - 4);
-  if (context_size > 0)
-    description += ` (${Math.floor(context_size / 1024)}k)`;
-  return description;
-}
-async function fixJsonWithLlm(llm, json_string_to_fix) {
-  const ctx = llm.ctx;
-  let response = null;
-  const args = {};
-  args.user = ctx.userId;
-  args.prompt = json_string_to_fix;
-  args.instruction = "Fix the JSON string below. Do not output anything else but the carefully fixed JSON string.";
-  ;
-  args.temperature = 0;
-  try {
-    response = await llm.runLlmBlock(ctx, args);
-  } catch (err) {
-    console.error(`[FIXING] fixJsonWithLlm: Error fixing json: ${err}`);
-    return null;
-  }
-  let text = response?.answer_text || "";
-  console_log(`[FIXING] fixJsonWithLlm: text: ${text}`);
-  if (is_valid(text) === false)
-    return null;
-  return text;
-}
-async function fixJsonString(llm, passed_string) {
-  if (is_valid(passed_string) === false) {
-    throw new Error(`[FIXING] fixJsonString: passed string is not valid: ${passed_string}`);
-  }
-  if (typeof passed_string !== "string") {
-    throw new Error(`[FIXING] fixJsonString: passed string is not a string: ${passed_string}, type = ${typeof passed_string}`);
-  }
-  let cleanedString = passed_string.replace(/\\n/g, "\n");
-  let jsonObject = null;
-  let fixed = false;
-  let attempt_count = 0;
-  let attempt_at_cleaned_string = cleanedString;
-  while (fixed === false && attempt_count < 10) {
-    attempt_count++;
-    console_log(`[FIXING] Attempting to fix JSON string after ${attempt_count} attempts.
-`);
-    try {
-      jsonObject = JSON.parse(attempt_at_cleaned_string);
-    } catch (err) {
-      console.error(`[FIXING] [${attempt_count}] Error fixing JSON string: ${err}, attempt_at_cleaned_string: ${attempt_at_cleaned_string}`);
-    }
-    if (jsonObject !== null && jsonObject !== void 0) {
-      fixed = true;
-      console_log(`[FIXING] Successfully fixed JSON string after ${attempt_count} attempts.
-`);
-      return jsonObject;
-    }
-    let response = await fixJsonWithLlm(llm, passed_string);
-    if (response !== null && response !== void 0) {
-      attempt_at_cleaned_string = response;
-    }
-    await pauseForSeconds(0.5);
-  }
-  if (fixed === false) {
-    throw new Error(`Error fixing JSON string after ${attempt_count} attempts.
-cleanedString: ${cleanedString})`);
-  }
-  return "{}";
-}
-var Llm = class {
-  constructor(tokenizer, params = null) {
-    this.tokenizer = tokenizer;
-    this.context_sizes = {};
-  }
-  countTextTokens(text) {
-    return this.tokenizer.countTextTokens(text);
-  }
-  getModelContextSizeFromModelInfo(model_name) {
-    return this.context_sizes[model_name];
-  }
-  // -----------------------------------------------------------------------
-  /**
-   * @param {any} ctx
-   * @param {string} prompt
-   * @param {string} instruction
-   * @param {string} model_name
-   * @param {number} [temperature=0]
-   * @param {any} args
-   * @returns {Promise<{ answer_text: string; answer_json: any; }>}
-   */
-  async query(ctx, prompt, instruction, model_name, temperature = 0, args = null) {
-    throw new Error("You have to implement this method");
-  }
-  /**
-  * @param {any} ctx
-  * @param {any} args
-  * @returns {Promise<{ answer_text: string; answer_json: any; }>}
-  */
-  async runLlmBlock(ctx, args) {
-    throw new Error("You have to implement this method");
-  }
-  getProvider() {
-    throw new Error("You have to implement this method");
-  }
-  getModelType() {
-    throw new Error("You have to implement this method");
-  }
-  async getModelChoices(choices, llm_model_types2, llm_context_sizes2) {
-    throw new Error("You have to implement this method");
-  }
-};
-
-// node_modules/omnilib-llms/tokenizer_Openai.js
-import { encode as encode2, isWithinTokenLimit } from "gpt-tokenizer";
-
-// node_modules/omnilib-llms/tokenizer.js
-var Tokenizer = class {
-  constructor(params = null) {
-  }
-  encodeText(text) {
-    throw new Error("You have to implement the method: encode");
-  }
-  textIsWithinTokenLimit(text, token_limit) {
-    throw new Error("You have to implement the method: isWithinTokenLimit");
-  }
-  countTextTokens(text) {
-    throw new Error("You have to implement the method: countTextTokens");
-  }
-};
-
-// node_modules/omnilib-llms/tokenizer_Openai.js
-var Tokenizer_Openai = class extends Tokenizer {
-  constructor() {
-    super();
-  }
-  encodeText(text) {
-    return encode2(text);
-  }
-  countTextTokens(text) {
-    const tokens = encode2(text);
-    if (tokens !== null && tokens !== void 0 && tokens.length > 0) {
-      const num_tokens = tokens.length;
-      return num_tokens;
-    } else {
-      return 0;
-    }
-  }
-  textIsWithinTokenLimit(text, token_limit) {
-    return isWithinTokenLimit(text, token_limit);
-  }
-};
-
-// node_modules/omnilib-llms/llm_Openai.js
-var LLM_PROVIDER_OPENAI_SERVER = "openai";
-var LLM_MODEL_TYPE_OPENAI = "openai";
-var BLOCK_OPENAI_ADVANCED_CHATGPT = "openai.advancedChatGPT";
-var LLM_CONTEXT_SIZE_MARGIN = 500;
-var GPT3_MODEL_SMALL = "gpt-3.5-turbo";
-var GPT3_MODEL_LARGE = "gpt-3.5-turbo-16k";
-var GPT3_SIZE_CUTOFF = 4096 - LLM_CONTEXT_SIZE_MARGIN;
-var GPT4_MODEL_SMALL = "gpt-4";
-var GPT4_MODEL_LARGE = "gpt-4-32k";
-var GPT4_SIZE_CUTOFF = 8192 - LLM_CONTEXT_SIZE_MARGIN;
-var ICON_OPENAI = "\u{1F4B0}";
-var llm_openai_models = [
-  { model_name: GPT3_MODEL_SMALL, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 4096, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: GPT3_MODEL_LARGE, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 16384, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: GPT4_MODEL_SMALL, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 8192, provider: LLM_PROVIDER_OPENAI_SERVER },
-  { model_name: GPT4_MODEL_LARGE, model_type: LLM_MODEL_TYPE_OPENAI, context_size: 32768, provider: LLM_PROVIDER_OPENAI_SERVER }
-];
-var Llm_Openai = class extends Llm {
-  constructor() {
-    const tokenizer_Openai = new Tokenizer_Openai();
-    super(tokenizer_Openai);
-    this.context_sizes[GPT3_MODEL_SMALL] = 4096;
-    this.context_sizes[GPT3_MODEL_LARGE] = 16384;
-    this.context_sizes[GPT4_MODEL_SMALL] = 8192;
-    this.context_sizes[GPT4_MODEL_LARGE] = 16384;
-  }
-  // -----------------------------------------------------------------------
-  /**
-   * @param {any} ctx
-   * @param {string} prompt
-   * @param {string} instruction
-   * @param {string} model_name
-   * @param {number} [temperature=0]
-   * @param {any} [args=null]
-   * @returns {Promise<{ answer_text: string; answer_json: any; }>}
-   */
-  async query(ctx, prompt, instruction, model_name, temperature = 0, args = null) {
-    let block_args = { ...args };
-    block_args.user = ctx.userId;
-    if (prompt != "")
-      block_args.prompt = prompt;
-    if (instruction != "")
-      block_args.instruction = instruction;
-    block_args.temperature = temperature;
-    block_args.model = model_name;
-    const response = await this.runLlmBlock(ctx, block_args);
-    if (response.error)
-      throw new Error(response.error);
-    const total_tokens = response?.usage?.total_tokens || 0;
-    let answer_text = response?.answer_text || "";
-    const function_arguments_string = response?.function_arguments_string || "";
-    let function_arguments = null;
-    if (is_valid(function_arguments_string) == true)
-      function_arguments = await fixJsonString(ctx, function_arguments_string);
-    if (is_valid(answer_text) == true)
-      answer_text = clean_string(answer_text);
-    let answer_json = {};
-    answer_json["function_arguments_string"] = function_arguments_string;
-    answer_json["function_arguments"] = function_arguments;
-    answer_json["total_tokens"] = total_tokens;
-    answer_json["answer_text"] = answer_text;
-    const return_value = {
-      answer_text,
-      answer_json
-    };
-    return return_value;
-  }
-  getProvider() {
-    return LLM_PROVIDER_OPENAI_SERVER;
-  }
-  getModelType() {
-    return LLM_MODEL_TYPE_OPENAI;
-  }
-  async getModelChoices(choices, llm_model_types2, llm_context_sizes2) {
-    const models = Object.values(llm_openai_models);
-    for (const model of models) {
-      let model_name = model.model_name;
-      let provider = model.provider;
-      let model_id = generateModelId(model_name, provider);
-      const title = model.title || deduceLlmTitle(model_name, provider, ICON_OPENAI);
-      const description = model.description || deduceLlmDescription(model_name, model.context_size);
-      llm_model_types2[model_name] = model.type;
-      llm_context_sizes2[model_name] = model.context_size;
-      const choice = { value: model_id, title, description };
-      choices.push(choice);
-    }
-  }
-  async runLlmBlock(ctx, args) {
-    const prompt = args.prompt;
-    const instruction = args.instruction;
-    const model = args.model;
-    const prompt_cost = this.tokenizer.countTextTokens(prompt);
-    const instruction_cost = this.tokenizer.countTextTokens(instruction);
-    const cost = prompt_cost + instruction_cost;
-    args.model = this.adjustModel(cost, model);
-    let response = null;
-    try {
-      response = await runBlock(ctx, BLOCK_OPENAI_ADVANCED_CHATGPT, args);
-    } catch (err) {
-      let error_message = `Error running openai.advancedChatGPT: ${err.message}`;
-      console.error(error_message);
-      throw err;
-    }
-    return response;
-  }
-  adjustModel(text_size, model_name) {
-    if (typeof text_size !== "number") {
-      throw new Error(`adjust_model: text_size is not a string or a number: ${text_size}, type=${typeof text_size}`);
-    }
-    if (model_name == GPT3_MODEL_SMALL)
-      return model_name;
-    if (model_name == GPT3_MODEL_LARGE) {
-      if (text_size < GPT3_SIZE_CUTOFF)
-        return GPT3_MODEL_SMALL;
-      else
-        return model_name;
-    }
-    if (model_name == GPT4_MODEL_SMALL)
-      return model_name;
-    if (model_name == GPT4_MODEL_LARGE) {
-      if (text_size < GPT4_SIZE_CUTOFF)
-        return GPT3_MODEL_SMALL;
-      else
-        return model_name;
-    }
-    throw new Error(`pick_model: Unknown model: ${model_name}`);
-  }
-};
-
-// node_modules/omnilib-llms/llms.js
-var DEFAULT_LLM_MODEL_ID = "gpt-3.5-turbo|openai";
-var llm_model_types = {};
-var llm_context_sizes = {};
-var default_providers = [];
-var llm_Openai = new Llm_Openai();
-default_providers.push(llm_Openai);
-async function getLlmChoices() {
-  let choices = [];
-  for (const provider of default_providers) {
-    await provider.getModelChoices(choices, llm_model_types, llm_context_sizes);
-  }
-  return choices;
-}
-function getBlockName(model_id) {
-  const splits = getModelNameAndProviderFromId(model_id);
-  const model_name = splits.model_name;
-  const model_provider = splits.model_provider;
-  let block_name = `omni-extension-${model_provider}:${model_provider}.llm_query`;
-  if (model_provider == "openai") {
-    block_name = `omni-core-llms:${model_provider}.llm_query`;
-  }
-  return block_name;
-}
-async function queryLlmByModelId(ctx, prompt, instruction, model_id, temperature = 0, args = null) {
-  const block_name = getBlockName(model_id);
-  const block_args = { prompt, instruction, model_id, temperature, args };
-  const response = await runBlock(ctx, block_name, block_args);
-  return response;
-}
-function getModelMaxSize(model_name, use_a_margin = true) {
-  const context_size = getModelContextSize(model_name);
-  if (use_a_margin == false)
-    return context_size;
-  const safe_size = Math.floor(context_size * 0.9);
-  return safe_size;
-}
-function getModelContextSize(model_name) {
-  if (model_name in llm_context_sizes == false)
-    return DEFAULT_UNKNOWN_CONTEXT_SIZE;
-  const context_size = llm_context_sizes[model_name];
-  return context_size;
-}
-
 // component_QueryIndexBruteforce.js
+import { createComponent as createComponent2 } from "omni-utils";
+import { is_valid as is_valid6, sanitizeJSON, combineStringsWithoutOverlap } from "omni-utils";
+import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from "omni-utils";
+import { getModelNameAndProviderFromId } from "omni-utils";
 var NAMESPACE2 = "document_processing";
 var OPERATION_ID2 = "query_index_bruteforce";
 var TITLE2 = "Query Index (Brute Force)";
@@ -8645,7 +8057,7 @@ async function async_getQueryIndexBruteforceComponent() {
     { name: "json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
   ];
   const controls3 = null;
-  const component = createComponent(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs3, outputs3, controls3, queryIndexBruteforce);
+  const component = createComponent2(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs3, outputs3, controls3, queryIndexBruteforce);
   return component;
 }
 async function queryIndexBruteforce(payload, ctx) {
@@ -8674,7 +8086,7 @@ async function queryIndexBruteforce(payload, ctx) {
   let answer_text = "";
   for (const chunk of chunks) {
     const text = chunk?.text;
-    if (!is_valid(text))
+    if (!is_valid6(text))
       continue;
     const token_cost = chunk.token_count;
     const can_fit = total_token_cost + token_cost <= max_size;
@@ -8702,21 +8114,28 @@ async function queryIndexBruteforce(payload, ctx) {
   return response;
 }
 
+// component_QueryIndex.js
+import { createComponent as createComponent3 } from "omni-utils";
+import { getLlmChoices as getLlmChoices2, DEFAULT_LLM_MODEL_ID } from "omni-utils";
+
 // smartquery.js
+import { queryLlmByModelId as queryLlmByModelId2, getModelMaxSize as getModelMaxSize2 } from "omni-utils";
+import { console_log as console_log6, console_warn, is_valid as is_valid7 } from "omni-utils";
+import { getModelNameAndProviderFromId as getModelNameAndProviderFromId2 } from "omni-utils";
 async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
-  const splits = getModelNameAndProviderFromId(model_id);
+  const splits = getModelNameAndProviderFromId2(model_id);
   const model_name = splits.model_name;
-  if (is_valid(query) == false)
+  if (is_valid7(query) == false)
     throw new Error(`ERROR: query is invalid`);
   let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
-  let max_size = getModelMaxSize(model_name);
+  let max_size = getModelMaxSize2(model_name);
   let combined_text = "";
   let text_json = [];
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
     const [vectorstore_response, score] = vectorestore_response_array;
-    console_log(`vectorstore_responses[${i}] score = ${score}`);
+    console_log6(`vectorstore_responses[${i}] score = ${score}`);
     const raw_text = vectorstore_response?.pageContent;
     const chunk = vectorstore_response?.metadata;
     const chunk_id = chunk?.id;
@@ -8735,9 +8154,9 @@ ${combined_text}`);
   const prompt = `Document Json:
 ${combined_text}
 User's question: ${query}`;
-  const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
+  const response = await queryLlmByModelId2(ctx, prompt, instruction, model_id);
   const answer_text = response?.answer_text || null;
-  if (is_valid(answer_text) == false)
+  if (is_valid7(answer_text) == false)
     throw new Error(`ERROR: query_answer is invalid`);
   console_warn(`instruction = 
 ${instruction}`);
@@ -8759,7 +8178,7 @@ async function async_getQueryIndexComponent() {
     "Documentation": "https://js.langchain.com/docs/",
     "Langchainjs Github": "https://github.com/hwchase17/langchainjs"
   };
-  const llm_choices = await getLlmChoices();
+  const llm_choices = await getLlmChoices2();
   const inputs3 = [
     { name: "query", type: "string", customSocket: "text" },
     { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be queried", allowMultiple: true },
@@ -8771,7 +8190,7 @@ async function async_getQueryIndexComponent() {
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
   ];
   const controls3 = null;
-  const component = createComponent(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs3, outputs3, controls3, queryIndex);
+  const component = createComponent3(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs3, outputs3, controls3, queryIndex);
   return component;
 }
 async function queryIndex(payload, ctx) {
@@ -8798,6 +8217,7 @@ async function queryIndex(payload, ctx) {
 }
 
 // component_GetDocumentsIndexes.js
+import { createComponent as createComponent4 } from "omni-utils";
 var NAMESPACE4 = "document_processing";
 var OPERATION_ID4 = "get_documents_indexes";
 var TITLE4 = "Get Documents Indexes";
@@ -8810,7 +8230,7 @@ var outputs2 = [
 ];
 var links2 = {};
 var controls2 = null;
-var DocumentsIndexesComponent = createComponent(NAMESPACE4, OPERATION_ID4, TITLE4, CATEGORY4, DESCRIPTION4, SUMMARY4, links2, inputs2, outputs2, controls2, getDocumentsIndexes_function);
+var DocumentsIndexesComponent = createComponent4(NAMESPACE4, OPERATION_ID4, TITLE4, CATEGORY4, DESCRIPTION4, SUMMARY4, links2, inputs2, outputs2, controls2, getDocumentsIndexes_function);
 async function getDocumentsIndexes_function(payload, ctx) {
   console.time("getDocumentsIndexes_function");
   let indexes_info = await getDocumentsIndexes(ctx);

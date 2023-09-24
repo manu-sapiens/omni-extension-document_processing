@@ -2,14 +2,11 @@
   "name": "omni-extension-document_processing",
   "packageManager": "yarn@3.3.1",
   "scripts": {
-    "build": "node yarn_build.ts",
-    "update": "node yarn_update.js"
+    "build": "node yarn_build.ts"
   },
   "dependencies": {
     "esnext": "^3.3.1",
-    "langchain": "^0.0.139",
-    "omnilib-llms": "https://github.com/manu-sapiens/omnilib-llms.git#main",
-    "omnilib-utils": "https://github.com/manu-sapiens/omnilib-utils.git#main"
+    "langchain": "^0.0.139"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.4.0",

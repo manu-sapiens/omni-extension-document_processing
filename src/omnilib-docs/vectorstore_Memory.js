@@ -1,5 +1,4 @@
 //@ts-check
-// vectorstoreMemory.js
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 async function memoryFromTexts(texts, text_ids, embedder) {

@@ -1,7 +1,8 @@
 //@ts-check
+import { is_valid, console_log } from 'omni-utils';//'omnilib-utils/utils.js';
+import { runBlock } from 'omni-utils';//'omnilib-utils/blocks.js';
+
 import { Embeddings } from "langchain/embeddings/base";
-import { is_valid, console_log } from 'omnilib-utils/utils.js';
-import { runBlock } from 'omnilib-utils/blocks.js';
 
 class Embedding_Openai extends Embeddings
 {

@@ -1,10 +1,11 @@
 //@ts-check
+import { console_log, is_valid } from 'omni-utils';//'omnilib-utils/utils.js';
+import { user_db_put, user_db_get } from 'omni-utils';//'omnilib-utils/database.js';
+import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from 'omni-utils';//'omnilib-utils/cdn.js';
+
+import { memoryFromTexts } from "./vectorstore_Memory.js";
 // import { faiss_from_texts } from "./vectorstore_Faiss.js";
 // import { lancedb_from_texts, loadDbTable } from "./vectorstore_Lancedb.js";
-import { memoryFromTexts } from "./vectorstore_Memory.js";
-import { console_log,   is_valid } from 'omnilib-utils/utils.js';
-import { user_db_put, user_db_get } from 'omnilib-utils/database.js';
-import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from 'omnilib-utils/cdn.js';
 
 
 const FAISS_VECTORSTORE = "FAISS"; // NOT SUPPORTED FOR NOW since I don't want to deal with specific os / .lib dependencies

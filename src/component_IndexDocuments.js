@@ -1,14 +1,15 @@
 //@ts-check
-import { createComponent} from 'omnilib-utils/component.js';
+import { createComponent} from 'omni-utils'; //'omnilib-utils/component.js';
+import { countTokens as countTokensFunction } from 'omni-utils'; //'omnilib-llms/tiktoken.js';
+import { downloadTextsFromCdn } from 'omni-utils'; //'omnilib-utils/cdn.js';
+
 import { initialize_hasher, computeDocumentId } from './omnilib-docs/hashers.js';
-import { downloadTextsFromCdn } from 'omnilib-utils/cdn.js';
 import { initializeSplitter, getSplitterChoices } from './omnilib-docs/splitter.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
 import { chunkText, uploadTextWithCaching } from './omnilib-docs/chunking.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, saveIndexedDocument, computeTokenToChunkingSizeRatio } from './omnilib-docs/chunking.js';
-import { countTokens as countTokensFunction } from 'omnilib-llms/tiktoken.js';
 import { GLOBAL_INDEX_NAME, loadIndexes, addCdnToIndex as addCdnToIndex, saveIndexes, getIndexesChoices, getIndexName, getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
