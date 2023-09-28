@@ -7250,13 +7250,6 @@ var Embedder = class extends Embeddings {
     const hasher = initialize_hasher(hasher_model);
     this.hasher = hasher;
   }
-  /*
-  // Function to save keys
-  async saveIndexes()
-  {
-      await user_db_put(this.ctx, this.indexes, INDEXES_LIST);
-  }
-  */
   async embedDocuments(texts) {
     const embeddings = [];
     if (is_valid3(texts)) {
@@ -7268,7 +7261,7 @@ var Embedder = class extends Embeddings {
     }
     return embeddings;
   }
-  async embedQuery(text, index_name = "", save_embedding = true) {
+  async embedQuery(text, save_embedding = true) {
     if (!is_valid3(text)) {
       throw new Error(`[embeddings] passed text is invalid ${text}`);
     }
@@ -7308,59 +7301,6 @@ var Embedder = class extends Embeddings {
       throw new Error(`[embeddings] Error generating embedding: ${error}`);
     }
   }
-  /*
-      addCdnToIndex(index_name, embedding_id)
-      {
-          if (index_name in this.indexes === false || this.indexes[index_name] === null || this.indexes[index_name] === undefined || Array.isArray(this.indexes[index_name]) === false)
-          {
-              this.indexes[index_name] = [embedding_id];
-          }
-          else
-          {
-              this.indexes[index_name].push(embedding_id);
-          }
-      }
-      
-      async getAllDbEntries(index_name)
-      {
-          const dbEntries = [];
-          if (index_name in this.indexes === false) return null;
-          const keys = this.indexes[index_name];
-  
-          if (Array.isArray(keys) === false)
-          {
-            throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.indexes = ${JSON.stringify(this.indexes)}, index_name = ${index_name}`);
-          }
-          for (const key of keys)
-          {
-              const embedding = await user_db_get(this.ctx, key);
-              if (embedding)
-              {
-                  dbEntries.push(embedding);
-              } else
-              {
-                  console.warn(`[embeddings] Could not retrieve embedding for key: ${key}`);
-              }
-          }
-  
-          return dbEntries;
-      }
-      
-      async getAllTextsAndIds()
-      {
-          const allEntries = await this.getAllDbEntries();
-          const allTexts = allEntries?.map(db_entry => db_entry.text);
-          const allIds = allEntries?.map(db_entry => db_entry.id);
-          return [allTexts, allIds];
-      }
-  
-      async loadIndexes(ctx) 
-      {
-          const loadedData = await user_db_get(ctx, INDEXES_LIST);
-          this.indexes = loadedData || {};
-          return;
-      }
-      */
 };
 
 // omnilib-docs/embedding_Openai.js
@@ -7804,14 +7744,6 @@ var FAISS_VECTORSTORE = "FAISS";
 var MEMORY_VECTORSTORE = "MEMORY";
 var LANCEDB_VECTORSTORE = "LANCEDB";
 var DEFAULT_VECTORSTORE_TYPE = MEMORY_VECTORSTORE;
-function getIndexesChoices() {
-  const index_choices = {
-    "block": `omni-extension-document_processing:document_processing.get_documents_indexes`,
-    "args": { ".bustCache": true },
-    "map": { "root": "indexes" }
-  };
-  return index_choices;
-}
 async function createVectorstoreFromChunks(chunks, embedder, vectorstore_type = DEFAULT_VECTORSTORE_TYPE) {
   const texts = getChunksTexts(chunks);
   let vectorstore;
@@ -7846,23 +7778,7 @@ function getChunksTexts(chunks) {
   }
   return chunk_texts;
 }
-function sanitizeIndexName(vectorstore_name) {
-  if (is_valid5(vectorstore_name) == false)
-    return null;
-  const clean_name = vectorstore_name.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]+/g, "");
-  return clean_name;
-}
-function getIndexName(existing_name, new_index) {
-  const sanitized_new_index = sanitizeIndexName(new_index);
-  let index_name = sanitized_new_index;
-  if ((!sanitized_new_index || sanitized_new_index.length == 0) && (existing_name && existing_name.length > 0)) {
-    index_name = existing_name;
-  }
-  if (!index_name || index_name.length == 0)
-    index_name = GLOBAL_INDEX_NAME;
-  return index_name;
-}
-var GLOBAL_INDEX_NAME = "global_index";
+var DEFAULT_INDEX_NAME = "default_index";
 var INDEXES_LIST = "omni_indexes_list";
 async function loadIndexes(ctx) {
   const loadedData = await user_db_get2(ctx, INDEXES_LIST);
@@ -7890,14 +7806,14 @@ async function getDocumentsIndexes(ctx) {
   let indexes = loadedData || null;
   if (!indexes || Object.keys(indexes).length == 0) {
     indexes = {};
-    indexes[GLOBAL_INDEX_NAME] = [];
+    indexes[DEFAULT_INDEX_NAME] = [];
     await user_db_put2(ctx, indexes, INDEXES_LIST);
   }
   const relevantIndexes = [];
   for (const key in indexes) {
     if (indexes.hasOwnProperty(key)) {
       const value = indexes[key];
-      if (Array.isArray(value) && (value.length > 0 || key == GLOBAL_INDEX_NAME)) {
+      if (Array.isArray(value) && (value.length > 0 || key == DEFAULT_INDEX_NAME)) {
         relevantIndexes.push({ key, length: value.length });
       }
     }
@@ -7941,17 +7857,16 @@ var DESCRIPTION = "Index document(s), chunking them and computing the embedding 
 var SUMMARY = "Index document(s), chunking them and computing the embedding for each chunk";
 var CATEGORY = "document processing";
 var inputs = [
-  { name: "documents", title: "Documents to ingest", type: "array", customSocket: "documentArray", description: "Documents to be chunked", allowMultiple: true },
-  { name: "text", type: "string", title: "Text to ingest", customSocket: "text", description: "And/or some Text to ingest directly", allowMultiple: true },
-  { name: "splitter_model", type: "string", defaultValue: "RecursiveCharacterTextSplitter", title: "Splitter Model", description: "Choosing a splitter model that matches the type of document ingested will produce the best results", choices: getSplitterChoices() },
+  { name: "documents", title: "Documents to index", type: "array", customSocket: "documentArray", description: "Documents to be indexed", allowMultiple: true },
+  { name: "text", type: "string", title: "Text to index", customSocket: "text", description: "And/or some Text to be indexed directly", allowMultiple: true },
+  { name: "splitter_model", type: "string", defaultValue: "RecursiveCharacterTextSplitter", title: "Splitter Model", description: "Choosing a splitter model that matches the type of document being indexed will produce the best results", choices: getSplitterChoices() },
   { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 0, maximum: 1e6, step: 1 },
   { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 5e5, step: 1 },
   { name: "overwrite", type: "boolean", defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-  { name: "existing_index", title: "Existing Indexes", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
-  { name: "new_index", title: "Index", type: "string", description: "All indexed information sharing the same index will be grouped and queried together" }
+  { name: "index", defaultValue: DEFAULT_INDEX_NAME, type: "string", description: "All indexed documents sharing the same index will be grouped and queried together" }
 ];
 var outputs = [
-  { name: "info", type: "string", customSocket: "text", description: "Info on the result of the ingestion" },
+  { name: "info", type: "string", customSocket: "text", description: "Info on the result of the indexation" },
   { name: "index", type: "string", customSocket: "text", description: "The name of the index that was created or updated" },
   { name: "documents", title: "Indexed Documents", type: "array", customSocket: "documentArray", description: "The indexed version of the documents" }
 ];
@@ -7968,11 +7883,11 @@ async function indexDocuments_function(payload, ctx) {
   const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
   const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
   const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-  const index_name = getIndexName(payload.existing_index, payload.new_index);
+  const index = payload.index;
   const hasher = initialize_hasher(hasher_model);
   const splitter = initializeSplitter(splitter_model, chunk_size, chunk_overlap);
   const embedder = await initializeEmbedder(ctx);
-  const indexes = await loadIndexes(ctx);
+  const all_indexes = await loadIndexes(ctx);
   if (text && text.length > 0) {
     const text_cdn = await uploadTextWithCaching(ctx, text, hasher, chunk_size, chunk_overlap, overwrite);
     if (!text_cdn)
@@ -7986,17 +7901,17 @@ async function indexDocuments_function(payload, ctx) {
   const documents_texts = await downloadTextsFromCdn(ctx, documents_cdns);
   let all_chunks = [];
   let all_cdns = [];
-  let document_index = 0;
+  let document_number = 0;
   for (const document_text of documents_texts) {
     let indexed_document_chunks = null;
     const document_id = computeDocumentId(ctx, [document_text], hasher, chunk_size, chunk_overlap);
     if (!document_id)
-      throw new Error(`ERROR: could not compute document_id for document with index:${document_index}, id:${document_id}`);
+      throw new Error(`ERROR: could not compute document_id for document #${document_number}, id:${document_id}`);
     let indexed_document_cdn = await getIndexedDocumentCdnFromId(ctx, document_id, overwrite);
     if (!indexed_document_cdn) {
       indexed_document_chunks = await chunkText(ctx, document_id, document_text, hasher, embedder, splitter, countTokensFunction);
       if (!indexed_document_chunks)
-        throw new Error(`ERROR: could not chunk text in document with index:${document_index}, id:${document_id}`);
+        throw new Error(`ERROR: could not chunk text in document #${document_number}, id:${document_id}`);
       const token_to_chunking_size_ratio = computeTokenToChunkingSizeRatio(indexed_document_chunks, chunk_size, chunk_overlap);
       indexed_document_cdn = await saveIndexedDocument(ctx, document_id, indexed_document_chunks, chunk_size, chunk_overlap, token_to_chunking_size_ratio, splitter_model);
     } else {
@@ -8008,24 +7923,22 @@ async function indexDocuments_function(payload, ctx) {
         throw new Error(`ERROR: could not get chunks from document_info = ${JSON.stringify(document_info)} from cdn ${JSON.stringify(indexed_document_cdn)}`);
     }
     if (!indexed_document_cdn)
-      throw new Error(`ERROR: could not chunk document with index:${document_index}, id:${document_id}`);
-    addCdnToIndex(indexes, indexed_document_cdn, GLOBAL_INDEX_NAME);
-    if (index_name && index_name != GLOBAL_INDEX_NAME)
-      addCdnToIndex(indexes, indexed_document_cdn, index_name);
+      throw new Error(`ERROR: could not chunk document #${document_number}, id:${document_id}`);
+    addCdnToIndex(all_indexes, indexed_document_cdn, index);
     all_chunks = all_chunks.concat(indexed_document_chunks);
     all_cdns.push(indexed_document_cdn);
-    info += `Uploaded document ${document_index} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}
+    info += `Uploaded document #${document_number} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}
 `;
-    document_index += 1;
+    document_number += 1;
   }
-  saveIndexes(ctx, indexes);
+  saveIndexes(ctx, all_indexes);
   info += `Saved Indexes to DB
 `;
-  info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index_name} 
+  info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index} 
 `;
   info += `Done`;
   console.timeEnd("indexDocuments_function");
-  return { result: { "ok": true }, documents: all_cdns, index: index_name, info };
+  return { result: { "ok": true }, documents: all_cdns, index, info };
 }
 
 // component_QueryIndexBruteforce.js
@@ -8043,13 +7956,12 @@ async function async_getQueryIndexBruteforceComponent() {
   const llm_choices = await getLlmChoices();
   const links3 = {};
   const inputs3 = [
-    { name: "indexed_documents", type: "array", customSocket: "documentArray", description: "Documents to be chunked" },
+    { name: "indexed_documents", type: "array", customSocket: "documentArray", description: "Documents to be processed" },
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices },
-    { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
-    { name: "new_index", title: "index", type: "string", description: "All injested information sharing the same Index will be grouped and queried together" },
-    { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
+    { name: "index", type: "string", defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
+    { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate document fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
     { name: "llm_args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
   const outputs3 = [
@@ -8063,8 +7975,8 @@ async function async_getQueryIndexBruteforceComponent() {
 async function queryIndexBruteforce(payload, ctx) {
   console.time("queryIndexBruteforce");
   const indexed_documents = payload.indexed_documents;
-  const index_name = getIndexName(payload.existing_index, payload.new_index);
-  const indexes = await loadIndexes(ctx);
+  const index = payload.index;
+  const all_indexes = await loadIndexes(ctx);
   const instruction = payload.instruction;
   const temperature = payload.temperature;
   const model_id = payload.model_id;
@@ -8078,7 +7990,7 @@ async function queryIndexBruteforce(payload, ctx) {
   } else if (chunk_size > 0) {
     max_size = Math.min(chunk_size, getModelMaxSize(model_name));
   }
-  const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
+  const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   let chunk_index = 0;
   let total_token_cost = 0;
   let combined_text = "";
@@ -8129,16 +8041,20 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
     throw new Error(`ERROR: query is invalid`);
   let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
-  let max_size = getModelMaxSize2(model_name);
+  let max_size = getModelMaxSize2(model_name) * 0.8;
   let combined_text = "";
   let text_json = [];
+  const already_used_ids = {};
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
     const [vectorstore_response, score] = vectorestore_response_array;
     console_log6(`vectorstore_responses[${i}] score = ${score}`);
-    const raw_text = vectorstore_response?.pageContent;
     const chunk = vectorstore_response?.metadata;
     const chunk_id = chunk?.id;
+    if (already_used_ids[chunk_id] == true)
+      continue;
+    already_used_ids[chunk_id] = true;
+    const raw_text = vectorstore_response?.pageContent;
     const chunk_source = chunk?.source;
     const chunk_index = chunk?.index;
     text_json.push({ fragment_text: raw_text, fragment_id: chunk_id });
@@ -8181,10 +8097,9 @@ async function async_getQueryIndexComponent() {
   const llm_choices = await getLlmChoices2();
   const inputs3 = [
     { name: "query", type: "string", customSocket: "text" },
-    { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be queried", allowMultiple: true },
+    { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be directly queried instead of being passed as an Index", allowMultiple: true },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: "existing_index", title: "Existing Index", type: "string", defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
-    { name: "new_index", title: "index", type: "string", description: "All injested information sharing the same Index will be grouped and queried together" }
+    { name: "index", type: "string", defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" }
   ];
   const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
@@ -8198,19 +8113,19 @@ async function queryIndex(payload, ctx) {
   const query = payload.query;
   const model_id = payload.model_id;
   const indexed_documents = payload.indexed_documents;
-  const index_name = getIndexName(payload.existing_index, payload.new_index);
+  const index = payload.index;
   const embedder = await initializeEmbedder(ctx);
   if (!embedder)
     throw new Error(`Cannot initialize embedded`);
-  const indexes = await loadIndexes(ctx);
-  if (!indexes)
+  const all_indexes = await loadIndexes(ctx);
+  if (!all_indexes)
     throw new Error(`[query_chunks_component] Error loading indexes`);
-  if (index_name in indexes == false)
-    throw new Error(`[query_chunks_component] index ${index_name} not found in indexes`);
-  const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
+  if (index in all_indexes == false)
+    throw new Error(`[query_chunks_component] index ${index} not found in indexes`);
+  const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
   if (!vectorstore)
-    throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
+    throw new Error(`ERROR: could not compute Index ${index} from ${all_chunks.length} fragments`);
   const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);
   console.timeEnd("queryIndex");
   return { result: { "ok": true }, answer: query_result };
@@ -8226,7 +8141,8 @@ var SUMMARY4 = "Get information about the non-empty Indexes currently present";
 var CATEGORY4 = "document processing";
 var inputs2 = [];
 var outputs2 = [
-  { name: "indexes", type: "array", description: "An array of Index names" }
+  { name: "indexes", type: "array", description: "An array of all the Index names in the database" },
+  { name: "info", type: "string", description: "Info on all the indexes in the database" }
 ];
 var links2 = {};
 var controls2 = null;
@@ -8237,10 +8153,14 @@ async function getDocumentsIndexes_function(payload, ctx) {
   if (!indexes_info)
     return { result: { "ok": false }, indexes: [] };
   let indexes = [];
+  let info = `Indexes in the database: ${indexes_info.length}, 
+`;
   for (const index of indexes_info) {
     indexes.push(index.key);
+    info += `${index.key} : ${index.length} documents, 
+`;
   }
-  return { result: { "ok": true }, indexes };
+  return { result: { "ok": true }, indexes, info };
 }
 
 // extension.js

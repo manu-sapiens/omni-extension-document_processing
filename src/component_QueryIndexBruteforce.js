@@ -4,7 +4,7 @@ import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from 'omni-utils
 import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
 import { getModelNameAndProviderFromId } from 'omni-utils'; //'omnilib-llms/llm.js';
 
-import { GLOBAL_INDEX_NAME, getChunksFromIndexAndIndexedDocuments, getIndexesChoices, getIndexName, loadIndexes } from './omnilib-docs/vectorstore.js';
+import {  DEFAULT_INDEX_NAME, getChunksFromIndexAndIndexedDocuments, getIndexName, loadIndexes } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';;
 const OPERATION_ID = 'query_index_bruteforce';
@@ -22,13 +22,12 @@ async function async_getQueryIndexBruteforceComponent()
     const links = {};
 
     const inputs = [
-        { name: 'indexed_documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be chunked' },
+        { name: 'indexed_documents', type: 'array', customSocket: 'documentArray', description: 'Documents to be processed' },
         { name: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'model_id', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices },
-        { name: 'existing_index', title: 'Existing Index', type: 'string', defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
-        { name: 'new_index', title: 'index', type: 'string', description: "All injested information sharing the same Index will be grouped and queried together" },
-        { name: 'chunk_size', type: 'number', defaultValue: 0, minimum: 0, maximum: 1000000, step: 1, description: "If set to a positive number, will concatenate fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
+        { name: 'index', type: 'string', defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
+        { name: 'chunk_size', type: 'number', defaultValue: 0, minimum: 0, maximum: 1000000, step: 1, description: "If set to a positive number, will concatenate document fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
         { name: 'llm_args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'},
     ];
 
@@ -49,8 +48,8 @@ async function queryIndexBruteforce(payload, ctx)
     console.time("queryIndexBruteforce");
 
     const indexed_documents = payload.indexed_documents;
-    const index_name = getIndexName(payload.existing_index, payload.new_index);
-    const indexes = await loadIndexes(ctx);
+    const index = payload.index;
+    const all_indexes = await loadIndexes(ctx);
 
     const instruction = payload.instruction;
     const temperature = payload.temperature;
@@ -72,7 +71,7 @@ async function queryIndexBruteforce(payload, ctx)
     }
 
 
-    const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
+    const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
     let chunk_index = 0;
     let total_token_cost = 0;
     let combined_text = "";

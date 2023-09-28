@@ -6,7 +6,7 @@ import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omni-utils'; //'omnilib-llm
 import { createVectorstoreFromChunks } from './omnilib-docs/vectorstore.js';
 import { smartqueryFromVectorstore } from './smartquery.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
-import { GLOBAL_INDEX_NAME, loadIndexes, getIndexesChoices, getIndexName, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
+import { DEFAULT_INDEX_NAME, loadIndexes, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "query_index";
@@ -33,10 +33,9 @@ async function async_getQueryIndexComponent()
   const llm_choices = await getLlmChoices();
   const inputs = [
     { name: 'query', type: 'string', customSocket: 'text' },
-    { name: 'indexed_documents', title: 'Indexed Documents to Query', type: 'array', customSocket: 'documentArray', description: 'Documents to be queried', allowMultiple: true },
+    { name: 'indexed_documents', title: 'Indexed Documents to Query', type: 'array', customSocket: 'documentArray', description: 'Documents to be directly queried instead of being passed as an Index', allowMultiple: true },
     { name: 'model_id', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: 'existing_index', title: 'Existing Index', type: 'string', defaultValue: GLOBAL_INDEX_NAME, choices: getIndexesChoices(), description: "If set, will ingest into the existing index with the given name" },
-    { name: 'new_index', title: 'index', type: 'string', description: "All injested information sharing the same Index will be grouped and queried together" },
+    { name: 'index', type: 'string', defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
   ];
 
   const outputs = [
@@ -56,17 +55,17 @@ async function queryIndex(payload, ctx)
   const query = payload.query;
   const model_id = payload.model_id;
   const indexed_documents = payload.indexed_documents;
-  const index_name = getIndexName(payload.existing_index, payload.new_index);
+  const index = payload.index;
   const embedder = await initializeEmbedder(ctx);
   if (!embedder) throw new Error(`Cannot initialize embedded`);
 
-  const indexes = await loadIndexes(ctx);
-  if (!indexes) throw new Error(`[query_chunks_component] Error loading indexes`);
-  if (index_name in indexes == false) throw new Error(`[query_chunks_component] index ${index_name} not found in indexes`);
+  const all_indexes = await loadIndexes(ctx);
+  if (!all_indexes) throw new Error(`[query_chunks_component] Error loading indexes`);
+  if (index in all_indexes == false) throw new Error(`[query_chunks_component] index ${index} not found in indexes`);
 
-  const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents);
+  const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
-  if (!vectorstore) throw new Error(`ERROR: could not compute Index ${index_name} from ${all_chunks.length} fragments`);
+  if (!vectorstore) throw new Error(`ERROR: could not compute Index ${index} from ${all_chunks.length} fragments`);
 
   const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);
 

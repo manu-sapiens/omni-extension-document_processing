@@ -11,7 +11,8 @@ const CATEGORY = 'document processing'
 
 const inputs = [];
 const outputs = [
-    { name: 'indexes', type: 'array', description: 'An array of Index names' },
+    { name: 'indexes', type: 'array', description: 'An array of all the Index names in the database' },
+    { name: 'info', type: 'string', description: 'Info on all the indexes in the database' },
   ];
 
 const links = {};
@@ -29,13 +30,14 @@ async function getDocumentsIndexes_function(payload, ctx)
     if (!indexes_info)  return { result: { "ok": false }, indexes: []};
 
     let indexes = [];
-
+    let info = `Indexes in the database: ${indexes_info.length}, \n`;
     for (const index of indexes_info)
     {
         indexes.push(index.key);
+        info += `${index.key} : ${index.length} documents, \n`;
     }
 
-    return { result: { "ok": true }, indexes: indexes };
+    return { result: { "ok": true }, indexes, info };
 }
 
 

@@ -106,11 +106,11 @@ export function getIndexName(existing_name, new_index)
         index_name = existing_name;
     }
 
-    if (!index_name || index_name.length == 0) index_name = GLOBAL_INDEX_NAME;
+    if (!index_name || index_name.length == 0) index_name = DEFAULT_INDEX_NAME;
     return index_name;
 }
 
-export const GLOBAL_INDEX_NAME = "global_index";
+export const DEFAULT_INDEX_NAME = "default_index";
 const INDEXES_LIST = "omni_indexes_list";
 
 export async function loadIndexes(ctx) 
@@ -179,7 +179,7 @@ export async function getDocumentsIndexes(ctx)
     if (!indexes || Object.keys(indexes).length == 0)
     {
         indexes = {};
-        indexes[GLOBAL_INDEX_NAME] = [];
+        indexes[DEFAULT_INDEX_NAME] = [];
         await user_db_put(ctx, indexes, INDEXES_LIST);
     }
 
@@ -190,7 +190,7 @@ export async function getDocumentsIndexes(ctx)
         if (indexes.hasOwnProperty(key)) 
         {
             const value = indexes[key];
-            if (Array.isArray(value) && (value.length > 0 || key == GLOBAL_INDEX_NAME) )
+            if (Array.isArray(value) && (value.length > 0 || key == DEFAULT_INDEX_NAME) )
             {
                 relevantIndexes.push({ key: key, length: value.length });
             }

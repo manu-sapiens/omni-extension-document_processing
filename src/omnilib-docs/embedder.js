@@ -27,26 +27,8 @@ var Embedder = class extends Embeddings
         const hasher = initialize_hasher(hasher_model);
         this.hasher = hasher;
 
-        /*
-        this.indexes = {};
-
-
-        if (!this.ctx)
-        {
-            throw new Error(`[embeddings] Context not provided`);
-        }
-        
-        if (!this.embedder) this.loadIndexes(this.ctx);
-        */
     }
 
-    /*
-    // Function to save keys
-    async saveIndexes()
-    {
-        await user_db_put(this.ctx, this.indexes, INDEXES_LIST);
-    }
-    */
     async embedDocuments(texts)
     {
 
@@ -63,7 +45,7 @@ var Embedder = class extends Embeddings
         return embeddings;
     }
 
-    async embedQuery(text, index_name = "", save_embedding = true)
+    async embedQuery(text, save_embedding = true)
     {
         // TBD we could save query embeddings in a separate vectorstore (instead of not saving them at all using save_embedding = false)
         if (!is_valid(text))
@@ -117,14 +99,6 @@ var Embedder = class extends Embeddings
                     throw new Error(`[embeddings] Error saving embedding for text chunk: ${text.slice(0, 128)}[...]`);
                 }
 
-                /*
-                this.addCdnToIndex(GLOBAL_INDEX_NAME, embedding_id);
-                if (index_name && index_name != "" && index_name != GLOBAL_INDEX_NAME) this.addCdnToIndex(index_name, embedding_id);
-                
-
-                // Save the updated list of keys to the database.
-                await this.saveIndexes();
-                */
             }
 
             return embedding;
@@ -134,59 +108,7 @@ var Embedder = class extends Embeddings
             throw new Error(`[embeddings] Error generating embedding: ${error}`);
         }
     }
-    /*
-    addCdnToIndex(index_name, embedding_id)
-    {
-        if (index_name in this.indexes === false || this.indexes[index_name] === null || this.indexes[index_name] === undefined || Array.isArray(this.indexes[index_name]) === false)
-        {
-            this.indexes[index_name] = [embedding_id];
-        }
-        else
-        {
-            this.indexes[index_name].push(embedding_id);
-        }
-    }
-    
-    async getAllDbEntries(index_name)
-    {
-        const dbEntries = [];
-        if (index_name in this.indexes === false) return null;
-        const keys = this.indexes[index_name];
-
-        if (Array.isArray(keys) === false)
-        {
-          throw new Error(`UNEXPECTED type for keys: ${typeof keys}, keys = ${JSON.stringify(keys)}, this.indexes = ${JSON.stringify(this.indexes)}, index_name = ${index_name}`);
-        }
-        for (const key of keys)
-        {
-            const embedding = await user_db_get(this.ctx, key);
-            if (embedding)
-            {
-                dbEntries.push(embedding);
-            } else
-            {
-                console.warn(`[embeddings] Could not retrieve embedding for key: ${key}`);
-            }
-        }
-
-        return dbEntries;
-    }
-    
-    async getAllTextsAndIds()
-    {
-        const allEntries = await this.getAllDbEntries();
-        const allTexts = allEntries?.map(db_entry => db_entry.text);
-        const allIds = allEntries?.map(db_entry => db_entry.id);
-        return [allTexts, allIds];
-    }
-
-    async loadIndexes(ctx) 
-    {
-        const loadedData = await user_db_get(ctx, INDEXES_LIST);
-        this.indexes = loadedData || {};
-        return;
-    }
-    */
+  
 };
 
 

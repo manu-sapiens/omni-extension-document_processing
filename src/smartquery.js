@@ -16,10 +16,12 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
 
     let total_tokens = 0;
 
-    let max_size = getModelMaxSize(model_name);
+    let max_size = getModelMaxSize(model_name) * 0.8; // taking some margin for the instructions
 
     let combined_text = "";
     let text_json = [];
+    const already_used_ids = {};
+
     for (let i = 0; i < vectorstore_responses.length; i++) 
     {
         const vectorestore_response_array = vectorstore_responses[i];
@@ -27,9 +29,13 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
 
         console_log(`vectorstore_responses[${i}] score = ${score}`);
 
-        const raw_text = vectorstore_response?.pageContent;
         const chunk = vectorstore_response?.metadata;
         const chunk_id = chunk?.id;
+        
+        if (already_used_ids[chunk_id] == true) continue;
+        already_used_ids[chunk_id] = true;
+
+        const raw_text = vectorstore_response?.pageContent;
         const chunk_source = chunk?.source;
         const chunk_index = chunk?.index;
 
