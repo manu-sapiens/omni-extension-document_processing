@@ -4,7 +4,7 @@ import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from 'omni-utils
 import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
 import { getModelNameAndProviderFromId } from 'omni-utils'; //'omnilib-llms/llm.js';
 
-import {  DEFAULT_INDEX_NAME, getChunksFromIndexAndIndexedDocuments, getIndexName, loadIndexes } from './omnilib-docs/vectorstore.js';
+import {  getChunksFromIndexAndIndexedDocuments, loadIndexes } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';;
 const OPERATION_ID = 'query_index_bruteforce';
@@ -26,7 +26,7 @@ async function async_getQueryIndexBruteforceComponent()
         { name: 'instruction', type: 'string', description: 'Instruction(s)', defaultValue: 'You are a helpful bot answering the user with their question to the best of your abilities', customSocket: 'text' },
         { name: 'temperature', type: 'number', defaultValue: 0 },
         { name: 'model_id', title: 'model', type: 'string', defaultValue: 'gpt-3.5-turbo-16k|openai', choices: llm_choices },
-        { name: 'index', type: 'string', defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
+        { name: 'index', type: 'string', description: "All indexed documents sharing the same Index will be grouped and queried together" },
         { name: 'chunk_size', type: 'number', defaultValue: 0, minimum: 0, maximum: 1000000, step: 1, description: "If set to a positive number, will concatenate document fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
         { name: 'llm_args', type: 'object', customSocket: 'object', description: 'Extra arguments provided to the LLM'},
     ];

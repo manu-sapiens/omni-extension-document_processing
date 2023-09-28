@@ -10,7 +10,7 @@ import { chunkText, uploadTextWithCaching } from './omnilib-docs/chunking.js';
 import { DEFAULT_HASHER_MODEL } from './omnilib-docs/hashers.js';
 import { DEFAULT_SPLITTER_MODEL } from './omnilib-docs/splitter.js';
 import { DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, saveIndexedDocument, computeTokenToChunkingSizeRatio } from './omnilib-docs/chunking.js';
-import { DEFAULT_INDEX_NAME, loadIndexes, addCdnToIndex as addCdnToIndex, saveIndexes, getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn } from './omnilib-docs/vectorstore.js';
+import { loadIndexes, addCdnToIndex as addCdnToIndex, saveIndexes, getIndexedDocumentCdnFromId, getIndexedDocumentInfoFromCdn } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "index_documents";
@@ -26,7 +26,7 @@ const inputs = [
     { name: 'chunk_size', type: 'number', defaultValue: 4096, minimum: 0, maximum:1000000, step:1 },
     { name: 'chunk_overlap', type: 'number', defaultValue: 512, minimum: 0, maximum:500000, step:1 },
     { name: 'overwrite', type: 'boolean', defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-    { name: 'index', defaultValue: DEFAULT_INDEX_NAME, type: 'string', description: "All indexed documents sharing the same index will be grouped and queried together"},
+    { name: 'index', type: 'string', description: "All indexed documents sharing the same index will be grouped and queried together"},
   ];
 
 const outputs = [
@@ -54,8 +54,7 @@ async function indexDocuments_function(payload, ctx)
     const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
     const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE; 
     const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-
-    const index = payload.index;
+    const index = payload.index || "";
     
     const hasher = initialize_hasher(hasher_model);
     const splitter = initializeSplitter(splitter_model, chunk_size, chunk_overlap);
@@ -107,16 +106,24 @@ async function indexDocuments_function(payload, ctx)
         }
         
         if (!indexed_document_cdn) throw new Error(`ERROR: could not chunk document #${document_number}, id:${document_id}`);
-        addCdnToIndex(all_indexes, indexed_document_cdn, index);
-     
+    
+        if (index && index != "") 
+        {
+            addCdnToIndex(all_indexes, indexed_document_cdn, index);
+            info += `Uploaded document #${document_number} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}\n`
+        }
+
         all_chunks = all_chunks.concat(indexed_document_chunks);
         all_cdns.push(indexed_document_cdn);
 
-        info += `Uploaded document #${document_number} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}\n`
         document_number +=1;
     }
-    saveIndexes(ctx, all_indexes);
-    info += `Saved Indexes to DB\n`;
+    if (index && index != "") 
+    {
+        saveIndexes(ctx, all_indexes);
+        info += `Saved Indexes to DB\n`;
+    }
+
     info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index} \n`;
     info += `Done`;
 

@@ -7778,7 +7778,6 @@ function getChunksTexts(chunks) {
   }
   return chunk_texts;
 }
-var DEFAULT_INDEX_NAME = "default_index";
 var INDEXES_LIST = "omni_indexes_list";
 async function loadIndexes(ctx) {
   const loadedData = await user_db_get2(ctx, INDEXES_LIST);
@@ -7806,14 +7805,13 @@ async function getDocumentsIndexes(ctx) {
   let indexes = loadedData || null;
   if (!indexes || Object.keys(indexes).length == 0) {
     indexes = {};
-    indexes[DEFAULT_INDEX_NAME] = [];
     await user_db_put2(ctx, indexes, INDEXES_LIST);
   }
   const relevantIndexes = [];
   for (const key in indexes) {
     if (indexes.hasOwnProperty(key)) {
       const value = indexes[key];
-      if (Array.isArray(value) && (value.length > 0 || key == DEFAULT_INDEX_NAME)) {
+      if (Array.isArray(value) && value.length > 0) {
         relevantIndexes.push({ key, length: value.length });
       }
     }
@@ -7830,13 +7828,15 @@ async function getIndexedDocumentInfoFromCdn(ctx, document_cdn) {
     throw new Error(`ERROR: could not get document_json from cdn`);
   return document_info;
 }
-async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents) {
+async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index, indexed_documents) {
   let all_chunks = [];
-  let indexed_document_cdns = readCdnsFromIndex(indexes, index_name);
+  let indexed_document_cdns = [];
+  if (index && index != "")
+    indexed_document_cdns = readCdnsFromIndex(indexes, index);
   if (indexed_documents && Array.isArray(indexed_documents) && indexed_documents.length > 0)
     indexed_document_cdns = indexed_document_cdns.concat(indexed_documents);
   if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false)
-    throw new Error(`[query_chunks_component] Error reading from index ${index_name}`);
+    throw new Error(`Error no documents passed either as an Index or directly.`);
   for (const indexed_document_cdn of indexed_document_cdns) {
     const document_info = await getIndexedDocumentInfoFromCdn(ctx, indexed_document_cdn);
     if (!document_info)
@@ -7863,7 +7863,7 @@ var inputs = [
   { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 0, maximum: 1e6, step: 1 },
   { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 5e5, step: 1 },
   { name: "overwrite", type: "boolean", defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-  { name: "index", defaultValue: DEFAULT_INDEX_NAME, type: "string", description: "All indexed documents sharing the same index will be grouped and queried together" }
+  { name: "index", type: "string", description: "All indexed documents sharing the same index will be grouped and queried together" }
 ];
 var outputs = [
   { name: "info", type: "string", customSocket: "text", description: "Info on the result of the indexation" },
@@ -7883,7 +7883,7 @@ async function indexDocuments_function(payload, ctx) {
   const splitter_model = payload.splitter_model || DEFAULT_SPLITTER_MODEL;
   const chunk_size = payload.chunk_size || DEFAULT_CHUNK_SIZE;
   const chunk_overlap = payload.chunk_overlap || DEFAULT_CHUNK_OVERLAP;
-  const index = payload.index;
+  const index = payload.index || "";
   const hasher = initialize_hasher(hasher_model);
   const splitter = initializeSplitter(splitter_model, chunk_size, chunk_overlap);
   const embedder = await initializeEmbedder(ctx);
@@ -7924,16 +7924,20 @@ async function indexDocuments_function(payload, ctx) {
     }
     if (!indexed_document_cdn)
       throw new Error(`ERROR: could not chunk document #${document_number}, id:${document_id}`);
-    addCdnToIndex(all_indexes, indexed_document_cdn, index);
+    if (index && index != "") {
+      addCdnToIndex(all_indexes, indexed_document_cdn, index);
+      info += `Uploaded document #${document_number} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}
+`;
+    }
     all_chunks = all_chunks.concat(indexed_document_chunks);
     all_cdns.push(indexed_document_cdn);
-    info += `Uploaded document #${document_number} to CDN with fid ${indexed_document_cdn.fid} and id: ${document_id}
-`;
     document_number += 1;
   }
-  saveIndexes(ctx, all_indexes);
-  info += `Saved Indexes to DB
+  if (index && index != "") {
+    saveIndexes(ctx, all_indexes);
+    info += `Saved Indexes to DB
 `;
+  }
   info += `Indexed ${documents_texts.length} documents in ${all_chunks.length} fragments into Index: ${index} 
 `;
   info += `Done`;
@@ -7960,7 +7964,7 @@ async function async_getQueryIndexBruteforceComponent() {
     { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices },
-    { name: "index", type: "string", defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
+    { name: "index", type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" },
     { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate document fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
     { name: "llm_args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
@@ -8099,7 +8103,7 @@ async function async_getQueryIndexComponent() {
     { name: "query", type: "string", customSocket: "text" },
     { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be directly queried instead of being passed as an Index", allowMultiple: true },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: "index", type: "string", defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" }
+    { name: "index", type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" }
   ];
   const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
@@ -8113,15 +8117,20 @@ async function queryIndex(payload, ctx) {
   const query = payload.query;
   const model_id = payload.model_id;
   const indexed_documents = payload.indexed_documents;
-  const index = payload.index;
+  const index = payload.index || "";
   const embedder = await initializeEmbedder(ctx);
   if (!embedder)
     throw new Error(`Cannot initialize embedded`);
   const all_indexes = await loadIndexes(ctx);
   if (!all_indexes)
     throw new Error(`[query_chunks_component] Error loading indexes`);
-  if (index in all_indexes == false)
-    throw new Error(`[query_chunks_component] index ${index} not found in indexes`);
+  if (!index || index == "") {
+    if (!indexed_documents || indexed_documents.length == 0)
+      throw new Error(`Without passing an index, you need to pass at least one document to query`);
+  } else {
+    if (index in all_indexes == false)
+      throw new Error(`Index ${index} not found in indexes`);
+  }
   const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
   if (!vectorstore)

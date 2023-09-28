@@ -96,21 +96,6 @@ function sanitizeIndexName(vectorstore_name)
     return clean_name;
 }
 
-export function getIndexName(existing_name, new_index)
-{
-    const sanitized_new_index = sanitizeIndexName(new_index);
-    
-    let index_name = sanitized_new_index;
-    if ( (!sanitized_new_index || sanitized_new_index.length == 0) && ( existing_name && existing_name.length > 0) )
-    {
-        index_name = existing_name;
-    }
-
-    if (!index_name || index_name.length == 0) index_name = DEFAULT_INDEX_NAME;
-    return index_name;
-}
-
-export const DEFAULT_INDEX_NAME = "default_index";
 const INDEXES_LIST = "omni_indexes_list";
 
 export async function loadIndexes(ctx) 
@@ -179,7 +164,6 @@ export async function getDocumentsIndexes(ctx)
     if (!indexes || Object.keys(indexes).length == 0)
     {
         indexes = {};
-        indexes[DEFAULT_INDEX_NAME] = [];
         await user_db_put(ctx, indexes, INDEXES_LIST);
     }
 
@@ -190,7 +174,7 @@ export async function getDocumentsIndexes(ctx)
         if (indexes.hasOwnProperty(key)) 
         {
             const value = indexes[key];
-            if (Array.isArray(value) && (value.length > 0 || key == DEFAULT_INDEX_NAME) )
+            if (Array.isArray(value) && (value.length > 0) )
             {
                 relevantIndexes.push({ key: key, length: value.length });
             }
@@ -215,13 +199,14 @@ export async function getIndexedDocumentInfoFromCdn(ctx, document_cdn)
   return document_info;
 }
 
-export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index_name, indexed_documents)
+export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index, indexed_documents)
 {
   let all_chunks = [];
 
-  let indexed_document_cdns = readCdnsFromIndex(indexes, index_name);
+  let indexed_document_cdns = [];
+  if (index && index != "") indexed_document_cdns = readCdnsFromIndex(indexes, index);
   if (indexed_documents && Array.isArray(indexed_documents) && indexed_documents.length > 0) indexed_document_cdns = indexed_document_cdns.concat(indexed_documents);
-  if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false) throw new Error(`[query_chunks_component] Error reading from index ${index_name}`);
+  if (!indexed_document_cdns || Array.isArray(indexed_document_cdns) == false) throw new Error(`Error no documents passed either as an Index or directly.`);
 
   for (const indexed_document_cdn of indexed_document_cdns)  
   {

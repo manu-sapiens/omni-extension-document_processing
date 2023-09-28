@@ -6,7 +6,7 @@ import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omni-utils'; //'omnilib-llm
 import { createVectorstoreFromChunks } from './omnilib-docs/vectorstore.js';
 import { smartqueryFromVectorstore } from './smartquery.js';
 import { initializeEmbedder } from './omnilib-docs/embeddings.js';
-import { DEFAULT_INDEX_NAME, loadIndexes, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
+import { loadIndexes, getChunksFromIndexAndIndexedDocuments } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';
 const OPERATION_ID = "query_index";
@@ -35,7 +35,7 @@ async function async_getQueryIndexComponent()
     { name: 'query', type: 'string', customSocket: 'text' },
     { name: 'indexed_documents', title: 'Indexed Documents to Query', type: 'array', customSocket: 'documentArray', description: 'Documents to be directly queried instead of being passed as an Index', allowMultiple: true },
     { name: 'model_id', type: 'string', defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: 'index', type: 'string', defaultValue: DEFAULT_INDEX_NAME, description: "All indexed documents sharing the same Index will be grouped and queried together" },
+    { name: 'index', type: 'string', description: "All indexed documents sharing the same Index will be grouped and queried together" },
   ];
 
   const outputs = [
@@ -55,13 +55,20 @@ async function queryIndex(payload, ctx)
   const query = payload.query;
   const model_id = payload.model_id;
   const indexed_documents = payload.indexed_documents;
-  const index = payload.index;
+  const index = payload.index || "";
   const embedder = await initializeEmbedder(ctx);
   if (!embedder) throw new Error(`Cannot initialize embedded`);
 
   const all_indexes = await loadIndexes(ctx);
   if (!all_indexes) throw new Error(`[query_chunks_component] Error loading indexes`);
-  if (index in all_indexes == false) throw new Error(`[query_chunks_component] index ${index} not found in indexes`);
+  if (!index || index == "" )
+  {
+    if (!indexed_documents || indexed_documents.length == 0) throw new Error(`Without passing an index, you need to pass at least one document to query`);
+  }
+  else
+  {
+    if (index in all_indexes == false) throw new Error(`Index ${index} not found in indexes`);
+  }
 
   const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
