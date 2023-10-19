@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 //@ts-check
 import { console_log, is_valid } from 'omni-utils';//'omnilib-utils/utils.js';
 import { user_db_put, user_db_get } from 'omni-utils';//'omnilib-utils/database.js';

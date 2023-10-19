@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 /*
 import { LanceDB } from "langchain/vectorstores/lancedb";
 import { connect } from "vectordb";

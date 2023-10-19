@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 //@ts-check
 import { queryLlmByModelId, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
 import { console_log,console_warn,is_valid } from 'omni-utils'; //'omnilib-utils/utils.js';

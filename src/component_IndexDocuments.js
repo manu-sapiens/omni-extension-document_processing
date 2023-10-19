@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 //@ts-check
 import { createComponent} from 'omni-utils'; //'omnilib-utils/component.js';
 import { countTokens as countTokensFunction } from 'omni-utils'; //'omnilib-llms/tiktoken.js';

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 // vectorstore_faiss.js
 /*
 import { FaissStore } from "langchain/vectorstores/faiss";

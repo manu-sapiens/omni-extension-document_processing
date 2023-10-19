@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
+ * All rights reserved.
+ */
+
 //@ts-check
 import { Embedder } from './embedder.js';
 import { Embedding_Openai } from './embedding_Openai.js';
