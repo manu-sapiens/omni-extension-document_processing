@@ -2688,12 +2688,10 @@ var require_lib5 = __commonJS({
 });
 
 // component_IndexDocuments.js
-import { createComponent } from "omni-utils";
-import { countTokens as countTokensFunction } from "omni-utils";
-import { downloadTextsFromCdn } from "omni-utils";
+import { createComponent, countTokens as countTokensFunction, downloadTextsFromCdn } from "../../../src/utils/omni-utils.js";
 
 // omnilib-docs/hashers.js
-import { console_log, is_valid } from "omni-utils";
+import { console_log, is_valid } from "../../../src/utils/omni-utils.js";
 
 // omnilib-docs/hasher.js
 var Hasher = class {
@@ -7056,8 +7054,7 @@ var TokenTextSplitter = class extends TextSplitter {
 };
 
 // omnilib-docs/chunking.js
-import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from "omni-utils";
-import { is_valid as is_valid2, console_log as console_log2 } from "omni-utils";
+import { get_cached_cdn, save_chunks_cdn_to_db, save_json_to_cdn_as_buffer, is_valid as is_valid2, console_log as console_log2 } from "../../../src/utils/omni-utils.js";
 var DEFAULT_CHUNK_SIZE = 8092;
 var DEFAULT_CHUNK_OVERLAP = 4096;
 var EMBEDDING_BATCH_SIZE = 10;
@@ -7217,8 +7214,7 @@ function initializeSplitter(splitter_model = DEFAULT_SPLITTER_MODEL, chunk_size 
 }
 
 // omnilib-docs/embedder.js
-import { is_valid as is_valid3, console_log as console_log3 } from "omni-utils";
-import { user_db_put, user_db_get, user_db_delete } from "omni-utils";
+import { is_valid as is_valid3, console_log as console_log3, user_db_put, user_db_get, user_db_delete } from "../../../src/utils/omni-utils.js";
 
 // node_modules/langchain/dist/embeddings/base.js
 var Embeddings = class {
@@ -7304,8 +7300,7 @@ var Embedder = class extends Embeddings {
 };
 
 // omnilib-docs/embedding_Openai.js
-import { is_valid as is_valid4, console_log as console_log4 } from "omni-utils";
-import { runBlock } from "omni-utils";
+import { is_valid as is_valid4, console_log as console_log4, runBlock } from "../../../src/utils/omni-utils.js";
 var Embedding_Openai = class extends Embeddings {
   constructor(ctx, params = null) {
     super(params);
@@ -7389,9 +7384,7 @@ async function initializeEmbedder(ctx) {
 }
 
 // omnilib-docs/vectorstore.js
-import { console_log as console_log5, is_valid as is_valid5 } from "omni-utils";
-import { user_db_put as user_db_put2, user_db_get as user_db_get2 } from "omni-utils";
-import { get_cached_cdn as get_cached_cdn2, save_chunks_cdn_to_db as save_chunks_cdn_to_db2, get_json_from_cdn as get_json_from_cdn2, save_json_to_cdn_as_buffer as save_json_to_cdn_as_buffer2 } from "omni-utils";
+import { is_valid as is_valid5, user_db_put as user_db_put2, user_db_get as user_db_get2, get_cached_cdn as get_cached_cdn2, get_json_from_cdn } from "../../../src/utils/omni-utils.js";
 
 // node_modules/langchain/dist/vectorstores/memory.js
 var import_ml_distance = __toESM(require_lib5(), 1);
@@ -7823,7 +7816,7 @@ async function getIndexedDocumentCdnFromId(ctx, document_id, overwrite = false) 
   return document_cdn;
 }
 async function getIndexedDocumentInfoFromCdn(ctx, document_cdn) {
-  const document_info = await get_json_from_cdn2(ctx, document_cdn);
+  const document_info = await get_json_from_cdn(ctx, document_cdn);
   if (!document_info)
     throw new Error(`ERROR: could not get document_json from cdn`);
   return document_info;
@@ -7946,10 +7939,7 @@ async function indexDocuments_function(payload, ctx) {
 }
 
 // component_QueryIndexBruteforce.js
-import { createComponent as createComponent2 } from "omni-utils";
-import { is_valid as is_valid6, sanitizeJSON, combineStringsWithoutOverlap } from "omni-utils";
-import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from "omni-utils";
-import { getModelNameAndProviderFromId } from "omni-utils";
+import { createComponent as createComponent2, is_valid as is_valid6, sanitizeJSON, combineStringsWithoutOverlap, queryLlmByModelId, getLlmChoices, getModelMaxSize, getModelNameAndProviderFromId } from "../../../src/utils/omni-utils.js";
 var NAMESPACE2 = "document_processing";
 var OPERATION_ID2 = "query_index_bruteforce";
 var TITLE2 = "Query Index (Brute Force)";
@@ -8031,13 +8021,11 @@ async function queryIndexBruteforce(payload, ctx) {
 }
 
 // component_QueryIndex.js
-import { createComponent as createComponent3 } from "omni-utils";
-import { getLlmChoices as getLlmChoices2, DEFAULT_LLM_MODEL_ID } from "omni-utils";
+import { createComponent as createComponent3 } from "../../../src/utils/omni-utils.js";
+import { getLlmChoices as getLlmChoices2, DEFAULT_LLM_MODEL_ID } from "../../../src/utils/omni-utils.js";
 
 // smartquery.js
-import { queryLlmByModelId as queryLlmByModelId2, getModelMaxSize as getModelMaxSize2 } from "omni-utils";
-import { console_log as console_log6, console_warn, is_valid as is_valid7 } from "omni-utils";
-import { getModelNameAndProviderFromId as getModelNameAndProviderFromId2 } from "omni-utils";
+import { queryLlmByModelId as queryLlmByModelId2, getModelMaxSize as getModelMaxSize2, console_log as console_log5, console_warn, is_valid as is_valid7, getModelNameAndProviderFromId as getModelNameAndProviderFromId2 } from "../../../src/utils/omni-utils.js";
 async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
   const splits = getModelNameAndProviderFromId2(model_id);
   const model_name = splits.model_name;
@@ -8052,7 +8040,7 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
   for (let i = 0; i < vectorstore_responses.length; i++) {
     const vectorestore_response_array = vectorstore_responses[i];
     const [vectorstore_response, score] = vectorestore_response_array;
-    console_log6(`vectorstore_responses[${i}] score = ${score}`);
+    console_log5(`vectorstore_responses[${i}] score = ${score}`);
     const chunk = vectorstore_response?.metadata;
     const chunk_id = chunk?.id;
     if (already_used_ids[chunk_id] == true)
@@ -8141,7 +8129,7 @@ async function queryIndex(payload, ctx) {
 }
 
 // component_GetDocumentsIndexes.js
-import { createComponent as createComponent4 } from "omni-utils";
+import { createComponent as createComponent4 } from "../../../src/utils/omni-utils.js";
 var NAMESPACE4 = "document_processing";
 var OPERATION_ID4 = "get_documents_indexes";
 var TITLE4 = "Get Documents Indexes";

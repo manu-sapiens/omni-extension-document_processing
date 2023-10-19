@@ -1,5 +1,5 @@
 //@ts-check
-import { console_log, is_valid } from 'omni-utils';//'omnilib-utils/utils.js';
+import { console_log, is_valid } from '../../../../src/utils/omni-utils';
 
 import { Hasher_SHA256 } from "./hasher_SHA256.js";
 

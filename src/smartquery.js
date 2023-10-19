@@ -1,7 +1,5 @@
 //@ts-check
-import { queryLlmByModelId, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
-import { console_log,console_warn,is_valid } from 'omni-utils'; //'omnilib-utils/utils.js';
-import { getModelNameAndProviderFromId } from 'omni-utils'; //'omnilib-llms/llm.js'
+import { queryLlmByModelId, getModelMaxSize, console_log,console_warn,is_valid, getModelNameAndProviderFromId } from '../../../src/utils/omni-utils.js';
 
 import { queryVectorstore } from './omnilib-docs/vectorstore.js';
 

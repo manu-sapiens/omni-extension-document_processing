@@ -1,7 +1,5 @@
 //@ts-check
-import { get_cached_cdn, save_chunks_cdn_to_db, get_json_from_cdn, save_json_to_cdn_as_buffer } from 'omni-utils';//'omnilib-utils/cdn.js';
-import { is_valid, console_log } from 'omni-utils';//'omnilib-utils/utils.js';
-
+import { get_cached_cdn, save_chunks_cdn_to_db, save_json_to_cdn_as_buffer, is_valid, console_log } from '../../../../src/utils/omni-utils'
 import { computeChunkId, computeDocumentId } from './hashers.js';
 
 const DEFAULT_CHUNK_SIZE = 8092;

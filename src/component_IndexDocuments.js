@@ -1,7 +1,5 @@
 //@ts-check
-import { createComponent} from 'omni-utils'; //'omnilib-utils/component.js';
-import { countTokens as countTokensFunction } from 'omni-utils'; //'omnilib-llms/tiktoken.js';
-import { downloadTextsFromCdn } from 'omni-utils'; //'omnilib-utils/cdn.js';
+import { createComponent, countTokens as countTokensFunction, downloadTextsFromCdn } from '../../../src/utils/omni-utils.js';
 
 import { initialize_hasher, computeDocumentId } from './omnilib-docs/hashers.js';
 import { initializeSplitter, getSplitterChoices } from './omnilib-docs/splitter.js';

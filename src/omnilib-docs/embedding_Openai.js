@@ -1,6 +1,5 @@
 //@ts-check
-import { is_valid, console_log } from 'omni-utils';//'omnilib-utils/utils.js';
-import { runBlock } from 'omni-utils';//'omnilib-utils/blocks.js';
+import { is_valid, console_log , runBlock } from '../../../../src/utils/omni-utils';
 
 import { Embeddings } from "langchain/embeddings/base";
 
