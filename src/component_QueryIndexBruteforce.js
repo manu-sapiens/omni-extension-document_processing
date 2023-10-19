@@ -4,11 +4,7 @@
  */
 
 //@ts-check
-import { createComponent } from 'omni-utils'; //'omnilib-utils/component.js';
-import { is_valid, sanitizeJSON, combineStringsWithoutOverlap } from 'omni-utils'; //'omnilib-utils/utils.js';
-import { queryLlmByModelId, getLlmChoices, getModelMaxSize } from 'omni-utils'; //'omnilib-llms/llms.js';
-import { getModelNameAndProviderFromId } from 'omni-utils'; //'omnilib-llms/llm.js';
-
+import { createComponent, is_valid, sanitizeJSON, combineStringsWithoutOverlap, queryLlmByModelId, getLlmChoices, getModelMaxSize, getModelNameAndProviderFromId } from '../../../src/utils/omni-utils.js';
 import {  getChunksFromIndexAndIndexedDocuments, loadIndexes } from './omnilib-docs/vectorstore.js';
 
 const NAMESPACE = 'document_processing';;

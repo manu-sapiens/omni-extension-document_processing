@@ -5,8 +5,8 @@
 
 //@ts-check
 // QueryChunksComponent.js
-import { createComponent } from 'omni-utils'; //'omnilib-utils/component.js';
-import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from 'omni-utils'; //'omnilib-llms/llms.js';
+import { createComponent } from '../../../src/utils/omni-utils';
+import { getLlmChoices, DEFAULT_LLM_MODEL_ID } from '../../../src/utils/omni-utils';
 
 import { createVectorstoreFromChunks } from './omnilib-docs/vectorstore.js';
 import { smartqueryFromVectorstore } from './smartquery.js';
