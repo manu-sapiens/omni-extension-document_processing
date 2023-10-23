@@ -29,7 +29,7 @@ const inputs = [
     { name: 'chunk_size', type: 'number', defaultValue: 4096, minimum: 0, maximum:1000000, step:1 },
     { name: 'chunk_overlap', type: 'number', defaultValue: 512, minimum: 0, maximum:500000, step:1 },
     { name: 'overwrite', type: 'boolean', defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-    { name: 'index', type: 'string', description: "All indexed documents sharing the same index will be grouped and queried together"},
+    { name: 'index', title: 'Save to Index:', type: 'string', description: "All indexed documents sharing the same index will be grouped and queried together"},
   ];
 
 const outputs = [
@@ -123,7 +123,7 @@ async function indexDocuments_function(payload, ctx)
     }
     if (index && index != "") 
     {
-        saveIndexes(ctx, all_indexes);
+        await saveIndexes(ctx, all_indexes);
         info += `Saved Indexes to DB\n`;
     }
 

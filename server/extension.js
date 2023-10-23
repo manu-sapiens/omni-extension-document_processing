@@ -1,8 +1,3 @@
-/**
- * Copyright (c) 2023 MERCENARIES.AI PTE. LTD.
- * All rights reserved.
- */
-
 
 await(async()=>{let{dirname:e}=await import("path"),{fileURLToPath:i}=await import("url");if(typeof globalThis.__filename>"u"&&(globalThis.__filename=i(import.meta.url)),typeof globalThis.__dirname>"u"&&(globalThis.__dirname=e(globalThis.__filename)),typeof globalThis.require>"u"){let{default:a}=await import("module");globalThis.require=a.createRequire(import.meta.url)}})();
 
@@ -7844,7 +7839,21 @@ async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index, indexe
       continue;
     all_chunks = all_chunks.concat(indexed_document_chunks);
   }
-  return all_chunks;
+  const already_used_ids = {};
+  const chunks = [];
+  for (const chunk of all_chunks) {
+    const chunk_id = chunk?.id;
+    if (already_used_ids[chunk_id]) {
+      continue;
+    }
+    already_used_ids[chunk_id] = true;
+    const text = chunk?.text;
+    if (!is_valid5(text)) {
+      continue;
+    }
+    chunks.push(chunk);
+  }
+  return chunks;
 }
 
 // component_IndexDocuments.js
@@ -7861,7 +7870,7 @@ var inputs = [
   { name: "chunk_size", type: "number", defaultValue: 4096, minimum: 0, maximum: 1e6, step: 1 },
   { name: "chunk_overlap", type: "number", defaultValue: 512, minimum: 0, maximum: 5e5, step: 1 },
   { name: "overwrite", type: "boolean", defaultValue: false, description: "If set to true, will overwrite existing matching documents" },
-  { name: "index", type: "string", description: "All indexed documents sharing the same index will be grouped and queried together" }
+  { name: "index", title: "Save to Index:", type: "string", description: "All indexed documents sharing the same index will be grouped and queried together" }
 ];
 var outputs = [
   { name: "info", type: "string", customSocket: "text", description: "Info on the result of the indexation" },
@@ -7932,7 +7941,7 @@ async function indexDocuments_function(payload, ctx) {
     document_number += 1;
   }
   if (index && index != "") {
-    saveIndexes(ctx, all_indexes);
+    await saveIndexes(ctx, all_indexes);
     info += `Saved Indexes to DB
 `;
   }
@@ -7956,16 +7965,17 @@ async function async_getQueryIndexBruteforceComponent() {
   const links3 = {};
   const inputs3 = [
     { name: "indexed_documents", type: "array", customSocket: "documentArray", description: "Documents to be processed" },
-    { name: "instruction", type: "string", description: "Instruction(s)", defaultValue: "You are a helpful bot answering the user with their question to the best of your abilities", customSocket: "text" },
+    { name: "query", type: "string", description: "The query", customSocket: "text" },
     { name: "temperature", type: "number", defaultValue: 0 },
     { name: "model_id", title: "model", type: "string", defaultValue: "gpt-3.5-turbo-16k|openai", choices: llm_choices },
-    { name: "index", type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" },
-    { name: "chunk_size", type: "number", defaultValue: 0, minimum: 0, maximum: 1e6, step: 1, description: "If set to a positive number, will concatenate document fragments to fit within that size (in tokens). If set to 0, will try to use the maximum size of the model (with some margin)" },
+    { name: "index", title: "Read from Index:", type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" },
+    { name: "context_size", type: "number", defaultValue: 4096, choices: [0, 2048, 4096, 8192, 16384, 32768, 1e5], description: "If set > 0, will concatenate document fragments to fit within that the specify token context size (with some margin)" },
     { name: "llm_args", type: "object", customSocket: "object", description: "Extra arguments provided to the LLM" }
   ];
   const outputs3 = [
     { name: "answer", type: "string", customSocket: "text", description: "The answer to the query or prompt", title: "Answer" },
-    { name: "json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" }
+    { name: "json", type: "object", customSocket: "object", description: "The answer in json format, with possibly extra arguments returned by the LLM", title: "Json" },
+    { name: "info", type: "string", customSocket: "text", description: "Information about the block's operation" }
   ];
   const controls3 = null;
   const component = createComponent2(NAMESPACE2, OPERATION_ID2, TITLE2, CATEGORY2, DESCRIPTION2, SUMMARY2, links3, inputs3, outputs3, controls3, queryIndexBruteforce);
@@ -7976,69 +7986,94 @@ async function queryIndexBruteforce(payload, ctx) {
   const indexed_documents = payload.indexed_documents;
   const index = payload.index;
   const all_indexes = await loadIndexes(ctx);
-  const instruction = payload.instruction;
+  const query = payload.query;
   const temperature = payload.temperature;
   const model_id = payload.model_id;
-  const chunk_size = payload.chunk_size;
+  const context_size = payload.context_size;
   const llm_args = payload.llm_args;
-  const splits = getModelNameAndProviderFromId(model_id);
-  const model_name = splits.model_name;
-  let max_size = chunk_size;
-  if (chunk_size == 0) {
-    max_size = getModelMaxSize(model_name);
-  } else if (chunk_size > 0) {
-    max_size = Math.min(chunk_size, getModelMaxSize(model_name));
-  }
+  let info = "";
+  const max_size = context_size * 0.9;
+  info += `Using a max_size of ${max_size} tokens.  
+|`;
   const chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
   let chunk_index = 0;
   let total_token_cost = 0;
   let combined_text = "";
   let llm_results = [];
-  let answer_text = "";
+  let answer = "";
+  const instruction = "Based on the user's prompt, answer the following question to the best of your abilities: " + query;
   for (const chunk of chunks) {
-    const text = chunk?.text;
-    if (!is_valid6(text))
-      continue;
+    const is_last_index = chunk_index == chunks.length - 1;
+    const chunk_text = chunk?.text;
+    const chunk_id = chunk?.id;
     const token_cost = chunk.token_count;
     const can_fit = total_token_cost + token_cost <= max_size;
-    const is_last_index = chunk_index == chunks.length - 1;
     if (can_fit) {
-      combined_text = combineStringsWithoutOverlap(combined_text, text);
+      combined_text = combineStringsWithoutOverlap(combined_text, chunk_text);
       total_token_cost += token_cost;
-    }
-    if (!can_fit || is_last_index) {
-      const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, llm_args);
-      const sanetized_results = sanitizeJSON(gpt_results);
-      const chunk_result = { text: sanetized_results?.answer_text || "", function_arguments_string: sanetized_results?.answer_json?.function_arguments_string, function_arguments: sanetized_results?.answer_json?.function_arguments };
-      llm_results.push(chunk_result);
-      const answer = chunk_result.text;
-      if (answer && answer.length > 0) {
-        answer_text += answer + "\n\n";
+      info += `Combining chunks.  chunk_id: ${chunk_id}, Token cost: ${total_token_cost}.  
+|`;
+    } else {
+      info += `Processing Block #${chunk_index - 1}.  
+|`;
+      const partial_result = await sendToLLM(ctx, combined_text, instruction, model_id, temperature, llm_args);
+      const text = partial_result.text;
+      llm_results.push(partial_result);
+      if (text && text.length > 0) {
+        answer += text + "   \n\n";
+        info += `Answer: ${text}.  
+|`;
       }
-      combined_text = text;
+      combined_text = chunk_text;
       total_token_cost = token_cost;
+    }
+    if (is_last_index) {
+      info += `Processing Block #${chunk_index}.  
+|`;
+      const partial_result = await sendToLLM(ctx, combined_text, instruction, model_id, temperature, llm_args);
+      const text = partial_result.text;
+      llm_results.push(partial_result);
+      if (text && text.length > 0) {
+        answer += text + "   \n\n";
+        info += `Answer: ${text}.  
+|`;
+      }
     }
     chunk_index += 1;
   }
-  const response = { result: { "ok": true }, answer: answer_text, json: { "answers": llm_results } };
+  const json = { "answers": llm_results };
+  const response = { result: { "ok": true }, answer, json, info };
   console.timeEnd("queryIndexBruteforce");
   return response;
+}
+async function sendToLLM(ctx, combined_text, instruction, model_id, temperature, llm_args) {
+  const gpt_results = await queryLlmByModelId(ctx, combined_text, instruction, model_id, temperature, llm_args);
+  const sanetized_results = sanitizeJSON(gpt_results);
+  const text = sanetized_results?.answer_text || "";
+  const function_arguments_string = sanetized_results?.answer_json?.function_arguments_string;
+  const function_arguments = sanetized_results?.answer_json?.function_arguments;
+  const result = { text, function_arguments_string, function_arguments };
+  return result;
 }
 
 // component_QueryIndex.js
 import { createComponent as createComponent3 } from "../../../src/utils/omni-utils.js";
-import { getLlmChoices as getLlmChoices2, DEFAULT_LLM_MODEL_ID } from "../../../src/utils/omni-utils.js";
+import { getLlmChoices as getLlmChoices2, is_valid as is_valid8, getModelMaxSize as getModelMaxSize3, getModelNameAndProviderFromId as getModelNameAndProviderFromId3, DEFAULT_LLM_MODEL_ID } from "../../../src/utils/omni-utils.js";
 
 // smartquery.js
 import { queryLlmByModelId as queryLlmByModelId2, getModelMaxSize as getModelMaxSize2, console_log as console_log5, console_warn, is_valid as is_valid7, getModelNameAndProviderFromId as getModelNameAndProviderFromId2 } from "../../../src/utils/omni-utils.js";
-async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id) {
+async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id, max_size, provide_citation) {
+  let info = "";
   const splits = getModelNameAndProviderFromId2(model_id);
   const model_name = splits.model_name;
+  info += `smartquery: model_name = ${model_name}
+|  `;
   if (is_valid7(query) == false)
     throw new Error(`ERROR: query is invalid`);
   let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
   let total_tokens = 0;
-  let max_size = getModelMaxSize2(model_name) * 0.8;
+  info += `using: max_size = ${max_size}
+|  `;
   let combined_text = "";
   let text_json = [];
   const already_used_ids = {};
@@ -8048,8 +8083,11 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
     console_log5(`vectorstore_responses[${i}] score = ${score}`);
     const chunk = vectorstore_response?.metadata;
     const chunk_id = chunk?.id;
-    if (already_used_ids[chunk_id] == true)
+    if (already_used_ids[chunk_id] == true) {
+      info += `already used: chunk_id = ${chunk_id}. Skipping it
+|  `;
       continue;
+    }
     already_used_ids[chunk_id] = true;
     const raw_text = vectorstore_response?.pageContent;
     const chunk_source = chunk?.source;
@@ -8059,23 +8097,45 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
     if (total_tokens + token_cost > max_size)
       break;
     total_tokens += token_cost;
+    info += `processing: chunk_id = ${chunk_id}. token_cost = ${token_cost}. total_tokens = ${total_tokens}. 
+|  `;
   }
-  combined_text = JSON.stringify(text_json);
   console_warn(`combined_text = 
 ${combined_text}`);
-  const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment_id you use in your answer. For example, say 'Alice is married to Bob [fragment_id] and they have one son [fragment_id]`;
-  const prompt = `Document Json:
+  info += `combined_text: ${combined_text}
+|  `;
+  let instruction = "";
+  let prompt = "";
+  if (provide_citation) {
+    combined_text = JSON.stringify(text_json);
+    instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment_id you use in your answer. For example, say 'Alice is married to Bob [fragment_id] and they have one son [fragment_id]`;
+    prompt = `Document Json:
 ${combined_text}
 User's question: ${query}`;
+  } else {
+    for (const json_entry of text_json) {
+      combined_text += json_entry.fragment_text + "\n\n";
+    }
+    instruction = `Based on the provided document fragments, answer the user' question.`;
+    prompt = `Document Json:
+${combined_text}
+User's question: ${query}`;
+  }
+  info += `provide_citation: ${provide_citation}.
+|  `;
+  info += `instruction: ${instruction}.
+|  `;
+  info += `prompt: ${prompt}.
+|  `;
   const response = await queryLlmByModelId2(ctx, prompt, instruction, model_id);
-  const answer_text = response?.answer_text || null;
-  if (is_valid7(answer_text) == false)
+  const answer = response?.answer_text || null;
+  if (is_valid7(answer) == false)
     throw new Error(`ERROR: query_answer is invalid`);
   console_warn(`instruction = 
 ${instruction}`);
   console_warn(`prompt = 
 ${prompt}`);
-  return answer_text;
+  return { answer, info };
 }
 
 // component_QueryIndex.js
@@ -8096,10 +8156,13 @@ async function async_getQueryIndexComponent() {
     { name: "query", type: "string", customSocket: "text" },
     { name: "indexed_documents", title: "Indexed Documents to Query", type: "array", customSocket: "documentArray", description: "Documents to be directly queried instead of being passed as an Index", allowMultiple: true },
     { name: "model_id", type: "string", defaultValue: DEFAULT_LLM_MODEL_ID, choices: llm_choices },
-    { name: "index", type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" }
+    { name: "index", title: `Read from Index:`, type: "string", description: "All indexed documents sharing the same Index will be grouped and queried together" },
+    { name: "context_size", type: "number", defaultValue: 4096, choices: [0, 2048, 4096, 8192, 16384, 32768, 1e5], description: "If set > 0, the size of the context window (in token) to use to process the query. If 0, try to use the model max_size automatically." },
+    { name: "provide_citation", type: "boolean", defaultValue: false }
   ];
   const outputs3 = [
-    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" }
+    { name: "answer", type: "string", customSocket: "text", description: "The answer to the query", title: "Answer" },
+    { name: "info", type: "string", customSocket: "text", description: "Information about the block's operation" }
   ];
   const controls3 = null;
   const component = createComponent3(NAMESPACE3, OPERATION_ID3, TITLE3, CATEGORY3, DESCRIPTION3, SUMMARY3, links3, inputs3, outputs3, controls3, queryIndex);
@@ -8107,10 +8170,19 @@ async function async_getQueryIndexComponent() {
 }
 async function queryIndex(payload, ctx) {
   console.time("queryIndex");
+  let info = "queryIndex.\n|  ";
   const query = payload.query;
   const model_id = payload.model_id;
   const indexed_documents = payload.indexed_documents;
   const index = payload.index || "";
+  const context_size = payload.context_size;
+  const provide_citation = payload.provide_citation;
+  let max_size = context_size * 0.9;
+  if (context_size == 0) {
+    const splits = getModelNameAndProviderFromId3(model_id);
+    const model_name = splits.model_name;
+    max_size = getModelMaxSize3(model_name, false) * 0.9;
+  }
   const embedder = await initializeEmbedder(ctx);
   if (!embedder)
     throw new Error(`Cannot initialize embedded`);
@@ -8118,19 +8190,26 @@ async function queryIndex(payload, ctx) {
   if (!all_indexes)
     throw new Error(`[query_chunks_component] Error loading indexes`);
   if (!index || index == "") {
-    if (!indexed_documents || indexed_documents.length == 0)
+    info += `WARNING: No index used.
+|  `;
+    if (!is_valid8(indexed_documents))
       throw new Error(`Without passing an index, you need to pass at least one document to query`);
   } else {
     if (index in all_indexes == false)
       throw new Error(`Index ${index} not found in indexes`);
   }
   const all_chunks = await getChunksFromIndexAndIndexedDocuments(ctx, all_indexes, index, indexed_documents);
+  if (!is_valid8(all_chunks))
+    throw new Error(`No fragments returned from index ${index} or documents ${indexed_documents}`);
   const vectorstore = await createVectorstoreFromChunks(all_chunks, embedder);
   if (!vectorstore)
     throw new Error(`ERROR: could not compute Index ${index} from ${all_chunks.length} fragments`);
-  const query_result = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id);
+  const answer_json = await smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id, max_size, provide_citation);
+  const answer = answer_json.answer;
+  const new_info = answer_json.info;
+  info += new_info;
   console.timeEnd("queryIndex");
-  return { result: { "ok": true }, answer: query_result };
+  return { result: { "ok": true }, answer, info };
 }
 
 // component_GetDocumentsIndexes.js
@@ -8154,14 +8233,16 @@ async function getDocumentsIndexes_function(payload, ctx) {
   let indexes_info = await getDocumentsIndexes(ctx);
   if (!indexes_info)
     return { result: { "ok": false }, indexes: [] };
-  let indexes = [];
-  let info = `Indexes in the database: ${indexes_info.length}, 
+  let index_list = [];
+  let info = `Indexes in the database: ${indexes_info.length}
+  ---  
 `;
   for (const index of indexes_info) {
-    indexes.push(index.key);
-    info += `${index.key} : ${index.length} documents, 
-`;
+    index_list.push(index.key);
+    info += `${index.key} [${index.length}]
+|  `;
   }
+  const indexes = { "indexes": index_list };
   return { result: { "ok": true }, indexes, info };
 }
 

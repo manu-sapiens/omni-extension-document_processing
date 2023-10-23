@@ -8,10 +8,13 @@ import { queryLlmByModelId, getModelMaxSize, console_log,console_warn,is_valid, 
 
 import { queryVectorstore } from './omnilib-docs/vectorstore.js';
 
-async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id)
+async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, model_id, max_size, provide_citation)
 {
+    let info = "";
     const splits = getModelNameAndProviderFromId(model_id);
     const model_name = splits.model_name;
+
+    info +=  `smartquery: model_name = ${model_name}\n|  `;
 
     if (is_valid(query) == false) throw new Error(`ERROR: query is invalid`);
     let vectorstore_responses = await queryVectorstore(vectorstore, query, 10, embedder);
@@ -19,7 +22,7 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
 
     let total_tokens = 0;
 
-    let max_size = getModelMaxSize(model_name) * 0.8; // taking some margin for the instructions
+    info +=  `using: max_size = ${max_size}\n|  `;
 
     let combined_text = "";
     let text_json = [];
@@ -35,7 +38,12 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
         const chunk = vectorstore_response?.metadata;
         const chunk_id = chunk?.id;
         
-        if (already_used_ids[chunk_id] == true) continue;
+        if (already_used_ids[chunk_id] == true) 
+        {
+            info +=  `already used: chunk_id = ${chunk_id}. Skipping it\n|  `;
+            continue;
+        }
+
         already_used_ids[chunk_id] = true;
 
         const raw_text = vectorstore_response?.pageContent;
@@ -47,21 +55,44 @@ async function smartqueryFromVectorstore(ctx, vectorstore, query, embedder, mode
         const token_cost = chunk?.token_count + 50;
         if (total_tokens + token_cost > max_size) break;
         total_tokens += token_cost;
+        info +=  `processing: chunk_id = ${chunk_id}. token_cost = ${token_cost}. total_tokens = ${total_tokens}. \n|  `;
+
     }
 
-    combined_text = JSON.stringify(text_json);
     console_warn(`combined_text = \n${combined_text}`);
 
-    const instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment_id you use in your answer. For example, say 'Alice is married to Bob [fragment_id] and they have one son [fragment_id]`;
-    const prompt = `Document Json:\n${combined_text}\nUser's question: ${query}`;
+    info +=  `combined_text: ${combined_text}\n|  `;
     
+    let instruction = "";
+    let prompt = "";
+    if (provide_citation)
+    {
+        combined_text = JSON.stringify(text_json);
+        instruction = `Based on the provided document fragments, answer the user' question and provide citations to each fragment_id you use in your answer. For example, say 'Alice is married to Bob [fragment_id] and they have one son [fragment_id]`;
+        prompt = `Document Json:\n${combined_text}\nUser's question: ${query}`;
+    }
+    else
+    {
+        for (const json_entry of text_json)
+        {
+            combined_text += json_entry.fragment_text +"\n\n";
+        }
+
+        instruction = `Based on the provided document fragments, answer the user' question.`;
+        prompt = `Document Json:\n${combined_text}\nUser's question: ${query}`;
+    }
+
+    info += `provide_citation: ${provide_citation}.\n|  `;    
+    info += `instruction: ${instruction}.\n|  `;
+    info += `prompt: ${prompt}.\n|  `;
+
     const response = await queryLlmByModelId(ctx, prompt, instruction, model_id);
-    const answer_text = response?.answer_text || null;
-    if (is_valid(answer_text) == false) throw new Error(`ERROR: query_answer is invalid`);
+    const answer = response?.answer_text || null;
+    if (is_valid(answer) == false) throw new Error(`ERROR: query_answer is invalid`);
 
     console_warn(`instruction = \n${instruction}`);
     console_warn(`prompt = \n${prompt}`);
-    return answer_text;
+    return {answer, info};
 }
 
 export {smartqueryFromVectorstore}

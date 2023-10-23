@@ -34,14 +34,15 @@ async function getDocumentsIndexes_function(payload, ctx)
     let indexes_info = await getDocumentsIndexes(ctx);
     if (!indexes_info)  return { result: { "ok": false }, indexes: []};
 
-    let indexes = [];
-    let info = `Indexes in the database: ${indexes_info.length}, \n`;
+    let index_list = [];
+    let info = `Indexes in the database: ${indexes_info.length}\n  ---  \n`;
     for (const index of indexes_info)
     {
-        indexes.push(index.key);
-        info += `${index.key} : ${index.length} documents, \n`;
+        index_list.push(index.key);
+        info += `${index.key} [${index.length}]\n|  `;
     }
 
+    const indexes = {"indexes": index_list};
     return { result: { "ok": true }, indexes, info };
 }
 

@@ -221,7 +221,27 @@ export async function getChunksFromIndexAndIndexedDocuments(ctx, indexes, index,
     all_chunks = all_chunks.concat(indexed_document_chunks);
   }
 
-  return all_chunks;
+  const already_used_ids = {};
+  const chunks = [];
+  for (const chunk of all_chunks)
+  {
+      const chunk_id = chunk?.id;
+      if (already_used_ids[chunk_id])
+      {
+          continue;
+      }
+      already_used_ids[chunk_id] = true;
+
+      const text = chunk?.text;
+      if (!is_valid(text))
+      { 
+          continue;
+      }
+
+      chunks.push(chunk)
+  }
+
+  return chunks;
 }
 
 
