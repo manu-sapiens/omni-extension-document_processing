@@ -2,7 +2,7 @@ title: Document Processing
 version: 0.0.1
 description: An extension to process documents (e.g. chunk, query or feed to a llm)
 author: Emmanuel Lusinchi
-origin: https://github.com/manu-sapiens/omni-extension-document_processing.git
+origin: https://github.com/omnitool-community/omni-extension-document_processing.git
 client:
   addToWorkbench: false
 supports:
